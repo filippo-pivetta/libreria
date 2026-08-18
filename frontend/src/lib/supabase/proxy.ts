@@ -44,9 +44,40 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Nessuna logica di autorizzazione qui: solo il refresh del token.
-  // Le regole su chi vede cosa vivono nel database (RLS), non nel middleware.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Redirect di rotta, non un confine di sicurezza: quale dato ciascuno
+  // vede resta deciso dalla RLS nel database (docs/adr/0001), non da
+  // questo controllo. Qui si evita solo di mostrare la shell dell'area
+  // protetta a chi non ha una sessione, e di rimandare al login chi ce
+  // l'ha già. Il layout dell'area protetta ripete comunque il controllo
+  // lato server come seconda linea, nel caso il matcher sotto non copra
+  // una rotta futura.
+  const isPublicRoute = request.nextUrl.pathname === "/login";
+
+  if (!user && !isPublicRoute) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return withRefreshedCookies(NextResponse.redirect(loginUrl), supabaseResponse);
+  }
+
+  if (user && isPublicRoute) {
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/";
+    return withRefreshedCookies(NextResponse.redirect(homeUrl), supabaseResponse);
+  }
 
   return supabaseResponse;
+}
+
+// Un redirect è una NextResponse nuova: senza ricopiare qui i cookie di
+// sessione eventualmente rinnovati da `setAll` sopra, il refresh del
+// token andrebbe perso su questo hop (non l'utente disconnesso: solo un
+// giro di richiesta in più prima che il cookie aggiornato arrivi al
+// browser).
+function withRefreshedCookies(response: NextResponse, source: NextResponse) {
+  source.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
+  return response;
 }
