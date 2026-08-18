@@ -1,0 +1,44 @@
+[project]
+name = "montaigne-backend"
+version = "0.1.0"
+description = "Backend FastAPI di Montaigne, organizzato a strati (routers/services/repositories/models/schemas/core)."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "pydantic-settings>=2.4,<3.0",
+    "supabase>=2.7,<3.0",
+    "psycopg[binary]>=3.2,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9.0",
+    "pytest-cov>=5.0,<6.0",
+    "httpx>=0.27,<1.0",
+    "ruff>=0.6,<1.0",
+    "mypy>=1.11,<2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+exclude = ["tests/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

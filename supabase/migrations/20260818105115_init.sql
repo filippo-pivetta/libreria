@@ -1,0 +1,3 @@
+-- Migrazione iniziale vuota.
+-- Lo schema applicativo vive nelle migrazioni future in questa cartella
+-- (supabase/migrations/): nessuna tabella di dominio è ancora definita.
