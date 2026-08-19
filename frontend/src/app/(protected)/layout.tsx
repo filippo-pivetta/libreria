@@ -43,7 +43,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   if (me.status !== "ok") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6">
+      <div className="plane-0-lit flex min-h-screen flex-col items-center justify-center gap-4 p-6">
         <div className="w-full max-w-sm">
           <ErrorState title="Qualcosa è andato storto" message={me.message} />
         </div>
@@ -53,9 +53,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <ProtectedNav nomeUtente={me.data.nomeUtente} />
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6">{children}</main>
+    <div className="plane-0-lit flex min-h-screen flex-col">
+      <ProtectedNav userName={me.data.nomeUtente} />
+      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">{children}</main>
     </div>
   );
 }

@@ -1,10 +1,13 @@
 /**
- * Sentenze di Montaigne per la schermata d'accesso (design doc §1, fix
- * del 19 agosto 2026): "Chi entra ogni giorno legge una frase incisa
- * sopra la porta". Dieci massime note dei Saggi, di pubblico dominio;
- * se ne mostra una a caso a ogni caricamento — vedi LoginPage.
+ * Montaigne quotes for the login screen (design doc §1, fix of Aug 19,
+ * 2026): "whoever comes in every day reads a line carved above the
+ * door". Ten well-known maxims from the Essais, public domain; one is
+ * shown at random on each load — see LoginPage. Left in Italian: this is
+ * user-facing literary content, the interface's current language, not
+ * code — translating the quotes themselves is a product decision, not
+ * this file's job.
  */
-export const SENTENZE_MONTAIGNE = [
+export const QUOTES = [
   "So che cosa fuggo, ma non so che cosa cerco.",
   "Il valore più grande è vivere a proposito.",
   "Non insegniamo a vivere, insegniamo a discorrere.",

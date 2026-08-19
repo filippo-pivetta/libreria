@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "type-check": "next typegen && tsc --noEmit"
+    "type-check": "next typegen && tsc --noEmit",
+    "tokens": "tsx scripts/build-tokens.mts",
+    "check:contrast": "tsx scripts/check-contrast.mts",
+    "prebuild": "npm run tokens"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -34,6 +37,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

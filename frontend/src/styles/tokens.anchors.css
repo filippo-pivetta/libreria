@@ -1,0 +1,71 @@
+/* GENERATO DA scripts/build-tokens.mts. NON MODIFICARE A MANO.
+   La sorgente di verità è ANCHORS in src/lib/light.ts.
+
+   Il server calcola il valore INTERPOLATO fra i due ancoraggi adiacenti e lo
+   inietta come style inline su <html>, che vince su questi blocchi. Restano
+   come fallback e come stato di partenza per l'idratazione.
+
+   Non esistono un tema chiaro e un tema scuro: esiste una stanza che dal
+   mattino alla notte si scurisce. Questi sono quattro momenti della stessa
+   stanza, non quattro temi. */
+
+:root,
+[data-light="giorno"] {
+  --raw-surface-0:     oklch(0.912 0.014 78);
+  --raw-surface-1:     oklch(0.965 0.01 84);
+  --raw-surface-2:     oklch(0.985 0.008 86);
+  --raw-ink:           oklch(0.255 0.022 58);
+  --raw-ink-soft:      oklch(0.455 0.018 62);
+  --raw-accent:        oklch(0.635 0.105 76);
+  --raw-accent-strong: oklch(0.47 0.1 72);
+  --raw-alert:         oklch(0.545 0.17 27);
+  --raw-lamp:          oklch(0.985 0.03 85 / 0.55);
+  --shadow-alpha-1: 0.18;
+  --shadow-alpha-2: 0.28;
+  --cover-veil: 0;
+}
+
+[data-light="alba"] {
+  --raw-surface-0:     oklch(0.885 0.02 55);
+  --raw-surface-1:     oklch(0.95 0.014 60);
+  --raw-surface-2:     oklch(0.975 0.012 62);
+  --raw-ink:           oklch(0.27 0.024 45);
+  --raw-ink-soft:      oklch(0.455 0.02 50);
+  --raw-accent:        oklch(0.62 0.115 55);
+  --raw-accent-strong: oklch(0.47 0.11 58);
+  --raw-alert:         oklch(0.53 0.17 27);
+  --raw-lamp:          oklch(0.96 0.045 50 / 0.5);
+  --shadow-alpha-1: 0.16;
+  --shadow-alpha-2: 0.24;
+  --cover-veil: 0;
+}
+
+[data-light="tramonto"] {
+  --raw-surface-0:     oklch(0.855 0.028 62);
+  --raw-surface-1:     oklch(0.93 0.02 68);
+  --raw-surface-2:     oklch(0.955 0.016 70);
+  --raw-ink:           oklch(0.265 0.026 50);
+  --raw-ink-soft:      oklch(0.445 0.022 55);
+  --raw-accent:        oklch(0.63 0.125 62);
+  --raw-accent-strong: oklch(0.455 0.115 62);
+  --raw-alert:         oklch(0.535 0.17 27);
+  --raw-lamp:          oklch(0.93 0.06 58 / 0.62);
+  --shadow-alpha-1: 0.2;
+  --shadow-alpha-2: 0.32;
+  --cover-veil: 0.04;
+}
+
+[data-light="notte"] {
+  --raw-surface-0:     oklch(0.185 0.016 66);
+  --raw-surface-1:     oklch(0.245 0.017 70);
+  --raw-surface-2:     oklch(0.295 0.018 72);
+  --raw-ink:           oklch(0.93 0.014 85);
+  --raw-ink-soft:      oklch(0.7 0.014 80);
+  --raw-accent:        oklch(0.775 0.115 82);
+  --raw-accent-strong: oklch(0.82 0.11 84);
+  --raw-alert:         oklch(0.7 0.15 28);
+  --raw-lamp:          oklch(0.82 0.1 78 / 0.26);
+  --shadow-alpha-1: 0.42;
+  --shadow-alpha-2: 0.62;
+  --cover-veil: 0.12;
+}

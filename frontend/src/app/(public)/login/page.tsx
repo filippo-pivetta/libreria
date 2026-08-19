@@ -4,35 +4,33 @@ import { useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
-import { SENTENZE_MONTAIGNE } from "@/lib/montaigne-sentenze";
+import { QUOTES } from "@/lib/quotes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ErrorState } from "@/components/states/error-state";
 
-// Nessun abbonamento reale: serve solo a soddisfare la firma di useSyncExternalStore.
-function nessunaSottoscrizione() {
+// No real subscription: only here to satisfy useSyncExternalStore's signature.
+function noSubscription() {
   return () => {};
 }
 
 /**
- * La sentenza è scelta a caso fra una decina (fix del 19 agosto 2026).
- * useSyncExternalStore, non useEffect+setState: un Math.random() nel
- * render iniziale darebbe un testo diverso fra server e browser, e
- * Next.js segnalerebbe un mismatch di idratazione (design doc §3,
- * stessa cautela già seguita per la luce). getServerSnapshot fissa la
- * prima sentenza per il render SSR, getSnapshot sceglie a caso una
- * volta sola nel browser.
+ * The quote is picked at random out of ten (fix of Aug 19, 2026).
+ * useSyncExternalStore, not useEffect+setState: a Math.random() in the
+ * initial render would give a different text on server and browser, and
+ * Next.js would flag a hydration mismatch (design doc §3, same caution
+ * already used for light). getServerSnapshot fixes the first quote for
+ * the SSR render, getSnapshot picks one at random once in the browser.
  */
-function useSentenzaCasuale(): number {
-  const indice = useRef<number | undefined>(undefined);
+function useRandomQuote(): number {
+  const index = useRef<number | undefined>(undefined);
   return useSyncExternalStore(
-    nessunaSottoscrizione,
+    noSubscription,
     () => {
-      if (indice.current === undefined) {
-        indice.current = Math.floor(Math.random() * SENTENZE_MONTAIGNE.length);
+      if (index.current === undefined) {
+        index.current = Math.floor(Math.random() * QUOTES.length);
       }
-      return indice.current;
+      return index.current;
     },
     () => 0
   );
@@ -44,7 +42,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const sentenzaIndex = useSentenzaCasuale();
+  const quoteIndex = useRandomQuote();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,85 +59,82 @@ export default function LoginPage() {
       return;
     }
 
-    // Il Proxy (src/proxy.ts) rinnova la sessione a ogni richiesta; il
-    // refresh qui serve solo a far ripartire subito il redirect gestito
-    // dal layout dell'area protetta.
+    // The Proxy (src/proxy.ts) refreshes the session on every request;
+    // the refresh here only kicks off the redirect the protected-area
+    // layout already handles.
     router.replace("/");
     router.refresh();
   }
 
   return (
-    <div className="flex flex-col items-center gap-10">
-      {/* Design doc §1: il nome "Montaigne" compare solo qui, sulla schermata d'accesso — mai altrove nell'interfaccia. L'unico posto che merita l'incisione piena (.incisione-insegna), non il trattamento minuto riservato ai titoli di scheda. */}
-      <p className="incisione-insegna font-heading text-4xl tracking-[0.08em] text-foreground">
-        Montaigne
-      </p>
-
-      {/* materia-carta (design doc §2): colore pieno più rumore SVG. materia-foglio: angoli quasi vivi e ombra corta — un foglio appoggiato sul legno, non una scheda sospesa. */}
-      <div className="materia-carta materia-foglio w-full px-7 py-7 ring-1 ring-foreground/10">
-        {error && <ErrorState title="Accesso non riuscito" message={error} />}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-          <div className="flex flex-col gap-4">
-            {/* Campi come righe, non riquadri (fix del 19 agosto 2026): sottolineatura, etichetta piccola sopra, un modulo compilato a mano invece che un form. */}
-            <div className="flex flex-col gap-0.5 border-b border-foreground/25 pb-1 transition-colors focus-within:border-foreground/70">
-              <Label
-                htmlFor="email"
-                className="text-[11px] font-normal tracking-[0.1em] text-muted-foreground uppercase"
-              >
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="username"
-                required
-                placeholder="nome@esempio.it"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base focus-visible:ring-0"
-              />
-            </div>
-            <div className="flex flex-col gap-0.5 border-b border-foreground/25 pb-1 transition-colors focus-within:border-foreground/70">
-              <Label
-                htmlFor="password"
-                className="text-[11px] font-normal tracking-[0.1em] text-muted-foreground uppercase"
-              >
-                Password
-              </Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                placeholder="la tua password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base focus-visible:ring-0"
-              />
-            </div>
-          </div>
-
-          {/* Rosso riservato al nastro (design doc §5): il pulsante è inchiostro, non primary rosso. Una parola sola, diversa dal titolo che non c'è più. */}
-          <Button type="submit" size="lg" disabled={isSubmitting} className="mt-1">
-            {isSubmitting ? "Un momento…" : "Entra"}
-          </Button>
-        </form>
+    // Vertical split (design doc §6): the sign on the left on plane 0
+    // (the lamp behind it is the room's own, already on the public
+    // layout's container), the module on the right. Single column on
+    // mobile, where the sign shrinks and the module takes the rest.
+    <div className="flex min-h-screen flex-col md:flex-row">
+      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12 md:py-0">
+        {/* Design doc §1: the name "Montaigne" appears only here, on the login screen — never elsewhere in the interface. */}
+        <p className="t-display text-center text-[clamp(2.75rem,7vw,5.5rem)] text-ink">
+          Montaigne
+        </p>
+        {/* The quote disappears under 600px of height: it's the first thing to give. */}
+        <p className="t-sentenza max-w-xs text-center text-ink-soft [@media(max-height:600px)]:hidden">
+          “{QUOTES[quoteIndex]}”
+        </p>
       </div>
 
-      {/*
-        Una sentenza dei Saggi, incisa nel legno sotto il foglio (design
-        doc §1): la metafora delle travi si spiega da sola, senza
-        spiegarla a parole. Taglia e interlinea del trattamento
-        "sentenza" (§8, ~19px, incisione, interlinea larga): è la taglia
-        a cui l'asse ottico di Literata regge l'incisione — più piccola,
-        col corsivo, i due contorni di .incisione si accavallano sui
-        tratti sottili e la scritta legge "sgranata" invece che incisa.
-      */}
-      <p className="incisione max-w-xs text-center text-[19px] leading-relaxed text-pretty text-foreground">
-        “{SENTENZE_MONTAIGNE[sentenzaIndex]}”
-      </p>
+      {/* The module isn't a rectangle sitting on a background: a full
+          field of paper, no border and no shadow — the boundary between
+          the two planes is the luminance jump alone (design doc §6). No
+          .plane-1 here: that utility carries a border and a double
+          shadow, deliberately excluded. */}
+      <div className="flex flex-1 items-center justify-center bg-surface-1 px-6 py-12">
+        <div className="w-full max-w-sm">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+            <div className="flex flex-col gap-4">
+              {/* Fields as lines: underline, small label above, a form filled in by hand instead of a rectangle. */}
+              <div className="flex flex-col gap-0.5 border-b border-line-strong pb-1 transition-colors focus-within:border-ink">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  required
+                  placeholder="nome@esempio.it"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base focus-visible:ring-0"
+                />
+              </div>
+              <div className="flex flex-col gap-0.5 border-b border-line-strong pb-1 transition-colors focus-within:border-ink">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  placeholder="la tua password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base focus-visible:ring-0"
+                />
+              </div>
+              {/* Design doc §6: the sign-in error is text in `ink` under the field, not a red box. */}
+              {error && (
+                <p role="alert" className="text-sm text-ink">
+                  {error}
+                </p>
+              )}
+            </div>
+
+            <Button type="submit" size="lg" disabled={isSubmitting} className="mt-1">
+              {isSubmitting ? "Un momento…" : "Entra"}
+            </Button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

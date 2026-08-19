@@ -7,7 +7,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend (lint, type check)
+    name: Frontend (lint, type check, tokens, contrast)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,6 +28,12 @@ jobs:
 
       - name: Type check (tsc)
         run: npm run type-check
+
+      - name: Tokens up to date (tokens.anchors.css generated from light.ts)
+        run: npm run tokens
+
+      - name: Contrast check (AA across a full year of the light cycle)
+        run: npm run check:contrast
 
   backend:
     name: Backend (lint, type check, test)

@@ -1,17 +1,14 @@
 /**
- * Chrome dell'area pubblica: nessuna navigazione, solo il contenuto
- * centrato. Ospita `/login` e `/completa-account` — le due sole vie
- * d'ingresso previste dal PRD: l'istanza resta chiusa a invito (il
- * Manutentore lo crea fuori dall'app, docs/adr/0013), non c'è
- * registrazione aperta.
+ * Chrome of the public area: no navigation, just the content. Hosts
+ * `/login` and `/completa-account` — the two only entry points the PRD
+ * allows: the instance stays invite-only (the Maintainer creates accounts
+ * outside the app, docs/adr/0013), there's no open sign-up.
+ *
+ * Plane 0 with the lamp (design doc §3): every public page builds its
+ * own composition on top — /login the full-page vertical split,
+ * /completa-account a centered module — so this layout imposes neither
+ * width nor centering.
  */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
-  return (
-    // materia-legno (design doc §2 e §1 "la torre"): la sola cornice dell'app dove il legno affiora, dietro le due
-    // uniche vie d'ingresso — coerente con "il nome Montaigne compare solo sulla schermata d'accesso": qui è la
-    // materia a portare il riferimento, mai il nome scritto (quello resta sul solo /login).
-    <div className="materia-legno flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm">{children}</div>
-    </div>
-  );
+  return <div className="plane-0-lit min-h-screen">{children}</div>;
 }
