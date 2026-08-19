@@ -4,33 +4,45 @@
 
 @custom-variant dark (&:is(.dark *));
 
-html {
-  height: 100%;
-}
+/*
+ * Bug corretto il 19 agosto 2026: questo reset viveva fuori da ogni
+ * @layer. In Tailwind v4 le utility (px-*, py-*, m-*, ...) vivono
+ * dentro @layer utilities, e nel cascade CSS le regole senza layer
+ * battono SEMPRE le regole con layer, indipendentemente da specificità
+ * e ordine — quindi "* { padding: 0; margin: 0; }" annullava
+ * silenziosamente ogni padding e margine utility in tutta l'app.
+ * Dentro @layer base il reset resta il primo strato, sovrascrivibile
+ * dalle utility come previsto.
+ */
+@layer base {
+  html {
+    height: 100%;
+  }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
 
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 @theme inline {
@@ -77,7 +89,7 @@ a {
   --montaigne-background: oklch(0.86 0.02 75);
   --montaigne-surface: oklch(0.97 0.015 85);
   --montaigne-foreground: oklch(0.32 0.045 45);
-  --montaigne-primary: oklch(0.42 0.09 35);
+  --montaigne-primary: oklch(0.38 0.045 45);
   --montaigne-engrave-highlight: oklch(0.99 0.01 85);
   --montaigne-engrave-shadow: oklch(0.24 0.05 40);
 
@@ -162,13 +174,32 @@ a {
   background-size: 180px 180px;
 }
 
-/* Legno: venatura appena percepibile, riservata alla cornice della schermata d'accesso — l'unico posto dove il riferimento può affiorare nella materia, mai nel nome (design doc §1). */
+/*
+ * Legno: venatura appena percepibile, riservata alla cornice della
+ * schermata d'accesso — l'unico posto dove il riferimento può
+ * affiorare nella materia, mai nel nome (design doc §1).
+ *
+ * Luce (design doc §2 e §3): un solo radial-gradient a basso
+ * contrasto, sopra la venatura. Sorgente in alto: più caldo e chiaro
+ * al centro, più scuro ai bordi — il foglio appoggiato sopra risulta
+ * illuminato invece che su un fondo piatto da bordo a bordo. I toni
+ * vengono da --montaigne-surface (caldo, per la luce) e
+ * --montaigne-foreground (inchiostro, per l'ombra ai bordi), quindi
+ * seguono l'ora del giorno come il resto della palette.
+ */
 .materia-legno {
   background-color: var(--background);
-  background-image: url("/materia/legno.svg");
-  background-repeat: repeat;
-  background-size: 240px 240px;
-  background-blend-mode: overlay;
+  background-image:
+    radial-gradient(
+      ellipse farthest-corner at 50% 10%,
+      color-mix(in oklch, var(--montaigne-surface), transparent 78%) 0%,
+      transparent 50%,
+      color-mix(in oklch, var(--montaigne-foreground), transparent 72%) 100%
+    ),
+    url("/materia/legno.svg");
+  background-repeat: no-repeat, repeat;
+  background-size: auto, 400px 400px;
+  background-blend-mode: normal, multiply;
 }
 
 /*
@@ -189,4 +220,37 @@ a {
   text-shadow:
     0 -1px 0 var(--montaigne-engrave-highlight),
     0 1px 0 var(--montaigne-engrave-shadow);
+}
+
+/*
+ * Insegna: la sola incisione del nome "Montaigne", sulla schermata
+ * d'accesso (design doc §1 — l'unico posto dove il nome compare).
+ * Stesso principio di .incisione, ma un rilievo più marcato: alla
+ * taglia di un titolo l'ombra di 1px del trattamento standard si
+ * perde, e questo è l'unico punto dell'app dove merita il trattamento
+ * pieno.
+ */
+.incisione-insegna {
+  text-shadow:
+    0 1px 0 var(--montaigne-engrave-highlight),
+    0 -1.5px 1px var(--montaigne-engrave-shadow);
+}
+
+.dark .incisione-insegna {
+  text-shadow:
+    0 -1px 0 var(--montaigne-engrave-highlight),
+    0 1.5px 1px var(--montaigne-engrave-shadow);
+}
+
+/*
+ * Foglio: la carta della schermata d'accesso appoggiata sul legno
+ * (fix del 19 agosto 2026). Angoli quasi vivi e ombra corta e stretta
+ * invece della scheda larga e diffusa di un framework qualunque —
+ * un foglio vero, non sospeso.
+ */
+.materia-foglio {
+  border-radius: 3px;
+  box-shadow:
+    0 1px 2px color-mix(in oklch, var(--montaigne-foreground), transparent 70%),
+    0 4px 10px -4px color-mix(in oklch, var(--montaigne-foreground), transparent 45%);
 }
