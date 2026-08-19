@@ -1,18 +1,13 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-
-@custom-variant dark (&:is(.dark *));
 
 /*
- * Bug corretto il 19 agosto 2026: questo reset viveva fuori da ogni
- * @layer. In Tailwind v4 le utility (px-*, py-*, m-*, ...) vivono
- * dentro @layer utilities, e nel cascade CSS le regole senza layer
- * battono SEMPRE le regole con layer, indipendentemente da specificità
- * e ordine — quindi "* { padding: 0; margin: 0; }" annullava
- * silenziosamente ogni padding e margine utility in tutta l'app.
- * Dentro @layer base il reset resta il primo strato, sovrascrivibile
- * dalle utility come previsto.
+ * Bug fixed on Aug 19, 2026: this reset used to live outside any @layer.
+ * In Tailwind v4 the utilities (px-*, py-*, m-*, ...) live inside
+ * @layer utilities, and in the CSS cascade unlayered rules ALWAYS beat
+ * layered rules, regardless of specificity and order — so
+ * "* { padding: 0; margin: 0; }" was silently wiping out every padding
+ * and margin utility across the whole app. Inside @layer base the reset
+ * stays the first layer, overridable by utilities as intended.
  */
 @layer base {
   html {
@@ -45,212 +40,10 @@
   }
 }
 
-@theme inline {
-  --font-sans: var(--font-literata);
-  --font-heading: var(--font-literata);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
 /*
- * Sistema di luce (design doc §3). I sei --montaigne-* sono l'unica
- * parte che varia con l'ora: RootLayout (src/lib/light) li calcola a
- * ogni richiesta interpolando in OKLCH i quattro ancoraggi — alba,
- * giorno, tramonto, notte — e li applica come style inline
- * sull'elemento <html>, sovrascrivendo i valori di riserva qui sotto
- * (mezzogiorno, ancoraggio "giorno"). Tutto il resto della palette si
- * deriva da questi sei con color-mix, non serve portarlo
- * nell'interpolazione oraria.
+ * "Materia" design system (docs/design-frontend.md). `tokens.css` is the
+ * only place where colors, shadows, radii and typographic scales exist:
+ * no component ever hand-writes a color. Imported after "tailwindcss" as
+ * required by the design-token package.
  */
-:root {
-  --montaigne-background: oklch(0.86 0.02 75);
-  --montaigne-surface: oklch(0.97 0.015 85);
-  --montaigne-foreground: oklch(0.32 0.045 45);
-  --montaigne-primary: oklch(0.38 0.045 45);
-  --montaigne-engrave-highlight: oklch(0.99 0.01 85);
-  --montaigne-engrave-shadow: oklch(0.24 0.05 40);
-
-  --background: var(--montaigne-background);
-  --foreground: var(--montaigne-foreground);
-  --card: var(--montaigne-surface);
-  --card-foreground: var(--montaigne-foreground);
-  --popover: var(--montaigne-surface);
-  --popover-foreground: var(--montaigne-foreground);
-  --primary: var(--montaigne-primary);
-  /*
-   * Statico apposta: giorno.primary e notte.primary condividono la
-   * stessa fascia di luminosità (palette.ts), quindi lo stesso testo
-   * chiaro resta leggibile sull'uno e sull'altro senza dover scegliere
-   * il contrasto a ogni istante dell'interpolazione.
-   */
-  --primary-foreground: oklch(0.97 0.015 85);
-  --secondary: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 6%);
-  --secondary-foreground: var(--montaigne-foreground);
-  --muted: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 4%);
-  --muted-foreground: color-mix(in oklch, var(--montaigne-foreground), var(--montaigne-surface) 40%);
-  --accent: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 8%);
-  --accent-foreground: var(--montaigne-foreground);
-  /* Semantica di errore, non parte della luce: stabile giorno e notte. */
-  --destructive: oklch(0.5 0.16 25);
-  --border: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 14%);
-  --input: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 18%);
-  --ring: color-mix(in oklch, var(--montaigne-primary), var(--montaigne-foreground) 15%);
-  --radius: 0.625rem;
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    color: var(--foreground);
-    background-color: var(--background);
-    /*
-     * Luce (design doc §2 e §3): un solo radial-gradient a basso
-     * contrasto, fisso dietro il contenuto. "Non si nota mai, ed è il
-     * suo pregio" (§19) — quindi mai una dimensione fissa che le dia un
-     * bordo visibile: si allarga fino all'angolo più lontano del
-     * viewport, e la tinta al centro resta appena percettibile
-     * (color-mix a bassa opacità, non il colore pieno della carta).
-     *
-     * Il rumore della carta sopra non è decorativo qui: un gradiente
-     * così a basso contrasto va in banding (contorni a gradini visibili)
-     * su schermi a 8 bit senza dithering — il rumore lo rompe. Dove
-     * .materia-carta/.materia-legno coprono già la superficie il
-     * banding non si vedeva; qui è la base per ogni schermata, comprese
-     * quelle senza materia sopra (es. app/global-error.tsx).
-     */
-    background-image: url("/materia/carta.svg"),
-      radial-gradient(
-        ellipse farthest-corner at 50% -10%,
-        color-mix(in oklch, var(--card) 30%, transparent),
-        transparent 100%
-      );
-    background-repeat: repeat, no-repeat;
-    background-size: 180px 180px, auto;
-    background-attachment: fixed, fixed;
-  }
-
-  html {
-    @apply font-sans;
-  }
-}
-
-/*
- * Materia (design doc §2). L'unica immagine raster dell'app è la
- * copertina: tutto il resto qui è CSS e SVG generati, salvati come
- * file e ripetuti, mai ricalcolati a ogni frame.
- */
-
-/* Carta: colore pieno più rumore SVG (opacità incorporata nel file, §2). Sui componenti condivisi che fanno da superficie — la Card. */
-.materia-carta {
-  background-color: var(--card);
-  background-image: url("/materia/carta.svg");
-  background-repeat: repeat;
-  background-size: 180px 180px;
-}
-
-/*
- * Legno: venatura appena percepibile, riservata alla cornice della
- * schermata d'accesso — l'unico posto dove il riferimento può
- * affiorare nella materia, mai nel nome (design doc §1).
- *
- * Luce (design doc §2 e §3): un solo radial-gradient a basso
- * contrasto, sopra la venatura. Sorgente in alto: più caldo e chiaro
- * al centro, più scuro ai bordi — il foglio appoggiato sopra risulta
- * illuminato invece che su un fondo piatto da bordo a bordo. I toni
- * vengono da --montaigne-surface (caldo, per la luce) e
- * --montaigne-foreground (inchiostro, per l'ombra ai bordi), quindi
- * seguono l'ora del giorno come il resto della palette.
- */
-.materia-legno {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(
-      ellipse farthest-corner at 50% 10%,
-      color-mix(in oklch, var(--montaigne-surface), transparent 78%) 0%,
-      transparent 50%,
-      color-mix(in oklch, var(--montaigne-foreground), transparent 72%) 100%
-    ),
-    url("/materia/legno.svg");
-  background-repeat: no-repeat, repeat;
-  background-size: auto, 400px 400px;
-  background-blend-mode: normal, multiply;
-}
-
-/*
- * Incisione (design doc §2 e §3): tipografia, non texture. Di giorno
- * il chiaro sta sotto e lo scuro sopra; di notte si inverte in
- * riflesso — "ombra sotto" per la luce da finestra, "riflesso sopra"
- * per la luce da lampada. Le due tinte interpolano con l'ora insieme
- * al resto della palette; il verso si inverte insieme alla classe
- * .dark, sullo stesso confine giorno/notte.
- */
-.incisione {
-  text-shadow:
-    0 1px 0 var(--montaigne-engrave-highlight),
-    0 -1px 0 var(--montaigne-engrave-shadow);
-}
-
-.dark .incisione {
-  text-shadow:
-    0 -1px 0 var(--montaigne-engrave-highlight),
-    0 1px 0 var(--montaigne-engrave-shadow);
-}
-
-/*
- * Insegna: la sola incisione del nome "Montaigne", sulla schermata
- * d'accesso (design doc §1 — l'unico posto dove il nome compare).
- * Stesso principio di .incisione, ma un rilievo più marcato: alla
- * taglia di un titolo l'ombra di 1px del trattamento standard si
- * perde, e questo è l'unico punto dell'app dove merita il trattamento
- * pieno.
- */
-.incisione-insegna {
-  text-shadow:
-    0 1px 0 var(--montaigne-engrave-highlight),
-    0 -1.5px 1px var(--montaigne-engrave-shadow);
-}
-
-.dark .incisione-insegna {
-  text-shadow:
-    0 -1px 0 var(--montaigne-engrave-highlight),
-    0 1.5px 1px var(--montaigne-engrave-shadow);
-}
-
-/*
- * Foglio: la carta della schermata d'accesso appoggiata sul legno
- * (fix del 19 agosto 2026). Angoli quasi vivi e ombra corta e stretta
- * invece della scheda larga e diffusa di un framework qualunque —
- * un foglio vero, non sospeso.
- */
-.materia-foglio {
-  border-radius: 3px;
-  box-shadow:
-    0 1px 2px color-mix(in oklch, var(--montaigne-foreground), transparent 70%),
-    0 4px 10px -4px color-mix(in oklch, var(--montaigne-foreground), transparent 45%);
-}
+@import "../styles/tokens.css";

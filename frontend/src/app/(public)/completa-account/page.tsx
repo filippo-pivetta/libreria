@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
@@ -14,8 +14,8 @@ import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 
 // Testi del PRD, parola per parola: il design doc vieta di riscriverli
-// in forma più breve o più simpatica (docs/montaigne-design-frontend.md
-// §15) — sono la base di un consenso informato.
+// in forma più breve o più simpatica (docs/design-frontend.md §17) —
+// sono la base di un consenso informato.
 const AVVISO_VISIBILITA =
   "I tuoi collegati vedono la tua libreria, gli stati di lettura, gli avanzamenti, i voti, le metriche e, salvo che tu li renda privati, le tue recensioni e i tuoi insight. Le note restano sempre e solo tue.";
 const TESTO_CONSENSO =
@@ -168,93 +168,99 @@ export default function CompletaAccountPage() {
     }
   }
 
-  if (phase === "checking") {
-    return <LoadingState label="Verifica dell'invito…" />;
-  }
+  // A screen of its own, centered on plane 1 of the public layout (design
+  // doc §6): none of the three phases is an overlapping panel.
+  let content: ReactNode;
 
-  if (phase === "no_session") {
-    return (
+  if (phase === "checking") {
+    content = <LoadingState label="Verifica dell'invito…" />;
+  } else if (phase === "no_session") {
+    content = (
       <ErrorState
         title="Link non valido"
         message="Questo link di invito non è più valido o è scaduto. Chiedi al Manutentore di inviartene uno nuovo."
       />
     );
+  } else {
+    const isSubmitting = phase === "submitting";
+    content = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Completa il tuo account</CardTitle>
+          <CardDescription>
+            Scegli una password e un nome utente. Il nome utente è univoco e non si può cambiare
+            in seguito.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          {error && <ErrorState title="Qualcosa è andato storto" message={error} />}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+            {!passwordGiaImpostata && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="confirm-password">Conferma password</Label>
+                  <Input
+                    id="confirm-password"
+                    name="confirm-password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="nome-utente">Nome utente</Label>
+              <Input
+                id="nome-utente"
+                name="nome-utente"
+                type="text"
+                autoComplete="off"
+                required
+                maxLength={40}
+                value={nomeUtente}
+                onChange={(event) => setNomeUtente(event.target.value)}
+              />
+              {/* Design doc §19: errors are text in `ink`, never an alarm color. */}
+              {nomeUtenteError && <span className="text-sm text-ink">{nomeUtenteError}</span>}
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col gap-3 text-sm text-ink-soft">
+              <p>{AVVISO_VISIBILITA}</p>
+              <p>{TESTO_CONSENSO}</p>
+            </div>
+
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Un momento…" : "Ho letto e accetto"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const isSubmitting = phase === "submitting";
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Completa il tuo account</CardTitle>
-        <CardDescription>
-          Scegli una password e un nome utente. Il nome utente è univoco e non si può cambiare in
-          seguito.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        {error && <ErrorState title="Qualcosa è andato storto" message={error} />}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-          {!passwordGiaImpostata && (
-            <>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="confirm-password">Conferma password</Label>
-                <Input
-                  id="confirm-password"
-                  name="confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={6}
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="nome-utente">Nome utente</Label>
-            <Input
-              id="nome-utente"
-              name="nome-utente"
-              type="text"
-              autoComplete="off"
-              required
-              maxLength={40}
-              value={nomeUtente}
-              onChange={(event) => setNomeUtente(event.target.value)}
-            />
-            {nomeUtenteError && (
-              <span className="text-sm text-destructive">{nomeUtenteError}</span>
-            )}
-          </div>
-
-          <Separator />
-
-          <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-            <p>{AVVISO_VISIBILITA}</p>
-            <p>{TESTO_CONSENSO}</p>
-          </div>
-
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Un momento…" : "Ho letto e accetto"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-sm">{content}</div>
+    </div>
   );
 }

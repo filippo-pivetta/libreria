@@ -1,0 +1,405 @@
+/* =============================================================================
+   Montaigne · token di design
+   Direzione "Materia".
+
+   Da importare UNA SOLA VOLTA, subito dopo `@import "tailwindcss"`.
+   Nessun colore, nessuna ombra e nessun raggio va mai scritto a mano in un
+   componente: se un valore serve e non è qui, si aggiunge qui.
+
+     1. ancoraggi  importati da un file generato. NON stanno qui.
+     2. semantica  i ruoli, che è l'unica cosa che i componenti usano
+     3. @theme     esposizione a Tailwind v4
+     4. materia    piani, ombre, grana, raggi
+     5. tipografia famiglie, scale, assi variabili
+     6. moto       durate, curve, prefers-reduced-motion
+
+   L'ora del giorno cambia SOLO i valori del blocco 1. Nient'altro.
+   ========================================================================== */
+
+/* -----------------------------------------------------------------------------
+   1. ANCORAGGI DI LUCE
+
+   Generati da `scripts/build-tokens.mts` a partire da `src/lib/light.ts`, che è
+   la sorgente di verità unica della palette. Il file importato NON si modifica
+   a mano.
+
+   Non esistono un tema chiaro e un tema scuro, e non esiste un interruttore:
+   esiste una stanza sola che dal mattino alla notte si scurisce. `data-light`
+   sta su <html>, lo scrive il server (fuso CET fisso, latitudine fissa, mai
+   geolocalizzazione, mai un timer nel browser) e porta l'ancoraggio dominante
+   fra alba, giorno, tramonto e notte. Accanto, sempre dal server, arrivano come
+   style inline i valori interpolati fra i due ancoraggi adiacenti, che vincono
+   su quelli importati qui.
+   -------------------------------------------------------------------------- */
+
+@import "./tokens.anchors.css";
+
+/* -----------------------------------------------------------------------------
+   2. SEMANTICA
+   Questi sono i nomi che i componenti usano. Un componente non nomina mai un
+   colore ("bruno", "ottone"): nomina un ruolo.
+
+   PIANI
+     surface-0  la stanza. Non contiene mai testo di lettura.
+     surface-1  la carta: schede, pannelli, elenchi. Grana 0.035.
+     surface-2  l'oggetto sollevato: dorso in hover, pannello aperto, copertina.
+   Non esiste un piano 3. Se sembra servirne uno, l'elemento va spostato.
+
+   TESTO
+     ink        testo principale. >= 12.5:1 su surface-1 nei quattro ancoraggi.
+     ink-soft   testo secondario. >= 6.0:1 su surface-1. Mai sotto i 12px.
+
+   ACCENTO
+     accent         SOLO come riempimento (pulsanti, barre, indicatori).
+                    NON usarlo mai come testo su superficie chiara: crolla a 2.7:1.
+     accent-strong  la versione per testo, icone e numeri. >= 6.1:1 su surface-1.
+     alert          UN SOLO USO in tutta l'app: il contatore delle richieste
+                    ricevute accanto a Torre. Non sugli errori, non sulla
+                    cancellazione dell'account, non sui nastri.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --mtg-surface-0:     var(--raw-surface-0);
+  --mtg-surface-1:     var(--raw-surface-1);
+  --mtg-surface-2:     var(--raw-surface-2);
+  --mtg-ink:           var(--raw-ink);
+  --mtg-ink-soft:      var(--raw-ink-soft);
+  --mtg-accent:        var(--raw-accent);
+  --mtg-accent-strong: var(--raw-accent-strong);
+  --mtg-alert:         var(--raw-alert);
+
+  /* testo che sta SOPRA un riempimento accent */
+  --mtg-on-accent: oklch(0.190 0.030 62);
+
+  /* linee: sempre l'inchiostro del tema con alpha, mai un grigio scelto a mano */
+  --mtg-line:        color-mix(in oklab, var(--mtg-ink) 13%, transparent);
+  --mtg-line-strong: color-mix(in oklab, var(--mtg-ink) 24%, transparent);
+
+  /* bordo di luce sul lato illuminato di un oggetto del piano 2 */
+  --mtg-rim: color-mix(in oklab, var(--mtg-surface-2) 70%, white);
+
+  /* --------------------------------------------------------------------------
+     NASTRI DI STATO
+     Sistema a sé, indipendente dalla palette: codificano un dato, non
+     l'atmosfera. Restano identici nei quattro ancoraggi, con la sola luminanza
+     adattata quando la stanza è scura perché non spariscano sul fondo.
+     Il colore da solo non basta (rosso/verde): la LUNGHEZZA porta la differenza.
+     ----------------------------------------------------------------------- */
+  --mtg-ribbon-reading:   oklch(0.550 0.170 27);
+  --mtg-ribbon-paused:    oklch(0.720 0.130 75);
+  --mtg-ribbon-done:      oklch(0.550 0.100 150);
+  --mtg-ribbon-abandoned: oklch(0.600 0.010 80);
+  /* "da leggere" non ha nastro. Assenza, non colore. */
+
+  --ribbon-len-reading:   64px;
+  --ribbon-len-paused:    46px;
+  --ribbon-len-done:      30px;
+  --ribbon-len-abandoned: 20px;
+}
+
+[data-light="notte"] {
+  --mtg-ribbon-reading:   oklch(0.660 0.165 28);
+  --mtg-ribbon-paused:    oklch(0.780 0.125 78);
+  --mtg-ribbon-done:      oklch(0.660 0.095 152);
+  --mtg-ribbon-abandoned: oklch(0.620 0.010 80);
+  --mtg-on-accent:        oklch(0.180 0.030 62);
+  --mtg-rim:              color-mix(in oklab, var(--mtg-surface-2) 78%, white);
+}
+
+/* Libreria di un collegato: la stessa stanza, con la lampada di un altro.
+   Il piano 0 scende in luminanza e perde quasi tutto il croma; nastri e stelle
+   passano a ink-soft. Il secondo segnale, che regge anche per chi non distingue
+   i due bianchi, è il nome utente in alto, che nella propria libreria non c'è. */
+[data-guest] {
+  --mtg-surface-0: oklch(from var(--raw-surface-0) calc(l - 0.020) calc(c * 0.35) h);
+  --mtg-surface-1: oklch(from var(--raw-surface-1) calc(l - 0.008) calc(c * 0.40) h);
+  --mtg-surface-2: oklch(from var(--raw-surface-2) calc(l - 0.006) calc(c * 0.40) h);
+  --mtg-accent:        var(--mtg-ink-soft);
+  --mtg-accent-strong: var(--mtg-ink-soft);
+  --mtg-ribbon-reading:   var(--mtg-ink-soft);
+  --mtg-ribbon-paused:    var(--mtg-ink-soft);
+  --mtg-ribbon-done:      var(--mtg-ink-soft);
+  --mtg-ribbon-abandoned: var(--mtg-ink-soft);
+}
+
+/* -----------------------------------------------------------------------------
+   3. ESPOSIZIONE A TAILWIND v4
+   Genera bg-surface-1, text-ink-soft, border-line, ecc.
+   -------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-surface-0:     var(--mtg-surface-0);
+  --color-surface-1:     var(--mtg-surface-1);
+  --color-surface-2:     var(--mtg-surface-2);
+  --color-ink:           var(--mtg-ink);
+  --color-ink-soft:      var(--mtg-ink-soft);
+  --color-accent:        var(--mtg-accent);
+  --color-accent-strong: var(--mtg-accent-strong);
+  --color-on-accent:     var(--mtg-on-accent);
+  --color-alert:         var(--mtg-alert);
+  --color-line:          var(--mtg-line);
+  --color-line-strong:   var(--mtg-line-strong);
+  --color-rim:           var(--mtg-rim);
+
+  --color-ribbon-reading:   var(--mtg-ribbon-reading);
+  --color-ribbon-paused:    var(--mtg-ribbon-paused);
+  --color-ribbon-done:      var(--mtg-ribbon-done);
+  --color-ribbon-abandoned: var(--mtg-ribbon-abandoned);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-read:    var(--font-literata), Georgia, serif;
+  --font-ui:      var(--font-inter-tight), system-ui, sans-serif;
+
+  --radius-object: 4px;
+  --radius-field:  10px;
+  --radius-card:   14px;
+
+  --shadow-plane-1: var(--shadow-1);
+  --shadow-plane-2: var(--shadow-2);
+
+  --ease-rise:   cubic-bezier(0.20, 0.80, 0.25, 1);
+  --ease-settle: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* -----------------------------------------------------------------------------
+   4. MATERIA
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Ombre: SEMPRE due strati. Una corta che ancora l'oggetto alla superficie,
+     una lunga che gli dà aria. Una sola ombra media è il difetto che fa
+     sembrare un'interfaccia un tema Bootstrap.
+     Il colore non è nero puro: è l'inchiostro del tema. */
+  --shadow-tint: var(--mtg-ink);
+
+  --shadow-1:
+    0 1px 2px -1px  color-mix(in oklab, var(--shadow-tint) calc(var(--shadow-alpha-1) * 100%), transparent),
+    0 8px 24px -12px color-mix(in oklab, var(--shadow-tint) calc(var(--shadow-alpha-2) * 100%), transparent);
+
+  --shadow-2:
+    0 2px 4px -2px  color-mix(in oklab, var(--shadow-tint) calc(var(--shadow-alpha-1) * 120%), transparent),
+    0 20px 44px -22px color-mix(in oklab, var(--shadow-tint) calc(var(--shadow-alpha-2) * 160%), transparent);
+
+  /* Grana: SVG feTurbulence in data-URI, statico, sotto 1 KB.
+     Sta sul piano 1 e sul piano 2. MAI sul piano 0.
+     Niente grana animata: il filtro si applica alla bitmap della forma, quindi
+     ogni cambio di forma o posizione ricalcola tutto. */
+  --grain-opacity: 0.035;
+  --grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Lampada: un solo radial-gradient, fisso, ancorato in alto a sinistra.
+     Non si muove, non pulsa, non segue il puntatore.
+     È l'unica ragione per cui il piano 0 non è del tutto piatto. */
+  --lamp: radial-gradient(62% 48% at 22% 18%, var(--raw-lamp), transparent 72%);
+
+  /* Raggi: uno per famiglia, mai sopra i 14px. */
+  --radius-object: 4px;   /* pastiglie, dorsi, barre */
+  --radius-field: 10px;   /* campi, pulsanti */
+  --radius-card: 14px;    /* carte */
+
+  /* Bordi: un solo spessore in tutta l'app. */
+  --border-width: 1px;
+}
+
+/* Utility di piano. Usare queste, non ricomporre ombre a mano. */
+.plane-0 { background-color: var(--mtg-surface-0); }
+.plane-0-lit { background-color: var(--mtg-surface-0); background-image: var(--lamp); }
+
+.plane-1 {
+  position: relative;
+  background-color: var(--mtg-surface-1);
+  border: var(--border-width) solid var(--mtg-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-1);
+}
+
+.plane-2 {
+  position: relative;
+  background-color: var(--mtg-surface-2);
+  border: var(--border-width) solid var(--mtg-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-2);
+}
+.plane-2::after { /* bordo di luce sul lato illuminato */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 1px 0 var(--mtg-rim);
+}
+
+.grain::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: var(--grain-url);
+  mix-blend-mode: multiply;
+}
+[data-light="notte"] .grain::before { mix-blend-mode: screen; opacity: calc(var(--grain-opacity) * 0.8); }
+
+/* Salto di piano animato.
+   box-shadow NON è compositabile e anima sul thread principale. Ogni
+   transizione fra piani si fa con uno pseudo-elemento che porta l'ombra del
+   piano superiore e a cui si anima solo `opacity`. */
+.liftable { position: relative; transition: transform 280ms var(--ease-rise); }
+.liftable::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: var(--shadow-2);
+  opacity: 0; transition: opacity 280ms var(--ease-rise);
+}
+.liftable:hover, .liftable:focus-visible { transform: translateY(-14px); }
+.liftable:hover::before, .liftable:focus-visible::before { opacity: 1; }
+
+/* Mobile: le stesse ombre, su uno schermo tenuto a trenta centimetri, sembrano
+   sporco. Si accorcia il raggio della componente lunga.
+   Qui serve una media query e non una container query: :root non è mai
+   discendente di un container, quindi @container non lo raggiungerebbe mai. */
+@media (max-width: 640px) {
+  :root { --shadow-alpha-2: calc(var(--shadow-alpha-1) * 1.2); }
+}
+
+/* Dorso del libro: l'unico posto dell'app dove sopravvive la materia letterale.
+   Tre stop lungo la larghezza che simulano la piega della costa. Nessuna
+   texture bitmap. --spine-color arriva dal server, calcolato alla nascita
+   della scheda con sharp-vibrant, salvato in due versioni sul Libro. */
+.spine {
+  --spine-color: oklch(0.50 0.08 60);
+  background: linear-gradient(
+    90deg,
+    oklch(from var(--spine-color) calc(l - 0.10) c h) 0 3px,
+    var(--spine-color) 3px 84%,
+    oklch(from var(--spine-color) calc(l - 0.14) c h) 84% 100%
+  );
+  border-radius: var(--radius-object) var(--radius-object) 1px 1px;
+}
+/* Voce senza pagine adottate: altezza mediana e trattamento diverso.
+   L'assenza di dato si vede invece di essere finta. */
+.spine[data-no-pages] {
+  background: var(--mtg-surface-1);
+  border: 1px dashed var(--mtg-line-strong);
+}
+
+/* Copertina: di notte una copertina bianca acceca.
+   La velatura si toglie al passaggio del mouse. */
+.cover { position: relative; box-shadow: var(--shadow-2); border-radius: var(--radius-object); }
+.cover::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: var(--mtg-surface-0);
+  opacity: var(--cover-veil);
+  transition: opacity 200ms var(--ease-settle);
+}
+.cover:hover::after { opacity: 0; }
+
+/* -----------------------------------------------------------------------------
+   5. TIPOGRAFIA
+   Tre famiglie, tre ruoli, nessuna sovrapposizione.
+   Le variabili --font-* sono popolate da next/font/local (subset latino,
+   nessuna richiesta a terzi in produzione).
+
+     display  Fraunces      insegna, titoli di pagina, titoli dei libri
+     read     Literata      insight, recensioni, note, ogni testo lungo
+     ui       Inter Tight   etichette, comandi, date, numeri, metriche
+
+   Se si deve tagliare: si toglie Fraunces e si porta Literata a opsz 72 sui
+   titoli. Non si toglie MAI Inter Tight: il serif sulle etichette è metà del
+   problema della versione 1 del design.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-read:    var(--font-literata), Georgia, serif;
+  --font-ui:      var(--font-inter-tight), system-ui, sans-serif;
+}
+
+body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); color: var(--mtg-ink); }
+
+/* Display */
+.t-display {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 72, "SOFT" 20;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-wrap: balance;      /* costoso e senza effetto oltre le 6 righe: solo qui */
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+}
+.t-title { /* titoli di libro, sezioni */
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 24, "SOFT" 10;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.22;
+  text-wrap: balance;
+}
+
+/* Lettura. Sentenza e appunto sono LO STESSO carattere con due voci ottiche:
+   è l'asse opsz a fare la differenza, non un secondo font. Mettere Fraunces
+   sulle sentenze creerebbe due serif adiacenti nello stesso elenco, ed è
+   l'unico posto dell'app dove si scontrerebbero. */
+.t-sentenza {           /* insight sotto ~200 battute */
+  font-family: var(--font-read);
+  font-variation-settings: "opsz" 32;
+  font-weight: 300;
+  font-size: 1.1875rem;  /* 19px */
+  line-height: 1.55;
+  text-wrap: pretty;
+  /* NIENTE text-shadow. L'"incisione" della v1 sporcava le grazie a corpo 19 e
+     su fondo scuro produceva un alone. Corpo, peso e interlinea sono già tre
+     segnali e bastano. */
+}
+.t-appunto {            /* insight oltre ~200 battute */
+  font-family: var(--font-read);
+  font-variation-settings: "opsz" 12;
+  font-weight: 400;
+  font-size: 0.9375rem;  /* 15px */
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.t-appunto[data-clamped] { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* UI */
+.t-label {
+  font-family: var(--font-ui);
+  font-size: 0.65625rem;  /* 10.5px */
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--mtg-ink-soft);
+}
+.t-meta { font-family: var(--font-ui); font-size: 0.78125rem; color: var(--mtg-ink-soft); }
+
+/* Numeri delle metriche: tabulari SEMPRE, altrimenti le colonne ballano al
+   cambio d'anno. */
+.t-num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* Nessun letter-spacing negativo sotto i 24px. */
+p, li { text-wrap: pretty; }
+
+/* -----------------------------------------------------------------------------
+   6. MOTO
+   -------------------------------------------------------------------------- */
+
+:root {
+  --ease-rise:   cubic-bezier(0.20, 0.80, 0.25, 1);
+  --ease-settle: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --dur-micro: 140ms;   /* stati di un controllo */
+  --dur-panel: 240ms;   /* apertura di un pannello in pagina */
+  --dur-lift:  280ms;   /* sollevamento del dorso */
+  --dur-rito:  380ms;   /* rito di apertura del libro. Tetto duro: 400ms */
+}
+
+/* Regola dura: solo transform e opacity. Qualsiasi altra proprietà animata
+   passa dal layout o dal paint e su mobile si vede. */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .liftable:hover { transform: none; }
+  .liftable:hover::before { opacity: 1; } /* il salto di piano resta, senza moto */
+}
+
+/* La luce non transisce: il valore si aggiorna al cambio pagina, mai con un
+   timer, e mai mentre si sta scrivendo. Non c'è nessun interruttore da cui possa
+   partire un cambio a schermata ferma, quindi non c'è niente da animare. */

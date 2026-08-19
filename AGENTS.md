@@ -1,15 +1,15 @@
 # AGENTS.md
 
 ## Cosa è questo progetto
-Montaigne: web app di tracciamento letture per un gruppo chiuso di utenti collegati, con visibilità privata/condivisa. Intento di prodotto in `docs/prd.md`, decisioni tecniche vincolanti in `docs/adr/`.
+Montaigne: web app di tracciamento letture per un gruppo chiuso di utenti collegati, con visibilità privata/condivisa. Intento di prodotto (entità, regole invalicabili) in `docs/prd.md`; direzione visiva e ogni schermata in `docs/design-frontend.md`; decisioni tecniche vincolanti in `docs/adr/`. Leggi il documento pertinente prima di lavorare su dati/permessi (prd.md) o su interfaccia (design-frontend.md): sono la fonte di verità, il codice si allinea a loro.
 
 ## Dove sta cosa
-- `frontend/` — Next.js (App Router, TS). `src/app/` pagine; `src/lib/supabase/{client,server,proxy}.ts` client browser/server/refresh-sessione; `src/proxy.ts` (Next 16: sostituisce `middleware.ts`); `src/lib/light/` calcola lato server la palette del momento — quattro ancoraggi (alba/giorno/tramonto/notte) interpolati in OKLCH sul fuso CET fisso, mai nel browser (docs/montaigne-design-frontend.md §3).
+- `frontend/` — Next.js (App Router, TS). `src/app/` pagine; `src/lib/supabase/{client,server,proxy}.ts` client browser/server/refresh-sessione; `src/proxy.ts` (Next 16: sostituisce `middleware.ts`); `src/lib/light.ts` calcola lato server la palette del momento — quattro ancoraggi (alba/giorno/tramonto/notte) interpolati in OKLCH sul fuso CET fisso, mai nel browser (docs/design-frontend.md §3); `src/styles/tokens.css` è l'unica sorgente di colori/ombre/raggi/tipografia, generata in parte da `pnpm tokens` (`tokens.anchors.css`, non si modifica a mano).
 - `backend/` — FastAPI a strati: `app/routers` (HTTP) → `app/services` (orchestrazione) → `app/repositories` (accesso dati grezzo); `app/schemas` (contratti Pydantic); `app/models` (rappresentazione di dominio, vuoto: nessuna entità implementata); `app/core` (settings, client Supabase). `tests/` pytest.
 - `supabase/migrations/` — unica fonte di verità dello schema, un file per migrazione. Nessun ORM/Alembic.
 
 ## Comandi
-Frontend (`cd frontend`): `npm run dev` · `npm run build` · `npm run lint` · `npm run type-check`
+Frontend (`cd frontend`): `npm run dev` · `npm run build` · `npm run lint` · `npm run type-check` · `npm run tokens` (rigenera `src/styles/tokens.anchors.css` da `src/lib/light.ts`, gira anche come `prebuild`) · `npm run check:contrast` (verifica AA su tutto l'anno, va in CI)
 
 Backend (`cd backend`, venv attivo): `pip install -e ".[dev]"` · `uvicorn app.main:app --reload` · `pytest` · `ruff check . && ruff format --check .` · `mypy app`
 
@@ -18,6 +18,16 @@ Supabase locale: prima di `supabase start` serve una chiave di firma JWT (docs/a
 CI: `.github/workflows/ci.yml`, 3 job — frontend (lint, type-check), backend (lint, type-check, test), Semgrep (`p/default`, diff-aware sulle PR).
 
 Autenticazione: `app/core/security.py` espone `get_current_user`, la dependency che verifica il JWT di sessione (chiavi di firma asimmetriche via JWKS, docs/adr/0012) e va usata da ogni route che serve dati di un utente — vedi `app/routers/me.py` per il pattern di riferimento.
+
+## Sistema di design (frontend)
+`src/styles/tokens.css` è l'unico posto in cui esistono colori, ombre, raggi e scale tipografiche: nessun componente scrive mai un colore a mano. Le tre regole che si violano più facilmente per distrazione (dettaglio completo in `docs/design-frontend.md`):
+- Tre piani soli — `surface-0` (stanza, mai testo), `surface-1` (carta), `surface-2` (oggetto sollevato). Non esiste un piano 3.
+- Un solo accento (`accent`, solo riempimento; `accent-strong` per testo/icone) e un solo rosso (`alert`, un solo uso in tutta l'app: il contatore delle richieste accanto a Torre — mai su errori o cancellazione account).
+- Si anima solo `transform`/`opacity`; `box-shadow` non si anima mai (usa `.liftable`). Tutto dietro `prefers-reduced-motion`.
+
+Niente tema chiaro/scuro e nessun interruttore: `src/lib/light.ts` interpola quattro ancoraggi (alba/giorno/tramonto/notte) lato server, solo al cambio pagina. Primitivi di interfaccia: `@base-ui/react` (ADR-0014, non Radix nonostante la lettera del design doc), generati come codice proprio in `src/components/ui/` dalla CLI `shadcn`, mai l'estetica di shadcn/ui presa così com'è.
+
+Scrittura: mai "con successo"/"per favore"/punti esclamativi/"ops"; gli errori sono testo (mai un riquadro rosso), verbo prima nei comandi, nessun modale. Mobile e desktop pari importanza, mobile come riferimento nei casi di dubbio. Interfaccia bilingue IT/EN prevista dal PRD ma non ancora implementata: le stringhe sono oggi in linea nel componente, in italiano — debito noto, da risolvere introducendo un framework di i18n (`next-intl` o equivalente), non riscrivendo pagina per pagina in silenzio.
 
 ## Vincoli non negoziabili
 - L'identità utente arriva SEMPRE da una dipendenza che verifica il token, MAI dal body o dalla query string.
