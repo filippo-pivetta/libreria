@@ -1,0 +1,260 @@
+"use client";
+
+import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/client";
+import { completeAccount, getMe } from "@/lib/api/me";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingState } from "@/components/states/loading-state";
+
+// Testi del PRD, parola per parola: il design doc vieta di riscriverli
+// in forma più breve o più simpatica (docs/montaigne-design-frontend.md
+// §15) — sono la base di un consenso informato.
+const AVVISO_VISIBILITA =
+  "I tuoi collegati vedono la tua libreria, gli stati di lettura, gli avanzamenti, i voti, le metriche e, salvo che tu li renda privati, le tue recensioni e i tuoi insight. Le note restano sempre e solo tue.";
+const TESTO_CONSENSO =
+  "Consenti l'elaborazione assistita. I testi che scrivi, insight e recensioni compresi, e le foto che carichi vengono inviati a OpenAI per generare consigli, sintesi e ricerche. Non vengono usati per addestrare modelli e restano nei loro sistemi fino a trenta giorni. Disattivando, queste funzioni si spengono e gli indici di ricerca costruiti sui tuoi testi vengono cancellati.";
+
+type Phase = "checking" | "no_session" | "form" | "submitting";
+
+/**
+ * Schermata a sé (design doc §16), non un pannello sovrapposto: atterraggio
+ * dal link di invito del Manutentore (docs/adr/0013). Supabase consegna la
+ * sessione nel frammento dell'URL; il client Supabase la rileva da solo
+ * (detectSessionInUrl, di default nel browser) prima che questo componente
+ * monti — qui si aspetta solo che l'inizializzazione sia finita.
+ */
+export default function CompletaAccountPage() {
+  const router = useRouter();
+  const [phase, setPhase] = useState<Phase>("checking");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [nomeUtente, setNomeUtente] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [nomeUtenteError, setNomeUtenteError] = useState<string | null>(null);
+  // Una volta impostata con successo, un secondo tentativo (dopo un nome
+  // utente già in uso) non deve richiederla di nuovo.
+  const [passwordGiaImpostata, setPasswordGiaImpostata] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkSession() {
+      const supabase = createClient();
+
+      // Il client di @supabase/ssr forza flowType "pkce" (aspetta un
+      // ?code= in query string): il link di invito generato lato Admin —
+      // senza un client che avvii il flusso — produce invece un redirect
+      // "implicito", con i token nel frammento dell'URL
+      // (#access_token=...&refresh_token=...), verificato empiricamente
+      // contro l'istanza locale. Il rilevamento automatico del client
+      // (detectSessionInUrl) non lo consuma: va fatto a mano, una volta
+      // sola, prima di chiedere la sessione.
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      if (accessToken && refreshToken) {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        // I token non devono restare nella cronologia del browser.
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (cancelled) return;
+
+      if (!session) {
+        setPhase("no_session");
+        return;
+      }
+
+      // Chi torna su questo link avendo già completato l'account (o lo
+      // riapre per errore) va portato dentro l'app, non davanti a un
+      // secondo modulo.
+      const me = await getMe(session.access_token);
+      if (cancelled) return;
+
+      if (me.status === "ok") {
+        router.replace("/");
+        return;
+      }
+
+      setPhase("form");
+    }
+
+    void checkSession();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setNomeUtenteError(null);
+
+    if (!passwordGiaImpostata) {
+      if (password.length < 6) {
+        setError("La password deve avere almeno 6 caratteri.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Le due password non coincidono.");
+        return;
+      }
+    }
+
+    if (!nomeUtente.trim()) {
+      // Il backend valida comunque (CompleteAccountRequest), ma un invio
+      // innescato dal browser stesso — es. un autofill password che
+      // sottomette il form prima che l'Utente tocchi questo campo — non
+      // deve arrivare a una chiamata di rete per un errore rilevabile qui.
+      setNomeUtenteError("Il nome utente non può essere vuoto.");
+      return;
+    }
+
+    setPhase("submitting");
+    const supabase = createClient();
+
+    if (!passwordGiaImpostata) {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        setError(updateError.message);
+        setPhase("form");
+        return;
+      }
+      setPasswordGiaImpostata(true);
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      setError("La sessione è scaduta. Chiedi un nuovo invito al Manutentore.");
+      setPhase("no_session");
+      return;
+    }
+
+    const result = await completeAccount(session.access_token, nomeUtente);
+
+    switch (result.status) {
+      case "ok":
+      case "already_completed":
+        router.replace("/");
+        router.refresh();
+        return;
+      case "nome_utente_in_uso":
+        setNomeUtenteError("Questo nome utente è già in uso.");
+        setPhase("form");
+        return;
+      case "validation_error":
+        setNomeUtenteError(result.message);
+        setPhase("form");
+        return;
+      case "error":
+        setError(result.message);
+        setPhase("form");
+        return;
+    }
+  }
+
+  if (phase === "checking") {
+    return <LoadingState label="Verifica dell'invito…" />;
+  }
+
+  if (phase === "no_session") {
+    return (
+      <ErrorState
+        title="Link non valido"
+        message="Questo link di invito non è più valido o è scaduto. Chiedi al Manutentore di inviartene uno nuovo."
+      />
+    );
+  }
+
+  const isSubmitting = phase === "submitting";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Completa il tuo account</CardTitle>
+        <CardDescription>
+          Scegli una password e un nome utente. Il nome utente è univoco e non si può cambiare in
+          seguito.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        {error && <ErrorState title="Qualcosa è andato storto" message={error} />}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+          {!passwordGiaImpostata && (
+            <>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="confirm-password">Conferma password</Label>
+                <Input
+                  id="confirm-password"
+                  name="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="nome-utente">Nome utente</Label>
+            <Input
+              id="nome-utente"
+              name="nome-utente"
+              type="text"
+              autoComplete="off"
+              required
+              maxLength={40}
+              value={nomeUtente}
+              onChange={(event) => setNomeUtente(event.target.value)}
+            />
+            {nomeUtenteError && (
+              <span className="text-sm text-destructive">{nomeUtenteError}</span>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col gap-3 text-sm text-muted-foreground">
+            <p>{AVVISO_VISIBILITA}</p>
+            <p>{TESTO_CONSENSO}</p>
+          </div>
+
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Un momento…" : "Ho letto e accetto"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

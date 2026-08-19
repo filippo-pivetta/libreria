@@ -16,11 +16,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Montaigne",
   description: "Scaffold del progetto Montaigne.",
+  // Regola invalicabile 6 (docs/prd.md): nessuna pagina indicizzabile.
+  // Rinforza app/robots.ts a livello di meta tag per pagina — la regola
+  // cita esplicitamente "verifica delle direttive di esclusione dei
+  // crawler", al plurale.
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="it" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <QueryProvider>{children}</QueryProvider>
       </body>

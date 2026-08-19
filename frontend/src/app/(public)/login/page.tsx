@@ -44,8 +44,7 @@ export default function LoginPage() {
       <CardHeader>
         <CardTitle>Accedi</CardTitle>
         <CardDescription>
-          Le credenziali sono create dal Manutentore fuori dall&apos;app: non è previsto un
-          accesso autonomo.
+          Si entra solo da un invito del Manutentore: non è previsto un accesso autonomo.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

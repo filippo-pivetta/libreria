@@ -21,12 +21,12 @@ Montaigne è una web app dove un gruppo di lettori registra i libri letti e da l
 
 **Manutentore (fuori dal prodotto)**
 - Non è un ruolo dell'app: tutti gli Utenti dentro Montaigne hanno gli stessi poteri.
-- Fuori dall'app, sulla piattaforma dati: crea utenti, credenziali e nomi utente; corregge i generi; mantiene l'elenco chiuso; crea a mano le schede dei libri assenti da entrambi i cataloghi; fonde le schede duplicate. Nessuna di queste operazioni ha un'interfaccia nel prodotto.
-- L'istanza resta chiusa: si entra solo se il Manutentore crea l'account. Modalità di ingresso diverse sono rinviate.
+- Fuori dall'app, sulla piattaforma dati: invita nuovi membri per email; corregge i generi; mantiene l'elenco chiuso; crea a mano le schede dei libri assenti da entrambi i cataloghi; fonde le schede duplicate. Nessuna di queste operazioni ha un'interfaccia nel prodotto.
+- L'istanza resta chiusa: si entra solo da un invito che il Manutentore ha creato (ADR 0013). Modalità di ingresso diverse sono rinviate.
 - È titolare del trattamento dei dati dei membri. Nel prodotto non esiste alcun account privilegiato; sulla piattaforma dati ha però accesso tecnico a tutto, note di intenzione comprese. La riservatezza delle note è garantita dall'app, non dall'infrastruttura, ed è una condizione che i membri devono conoscere.
 
 **Accesso**
-Si entra con le credenziali che il Manutentore ha creato sulla piattaforma di autenticazione e consegnato fuori dall'app. Al primo accesso l'Utente accetta l'informativa, e l'accettazione è registrata come dato dell'Utente insieme allo stato del consenso all'elaborazione assistita. La sessione è persistente e si rinnova da sola; quando scade durante la scrittura, la riautenticazione avviene nella stessa pagina, senza ricaricarla e senza perdere il testo. Il recupero delle credenziali passa dal Manutentore, fuori dall'app.
+Si entra da un invito che il Manutentore crea sulla piattaforma di autenticazione e manda per email, fuori dall'app (ADR 0013). Aprendo il link, il membro completa l'account in un'unica schermata: imposta la propria password, sceglie il proprio nome utente — univoco, non più modificabile una volta scritto — e accetta l'informativa, la cui accettazione è registrata come dato dell'Utente insieme allo stato del consenso all'elaborazione assistita. Da quel momento in poi si accede con email e password. La sessione è persistente e si rinnova da sola; quando scade durante la scrittura, la riautenticazione avviene nella stessa pagina, senza ricaricarla e senza perdere il testo. Il recupero delle credenziali passa dal Manutentore, fuori dall'app.
 
 **Utente non autenticato**
 - Nessun accesso oltre alla schermata di accesso.
@@ -129,7 +129,7 @@ Le richieste hanno una superficie dedicata nel profilo, che mostra sia quelle ri
 
 **Elenco dei membri**
 Elenco dei nomi utente visibile a tutti gli autenticati, unico strumento per trovare qualcuno e inviargli una richiesta. Accanto a ciascun nome compare lo stato della relazione con chi guarda, cioè assente, in attesa o attiva, perché altrimenti si invierebbero richieste alla cieca; non espone le relazioni tra terzi, né libri, metriche o contenuti.
-Il nome utente è assegnato dal Manutentore alla creazione dell'account, è univoco, non modificabile dall'Utente, e deve essere riconoscibile dagli altri membri, altrimenti l'elenco non serve a trovare nessuno.
+Il nome utente è scelto dall'Utente completando l'invito del Manutentore (ADR 0013), è univoco, non modificabile una volta scritto, e deve essere riconoscibile dagli altri membri, altrimenti l'elenco non serve a trovare nessuno.
 
 ## Ownership dei dati
 
@@ -155,7 +155,7 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 
 ## Comportamento
 
-1. Il Manutentore crea a mano utente e credenziali sulla piattaforma dati e li consegna al membro. Al primo accesso il membro accetta l'informativa sull'invio dei propri contenuti al fornitore di modelli. Nessun collegamento nasce da questo passaggio: tutte le relazioni si creano da richiesta e accettazione.
+1. Il Manutentore invita il futuro membro per email dalla piattaforma dati (ADR 0013). Aprendo il link, il membro imposta la propria password, sceglie il proprio nome utente e accetta l'informativa sull'invio dei propri contenuti al fornitore di modelli, tutto nella stessa schermata. Nessun collegamento nasce da questo passaggio: tutte le relazioni si creano da richiesta e accettazione.
 2. L'Utente consulta l'elenco dei membri e invia richieste di collegamento. Finché la richiesta non è accettata, nessuno dei due vede nulla dell'altro.
 3. L'Utente cerca l'opera per titolo o autore. La ricerca interroga prima le schede già esistenti nel sistema, comprese quelle create a mano fuori banda, e poi i cataloghi esterni; i risultati sono presentati insieme, senza distinzione. non esistono altre vie d'ingresso, né codice digitato né scansione. Nasce una Voce con stato "da leggere", con il numero di pagine precompilato a un valore rappresentativo che l'Utente può correggere. Se il Libro è già in libreria, l'app non lo duplica: se la Voce è in "letto" o "abbandonato" propone di aprire una nuova Lettura, altrimenti si limita a portare l'Utente sulla Voce esistente.
 4. L'Utente può allegare una nota di intenzione privata.
@@ -172,7 +172,7 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 15. In qualsiasi momento l'Utente può cancellare il proprio account dalle impostazioni. La conferma consiste nel digitare il proprio nome utente; la cancellazione è immediata, definitiva, senza periodo di grazia e senza esportazione offerta. Travolge in cascata libreria, letture, avanzamenti, voti, recensioni, insight, note, preview personalizzate, indici semantici derivati e collegamenti.
 
 **Post MVP**
-- Modalità di ingresso diverse dalla creazione manuale: da decidere in versioni successive.
+- Registrazione aperta, senza invito del Manutentore: l'istanza resta chiusa per questa versione (ADR 0013).
 - Raccomandazioni basate sullo storico, con rifiuto permanente di titoli e autori e affinità calcolata su chi valuta gli stessi libri allo stesso modo.
 - Recap periodico in card condivisibile: nessun contenuto privato può finirci dentro, e la condivisione esce dal perimetro chiuso, quindi è pubblicazione consapevole e irreversibile. Richiederà periodi diversi dall'anno solare.
 
@@ -322,8 +322,8 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 - Fonte bibliografica primaria: Google Books, per copertura del catalogo italiano e qualità della ricerca. Richiede chiave API. Google dichiara di avere in licenza gran parte dei dati che alimentano il servizio e di non essere libera di ridistribuirli; i termini impongono la rimozione su richiesta dei contenuti lesivi di diritti di terzi e un contatto per i titolari; i risultati variano in base all'IP del server, perché rispettano le restrizioni legali del paese. La conservazione permanente di una copia locale è terreno grigio contrattuale.
 - Fonte di ripiego e record canonico: Open Library. Gratuita, senza chiave, con separazione nativa tra opera ed edizione, dati riutilizzabili senza vincoli. Non supporta CORS, va interrogata dal back end. Limite di cortesia osservato attorno a 100 richieste ogni 5 minuti per IP.
 - Attrito noto e accettato: Google Books non ha il concetto di opera, ogni volume è un'edizione. La regola di una scheda per opera richiede quindi una deduplicazione a carico del sistema.
-- Amministrazione interamente fuori dal prodotto: creazione degli account e dei nomi utente, credenziali, correzione dei generi, elenco chiuso, creazione manuale delle schede assenti dai cataloghi e fusione dei duplicati avvengono sulla piattaforma dati. L'app non contiene alcuna funzione amministrativa né alcun account privilegiato.
-- Interfaccia bilingue italiano e inglese dal primo giorno, limitata al minimo essenziale nell'MVP; il perimetro esatto della traduzione si definisce in fase di costruzione. Le email non esistono nel prodotto, perché credenziali e recupero passano fuori dall'app; errori, conferme e stati vuoti seguono la lingua dell'interfaccia. I contenuti scritti dagli utenti non vengono tradotti; i generi appartengono all'elenco chiuso, non alla lingua della fonte. Le stringhe vanno tenute fuori dal codice fin dall'inizio; date e numeri seguono la lingua del browser.
+- Amministrazione interamente fuori dal prodotto: l'invito dei nuovi membri (ADR 0013), la correzione dei generi, l'elenco chiuso, la creazione manuale delle schede assenti dai cataloghi e la fusione dei duplicati avvengono sulla piattaforma dati. Nome utente e password restano scelti dal membro, ma solo a valle di un invito che nessuno fuori dal Manutentore può creare. L'app non contiene alcuna funzione amministrativa né alcun account privilegiato.
+- Interfaccia bilingue italiano e inglese dal primo giorno, limitata al minimo essenziale nell'MVP; il perimetro esatto della traduzione si definisce in fase di costruzione. Le email non compaiono nell'interfaccia del prodotto: il Manutentore le usa solo per mandare l'invito (ADR 0013), fuori dall'app, e il recupero delle credenziali resta fuori dall'app; errori, conferme e stati vuoti seguono la lingua dell'interfaccia. I contenuti scritti dagli utenti non vengono tradotti; i generi appartengono all'elenco chiuso, non alla lingua della fonte. Le stringhe vanno tenute fuori dal codice fin dall'inizio; date e numeri seguono la lingua del browser.
 - Mobile e desktop hanno pari importanza, con il mobile a fare da riferimento principale nei casi di dubbio: gli usi rapidi e sul momento (registrare un avanzamento, controllare la libreria di un collegato, scrivere un insight in coda) sono più probabili da telefono, quindi ogni schermata va progettata e verificata mobile-first e poi estesa al desktop, non il contrario.
 - Fornitore di modelli linguistici e visivi: OpenAI. Sull'API i dati inviati non vengono usati per l'addestramento, e i log per il monitoraggio degli abusi sono conservati fino a trenta giorni salvo obblighi di legge. La ritenzione zero richiede approvazione preventiva su contratto dedicato e non si applica agli account standard: la condizione di riferimento resta quindi trenta giorni. Nessun tetto di spesa impostato nel sistema: il controllo è manuale, fuori dal prodotto.
 - Gli Utenti hanno acconsentito all'invio dei propri contenuti, comprese recensioni e insight lasciati privati. Restano fuori dal consenso, e quindi non escono mai, le note di intenzione e ogni contenuto appartenente ad altri Utenti.
