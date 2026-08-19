@@ -22,7 +22,7 @@ const giorno: TokenMateria = {
   background: { l: 0.86, c: 0.02, h: 75 }, // rovere chiaro, luce da finestra
   surface: { l: 0.97, c: 0.015, h: 85 }, // carta avorio
   foreground: { l: 0.32, c: 0.045, h: 45 }, // inchiostro bruno
-  primary: { l: 0.42, c: 0.09, h: 35 }, // legno brunito
+  primary: { l: 0.38, c: 0.045, h: 45 }, // legno brunito — stesso caldo dell'inchiostro, mai rossastro: il rosso è riservato al nastro
   engraveHighlight: { l: 0.99, c: 0.01, h: 85 },
   engraveShadow: { l: 0.24, c: 0.05, h: 40 },
 };
@@ -35,7 +35,7 @@ const notte: TokenMateria = {
   // ambra/ottone scuro, non un oro chiaro) così un solo
   // --primary-foreground statico resta leggibile giorno e notte, senza
   // bisogno di sceglierlo per contrasto a ogni istante dell'interpolazione.
-  primary: { l: 0.42, c: 0.11, h: 55 },
+  primary: { l: 0.4, c: 0.055, h: 55 },
   engraveHighlight: { l: 0.78, c: 0.07, h: 70 }, // riflesso caldo
   engraveShadow: { l: 0.08, c: 0.02, h: 50 },
 };
