@@ -40,45 +40,49 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Accedi</CardTitle>
-        <CardDescription>
-          Si entra solo da un invito del Manutentore: non è previsto un accesso autonomo.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {error && <ErrorState title="Accesso non riuscito" message={error} />}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </div>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Accesso in corso…" : "Accedi"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col items-center gap-6">
+      {/* Design doc §1: il nome "Montaigne" compare solo qui, sulla schermata d'accesso — mai altrove nell'interfaccia. */}
+      <p className="incisione font-heading text-2xl tracking-wide text-foreground">Montaigne</p>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Accedi</CardTitle>
+          <CardDescription>
+            Si entra solo da un invito del Manutentore: non è previsto un accesso autonomo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {error && <ErrorState title="Accesso non riuscito" message={error} />}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="username"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Accesso in corso…" : "Accedi"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

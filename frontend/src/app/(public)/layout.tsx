@@ -7,7 +7,10 @@
  */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    // materia-legno (design doc §2 e §1 "la torre"): la sola cornice dell'app dove il legno affiora, dietro le due
+    // uniche vie d'ingresso — coerente con "il nome Montaigne compare solo sulla schermata d'accesso": qui è la
+    // materia a portare il riferimento, mai il nome scritto (quello resta sul solo /login).
+    <div className="materia-legno flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm">{children}</div>
     </div>
   );
