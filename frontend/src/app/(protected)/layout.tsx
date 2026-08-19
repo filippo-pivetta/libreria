@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 
+import { getMe } from "@/lib/api/me";
 import { createClient } from "@/lib/supabase/server";
 import { ProtectedNav } from "@/components/layout/protected-nav";
+import { SignOutButton } from "@/components/layout/sign-out-button";
+import { ErrorState } from "@/components/states/error-state";
 
 /**
  * Chrome dell'area protetta: guardia di autenticazione lato server più
@@ -21,9 +24,37 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
+  // Sicuro solo perché getUser() sopra ha già validato la sessione con
+  // Supabase: qui si legge il token già verificato, non ci si fida di un
+  // cookie non controllato.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const me = session ? await getMe(session.access_token) : { status: "error" as const, message: "Sessione assente." };
+
+  if (me.status === "not_provisioned") {
+    // Sessione valida ma account non ancora completato: capita a chi ha
+    // chiuso la scheda a metà del completamento dell'invito (docs/adr/0013)
+    // e torna più tardi navigando direttamente in un'altra pagina. Non è
+    // più un vicolo cieco — la via d'uscita è finire quel passaggio.
+    redirect("/completa-account");
+  }
+
+  if (me.status !== "ok") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6">
+        <div className="w-full max-w-sm">
+          <ErrorState title="Qualcosa è andato storto" message={me.message} />
+        </div>
+        <SignOutButton />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
-      <ProtectedNav email={user.email ?? ""} />
+      <ProtectedNav nomeUtente={me.data.nomeUtente} />
       <main className="mx-auto w-full max-w-5xl flex-1 p-6">{children}</main>
     </div>
   );
