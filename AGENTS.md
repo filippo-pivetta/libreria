@@ -29,3 +29,4 @@ Autenticazione: `app/core/security.py` espone `get_current_user`, la dependency 
 - Le asserzioni dei test sono corrette: se un test fallisce, correggi l'implementazione, non il test. Se ritieni un'asserzione sbagliata, chiedi.
 - Non ribaltare una decisione presente in `docs/adr/` senza chiedere.
 - Giorno/anno/"futuro" si valutano nel fuso `Europe/Rome`, mai nel fuso di sessione del server (Supabase/Postgres di default: UTC).
+- Nessun comando git che cambia lo stato del repository (`commit`, `push`, `branch`, `checkout -b`, merge, rebase, ecc.) senza il consenso esplicito dell'utente prima di eseguirlo, anche a lavoro finito e verificato.

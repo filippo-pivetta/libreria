@@ -117,8 +117,19 @@ a {
   body {
     color: var(--foreground);
     background-color: var(--background);
-    /* Luce (design doc §2 e §3): un solo radial-gradient a basso contrasto, fisso dietro il contenuto. */
-    background-image: radial-gradient(ellipse 65% 45% at 50% -8%, var(--card), transparent 70%);
+    /*
+     * Luce (design doc §2 e §3): un solo radial-gradient a basso
+     * contrasto, fisso dietro il contenuto. "Non si nota mai, ed è il
+     * suo pregio" (§19) — quindi mai una dimensione fissa che le dia un
+     * bordo visibile: si allarga fino all'angolo più lontano del
+     * viewport, e la tinta al centro resta appena percettibile
+     * (color-mix a bassa opacità, non il colore pieno della carta).
+     */
+    background-image: radial-gradient(
+      ellipse farthest-corner at 50% -10%,
+      color-mix(in oklch, var(--card) 30%, transparent),
+      transparent 100%
+    );
     background-repeat: no-repeat;
     background-attachment: fixed;
   }
