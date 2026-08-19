@@ -1,8 +1,9 @@
 /**
- * Chrome dell'area pubblica (non autenticata): nessuna navigazione,
- * solo il contenuto centrato. Oggi ospita `/login`; l'accesso è
- * l'unica via d'ingresso prevista dal PRD (nessuna registrazione
- * autonoma, credenziali create fuori dall'app dal Manutentore).
+ * Chrome dell'area pubblica: nessuna navigazione, solo il contenuto
+ * centrato. Ospita `/login` e `/completa-account` — le due sole vie
+ * d'ingresso previste dal PRD: l'istanza resta chiusa a invito (il
+ * Manutentore lo crea fuori dall'app, docs/adr/0013), non c'è
+ * registrazione aperta.
  */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (

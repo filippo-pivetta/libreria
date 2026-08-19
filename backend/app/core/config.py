@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     """Stringa di connessione diretta a Postgres, usata dal repository
     per verifiche di raggiungibilità (es. health check)."""
 
+    # --- Autenticazione ---
+    supabase_jwt_issuer: str | None = None
+    """Override esplicito dell'issuer atteso nei JWT di sessione
+    (docs/adr/0012). Se assente, si deriva da supabase_url
+    (`${SUPABASE_URL}/auth/v1`), il default sia in locale sia sul
+    progetto hosted."""
+
+    @property
+    def jwt_issuer(self) -> str:
+        return self.supabase_jwt_issuer or f"{self.supabase_url}/auth/v1"
+
     # --- HTTP ---
     cors_origins: str = "http://localhost:3000"
     """Origini ammesse per il CORS, separate da virgola."""

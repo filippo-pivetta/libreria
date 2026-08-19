@@ -13,11 +13,11 @@ Frontend (`cd frontend`): `npm run dev` · `npm run build` · `npm run lint` · 
 
 Backend (`cd backend`, venv attivo): `pip install -e ".[dev]"` · `uvicorn app.main:app --reload` · `pytest` · `ruff check . && ruff format --check .` · `mypy app`
 
-Supabase locale: `supabase start`, poi `supabase status` per URL/chiavi da mettere in `.env`/`.env.local` (copiati da `.env.example`, mai valori reali committati). Migrazioni: `supabase migration new <nome>` · `supabase migration up --local` · `supabase db reset --local` (riapplica tutto da zero, utile per verificare che una migrazione nuova parta pulita).
+Supabase locale: prima di `supabase start` serve una chiave di firma JWT (docs/adr/0012), altrimenti l'avvio fallisce — `supabase gen signing-key --algorithm ES256` scrive/aggiunge a `supabase/signing_keys.json` (mai committato). Poi `supabase status` per URL/chiavi da mettere in `.env`/`.env.local` (copiati da `.env.example`, mai valori reali committati). Migrazioni: `supabase migration new <nome>` · `supabase migration up --local` · `supabase db reset --local` (riapplica tutto da zero, utile per verificare che una migrazione nuova parta pulita). Creare un account di test: invito via Studio (`/project/default/auth/users`, pulsante "Invite user") o `client.auth.admin.invite_user_by_email(...)` — non esiste più creazione manuale della riga `utente` (docs/adr/0013).
 
 CI: `.github/workflows/ci.yml`, 3 job — frontend (lint, type-check), backend (lint, type-check, test), Semgrep (`p/default`, diff-aware sulle PR).
 
-TODO: nessuna dipendenza di autenticazione esiste ancora nel backend (solo `/health`); va introdotta alla prima route che serve dati di un utente, non improvvisata lì per lì.
+Autenticazione: `app/core/security.py` espone `get_current_user`, la dependency che verifica il JWT di sessione (chiavi di firma asimmetriche via JWKS, docs/adr/0012) e va usata da ogni route che serve dati di un utente — vedi `app/routers/me.py` per il pattern di riferimento.
 
 ## Vincoli non negoziabili
 - L'identità utente arriva SEMPRE da una dipendenza che verifica il token, MAI dal body o dalla query string.

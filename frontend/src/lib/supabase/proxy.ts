@@ -55,15 +55,23 @@ export async function updateSession(request: NextRequest) {
   // l'ha già. Il layout dell'area protetta ripete comunque il controllo
   // lato server come seconda linea, nel caso il matcher sotto non copra
   // una rotta futura.
-  const isPublicRoute = request.nextUrl.pathname === "/login";
+  const path = request.nextUrl.pathname;
+  const isLoginRoute = path === "/login";
+  // Atterraggio dal link di invito (docs/adr/0013): Supabase consegna la
+  // sessione nel frammento dell'URL (#access_token=...), che il server
+  // non vede mai — qui il Proxy troverebbe ancora "nessun utente" (i
+  // cookie non sono stati scritti) e rimanderebbe al login prima ancora
+  // che il client abbia potuto elaborare il frammento. Va sempre lasciata
+  // passare, autenticata o no.
+  const isOnboardingRoute = path === "/completa-account";
 
-  if (!user && !isPublicRoute) {
+  if (!user && !isLoginRoute && !isOnboardingRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     return withRefreshedCookies(NextResponse.redirect(loginUrl), supabaseResponse);
   }
 
-  if (user && isPublicRoute) {
+  if (user && isLoginRoute) {
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = "/";
     return withRefreshedCookies(NextResponse.redirect(homeUrl), supabaseResponse);
