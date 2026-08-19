@@ -4,7 +4,7 @@
 Montaigne: web app di tracciamento letture per un gruppo chiuso di utenti collegati, con visibilità privata/condivisa. Intento di prodotto in `docs/prd.md`, decisioni tecniche vincolanti in `docs/adr/`.
 
 ## Dove sta cosa
-- `frontend/` — Next.js (App Router, TS). `src/app/` pagine; `src/lib/supabase/{client,server,proxy}.ts` client browser/server/refresh-sessione; `src/proxy.ts` (Next 16: sostituisce `middleware.ts`).
+- `frontend/` — Next.js (App Router, TS). `src/app/` pagine; `src/lib/supabase/{client,server,proxy}.ts` client browser/server/refresh-sessione; `src/proxy.ts` (Next 16: sostituisce `middleware.ts`); `src/lib/light/` calcola lato server la palette del momento — quattro ancoraggi (alba/giorno/tramonto/notte) interpolati in OKLCH sul fuso CET fisso, mai nel browser (docs/montaigne-design-frontend.md §3).
 - `backend/` — FastAPI a strati: `app/routers` (HTTP) → `app/services` (orchestrazione) → `app/repositories` (accesso dati grezzo); `app/schemas` (contratti Pydantic); `app/models` (rappresentazione di dominio, vuoto: nessuna entità implementata); `app/core` (settings, client Supabase). `tests/` pytest.
 - `supabase/migrations/` — unica fonte di verità dello schema, un file per migrazione. Nessun ORM/Alembic.
 
@@ -29,3 +29,4 @@ Autenticazione: `app/core/security.py` espone `get_current_user`, la dependency 
 - Le asserzioni dei test sono corrette: se un test fallisce, correggi l'implementazione, non il test. Se ritieni un'asserzione sbagliata, chiedi.
 - Non ribaltare una decisione presente in `docs/adr/` senza chiedere.
 - Giorno/anno/"futuro" si valutano nel fuso `Europe/Rome`, mai nel fuso di sessione del server (Supabase/Postgres di default: UTC).
+- Nessun comando git che cambia lo stato del repository (`commit`, `push`, `branch`, `checkout -b`, merge, rebase, ecc.) senza il consenso esplicito dell'utente prima di eseguirlo, anche a lavoro finito e verificato.
