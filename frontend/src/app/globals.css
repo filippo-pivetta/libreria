@@ -124,14 +124,23 @@ a {
      * bordo visibile: si allarga fino all'angolo più lontano del
      * viewport, e la tinta al centro resta appena percettibile
      * (color-mix a bassa opacità, non il colore pieno della carta).
+     *
+     * Il rumore della carta sopra non è decorativo qui: un gradiente
+     * così a basso contrasto va in banding (contorni a gradini visibili)
+     * su schermi a 8 bit senza dithering — il rumore lo rompe. Dove
+     * .materia-carta/.materia-legno coprono già la superficie il
+     * banding non si vedeva; qui è la base per ogni schermata, comprese
+     * quelle senza materia sopra (es. app/global-error.tsx).
      */
-    background-image: radial-gradient(
-      ellipse farthest-corner at 50% -10%,
-      color-mix(in oklch, var(--card) 30%, transparent),
-      transparent 100%
-    );
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-image: url("/materia/carta.svg"),
+      radial-gradient(
+        ellipse farthest-corner at 50% -10%,
+        color-mix(in oklch, var(--card) 30%, transparent),
+        transparent 100%
+      );
+    background-repeat: repeat, no-repeat;
+    background-size: 180px 180px, auto;
+    background-attachment: fixed, fixed;
   }
 
   html {
