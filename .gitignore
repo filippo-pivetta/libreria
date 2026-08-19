@@ -43,6 +43,11 @@ htmlcov/
 .coverage
 .coverage.*
 
+# --- Supabase ---
+# Chiave di firma JWT locale (docs/adr/0012): contiene la componente
+# privata, va generata con `supabase gen signing-key`, mai committata.
+supabase/signing_keys.json
+
 # --- Docker ---
 *.pid
 

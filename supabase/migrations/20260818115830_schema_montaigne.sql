@@ -56,18 +56,22 @@ grant usage on schema public to authenticated;
 -- ============================================================================
 -- utente / utente_privato
 -- ============================================================================
--- Profilo applicativo, 1:1 con auth.users. Il Manutentore crea nome_utente
--- fuori banda (ADR 0007); l'app non espone alcuna scrittura su quella
--- colonna, ma non essendo un vincolo di dominio non è imposto da questo
--- schema.
+-- Profilo applicativo, 1:1 con auth.users. Il Manutentore resta l'unico
+-- che può far nascere un account (invito via email, fuori banda, ADR
+-- 0007), ma nome_utente lo sceglie l'Utente stesso completando l'invito
+-- (ADR 0013): per questo la policy INSERT sotto è basata su auth.uid(),
+-- non riservata al service_role. Una volta scritto, l'app non espone
+-- alcuna via per modificarlo (PRD: "non modificabile dall'Utente"), ma
+-- non essendo un vincolo di dominio non è imposto da questo schema.
 --
 -- La tabella è divisa in due per rendere possibile l'elenco dei membri
 -- del PRD (nome utente visibile a tutti gli autenticati) senza alcuna
 -- eccezione alla RLS a livello di riga: `utente` porta solo id e
 -- nome_utente, leggibili da chiunque sia autenticato; i dati privati di
 -- consenso GDPR (elaborazione assistita, accettazione dell'informativa)
--- vivono in `utente_privato`, chiusa al solo proprietario. Nessuna vista
--- né funzione security definer necessaria.
+-- vivono in `utente_privato`, chiusa al solo proprietario. Le due righe
+-- nascono insieme, con l'identità dell'Utente, dentro la funzione
+-- `public.completa_registrazione` (vedi la migrazione successiva).
 
 create table public.utente (
   id uuid primary key references auth.users (id) on delete cascade,
@@ -77,7 +81,7 @@ create table public.utente (
 );
 
 comment on table public.utente is
-  'Profilo pubblico dei membri (id + nome_utente), 1:1 con auth.users. Leggibile da tutti gli autenticati per l''elenco membri del PRD. Righe create/rimosse fuori banda dal Manutentore (ADR 0007); la cancellazione dell''account (self-service) elimina questa riga e innesca la cascata su tutti i dati dell''utente (ADR 0011).';
+  'Profilo pubblico dei membri (id + nome_utente), 1:1 con auth.users. Leggibile da tutti gli autenticati per l''elenco membri del PRD. La riga nasce quando l''Utente completa l''invito del Manutentore (ADR 0013, funzione completa_registrazione), scegliendo il proprio nome_utente; la cancellazione dell''account (self-service) la elimina e innesca la cascata su tutti i dati dell''utente (ADR 0011).';
 
 alter table public.utente enable row level security;
 
@@ -125,7 +129,7 @@ create table public.utente_privato (
 );
 
 comment on table public.utente_privato is
-  'Dati privati di consenso del profilo (elaborazione assistita, accettazione informativa): 1:1 con utente, ma RLS chiusa al solo proprietario, a differenza di utente che è leggibile da tutti gli autenticati. Una nuova riga in utente ne richiede una corrispondente qui, create insieme fuori banda dal Manutentore.';
+  'Dati privati di consenso del profilo (elaborazione assistita, accettazione informativa): 1:1 con utente, ma RLS chiusa al solo proprietario, a differenza di utente che è leggibile da tutti gli autenticati. Una nuova riga in utente ne richiede una corrispondente qui: le due nascono insieme, con l''identità dell''Utente, dentro completa_registrazione (ADR 0013) — mai separatamente.';
 
 alter table public.utente_privato enable row level security;
 

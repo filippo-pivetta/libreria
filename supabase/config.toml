@@ -155,18 +155,31 @@ max_indexes = 5
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails.
-site_url = "http://127.0.0.1:3000"
+# in emails. È anche il redirect di default quando chi invita non ne
+# specifica uno esplicito (es. "Send invitation" da Studio, che non offre
+# un campo Redirect URL): l'unica email che questo prodotto genera è
+# l'invito (docs/adr/0013), quindi punta già a /completa-account.
+# "localhost", non 127.0.0.1: è l'host con cui si avvia il dev server
+# Next.js, e in sviluppo Next.js blocca gli asset (bundle JS, websocket
+# HMR) alle richieste che arrivano da un'origine diversa da quella di
+# partenza (allowedDevOrigins in next.config.ts copre comunque entrambi
+# come rete di sicurezza).
+site_url = "http://localhost:3000/completa-account"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# Wildcard sui percorsi: il link di invito (docs/adr/0013) reindirizza a
+# /completa-account, non solo alla radice. http, non https: dev locale.
+additional_redirect_urls = ["http://127.0.0.1:3000/**", "http://localhost:3000/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
-# signing_keys_path = "./signing_keys.json"
+# Chiavi di firma asimmetriche (ES256), vedi docs/adr/0012: generata con
+# `supabase gen signing-key --algorithm ES256 > supabase/signing_keys.json`,
+# mai committata (.gitignore).
+signing_keys_path = "./signing_keys.json"
 # If disabled, the refresh token will never expire.
 enable_refresh_token_rotation = true
 # Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
