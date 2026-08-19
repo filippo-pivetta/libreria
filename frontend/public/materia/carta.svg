@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180">
+  <!--
+    Carta: colore pieno più rumore SVG a opacità 0.03 (design doc §2).
+    L'opacità vive qui nel file, non nel CSS che lo usa. Mai una foto
+    di carta.
+  -->
+  <filter id="rumore">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" stitchTiles="stitch" />
+  </filter>
+  <rect width="180" height="180" filter="url(#rumore)" opacity="0.03" />
+</svg>

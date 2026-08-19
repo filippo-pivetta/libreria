@@ -4,7 +4,7 @@
 Montaigne: web app di tracciamento letture per un gruppo chiuso di utenti collegati, con visibilità privata/condivisa. Intento di prodotto in `docs/prd.md`, decisioni tecniche vincolanti in `docs/adr/`.
 
 ## Dove sta cosa
-- `frontend/` — Next.js (App Router, TS). `src/app/` pagine; `src/lib/supabase/{client,server,proxy}.ts` client browser/server/refresh-sessione; `src/proxy.ts` (Next 16: sostituisce `middleware.ts`).
+- `frontend/` — Next.js (App Router, TS). `src/app/` pagine; `src/lib/supabase/{client,server,proxy}.ts` client browser/server/refresh-sessione; `src/proxy.ts` (Next 16: sostituisce `middleware.ts`); `src/lib/light/` calcola lato server la palette del momento — quattro ancoraggi (alba/giorno/tramonto/notte) interpolati in OKLCH sul fuso CET fisso, mai nel browser (docs/montaigne-design-frontend.md §3).
 - `backend/` — FastAPI a strati: `app/routers` (HTTP) → `app/services` (orchestrazione) → `app/repositories` (accesso dati grezzo); `app/schemas` (contratti Pydantic); `app/models` (rappresentazione di dominio, vuoto: nessuna entità implementata); `app/core` (settings, client Supabase). `tests/` pytest.
 - `supabase/migrations/` — unica fonte di verità dello schema, un file per migrazione. Nessun ORM/Alembic.
 

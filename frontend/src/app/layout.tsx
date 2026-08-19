@@ -1,16 +1,19 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Literata } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
+import { getLightState } from "@/lib/light/get-light-state";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Literata: unico carattere dell'app (design doc §18). L'asse "opsz"
+// (dimensione ottica) è ciò che permette a sentenza (19px) e appunto
+// (15px) di restare lo stesso font con contrasto e proporzioni diversi,
+// invece di due famiglie separate.
+const literata = Literata({
+  variable: "--font-literata",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  axes: ["opsz"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -26,9 +29,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Calcolo lato server della luce del momento (design doc §3): mai nel
+  // browser, per non produrre mismatch di idratazione e perché due
+  // collegati devono vedere la stessa stanza alla stessa ora.
+  const luce = await getLightState();
+
   return (
-    <html lang="it" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="it"
+      className={`${literata.variable}${luce.notte ? " dark" : ""}`}
+      style={{ ...luce.variabili, colorScheme: luce.notte ? "dark" : "light" } as CSSProperties}
+    >
       <body>
         <QueryProvider>{children}</QueryProvider>
       </body>

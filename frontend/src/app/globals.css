@@ -33,28 +33,9 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
-
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  --font-sans: var(--font-literata);
+  --font-heading: var(--font-literata);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -82,83 +63,110 @@ a {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Sistema di luce (design doc §3). I sei --montaigne-* sono l'unica
+ * parte che varia con l'ora: RootLayout (src/lib/light) li calcola a
+ * ogni richiesta interpolando in OKLCH i quattro ancoraggi — alba,
+ * giorno, tramonto, notte — e li applica come style inline
+ * sull'elemento <html>, sovrascrivendo i valori di riserva qui sotto
+ * (mezzogiorno, ancoraggio "giorno"). Tutto il resto della palette si
+ * deriva da questi sei con color-mix, non serve portarlo
+ * nell'interpolazione oraria.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  --montaigne-background: oklch(0.86 0.02 75);
+  --montaigne-surface: oklch(0.97 0.015 85);
+  --montaigne-foreground: oklch(0.32 0.045 45);
+  --montaigne-primary: oklch(0.42 0.09 35);
+  --montaigne-engrave-highlight: oklch(0.99 0.01 85);
+  --montaigne-engrave-shadow: oklch(0.24 0.05 40);
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: var(--montaigne-background);
+  --foreground: var(--montaigne-foreground);
+  --card: var(--montaigne-surface);
+  --card-foreground: var(--montaigne-foreground);
+  --popover: var(--montaigne-surface);
+  --popover-foreground: var(--montaigne-foreground);
+  --primary: var(--montaigne-primary);
+  /*
+   * Statico apposta: giorno.primary e notte.primary condividono la
+   * stessa fascia di luminosità (palette.ts), quindi lo stesso testo
+   * chiaro resta leggibile sull'uno e sull'altro senza dover scegliere
+   * il contrasto a ogni istante dell'interpolazione.
+   */
+  --primary-foreground: oklch(0.97 0.015 85);
+  --secondary: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 6%);
+  --secondary-foreground: var(--montaigne-foreground);
+  --muted: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 4%);
+  --muted-foreground: color-mix(in oklch, var(--montaigne-foreground), var(--montaigne-surface) 40%);
+  --accent: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 8%);
+  --accent-foreground: var(--montaigne-foreground);
+  /* Semantica di errore, non parte della luce: stabile giorno e notte. */
+  --destructive: oklch(0.5 0.16 25);
+  --border: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 14%);
+  --input: color-mix(in oklch, var(--montaigne-surface), var(--montaigne-foreground) 18%);
+  --ring: color-mix(in oklch, var(--montaigne-primary), var(--montaigne-foreground) 15%);
+  --radius: 0.625rem;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    color: var(--foreground);
+    background-color: var(--background);
+    /* Luce (design doc §2 e §3): un solo radial-gradient a basso contrasto, fisso dietro il contenuto. */
+    background-image: radial-gradient(ellipse 65% 45% at 50% -8%, var(--card), transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
   }
+
   html {
     @apply font-sans;
   }
+}
+
+/*
+ * Materia (design doc §2). L'unica immagine raster dell'app è la
+ * copertina: tutto il resto qui è CSS e SVG generati, salvati come
+ * file e ripetuti, mai ricalcolati a ogni frame.
+ */
+
+/* Carta: colore pieno più rumore SVG (opacità incorporata nel file, §2). Sui componenti condivisi che fanno da superficie — la Card. */
+.materia-carta {
+  background-color: var(--card);
+  background-image: url("/materia/carta.svg");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+/* Legno: venatura appena percepibile, riservata alla cornice della schermata d'accesso — l'unico posto dove il riferimento può affiorare nella materia, mai nel nome (design doc §1). */
+.materia-legno {
+  background-color: var(--background);
+  background-image: url("/materia/legno.svg");
+  background-repeat: repeat;
+  background-size: 240px 240px;
+  background-blend-mode: overlay;
+}
+
+/*
+ * Incisione (design doc §2 e §3): tipografia, non texture. Di giorno
+ * il chiaro sta sotto e lo scuro sopra; di notte si inverte in
+ * riflesso — "ombra sotto" per la luce da finestra, "riflesso sopra"
+ * per la luce da lampada. Le due tinte interpolano con l'ora insieme
+ * al resto della palette; il verso si inverte insieme alla classe
+ * .dark, sullo stesso confine giorno/notte.
+ */
+.incisione {
+  text-shadow:
+    0 1px 0 var(--montaigne-engrave-highlight),
+    0 -1px 0 var(--montaigne-engrave-shadow);
+}
+
+.dark .incisione {
+  text-shadow:
+    0 -1px 0 var(--montaigne-engrave-highlight),
+    0 1px 0 var(--montaigne-engrave-shadow);
 }
