@@ -15,7 +15,8 @@ from uuid import UUID
 from supabase import Client
 
 _SELECT_BASE = (
-    "id, libro_id, stato, pagine_adottate, voto, nota_intenzione, creato_at, aggiornato_at"
+    "id, utente_id, libro_id, stato, pagine_adottate, voto, nota_intenzione, creato_at, "
+    "aggiornato_at"
 )
 
 _SELECT_CON_LIBRO = (
@@ -73,15 +74,25 @@ def _con_pagina_corrente(voce: dict[str, Any]) -> dict[str, Any]:
     return voce
 
 
-def get_by_libro(client: Client, libro_id: UUID) -> dict[str, Any] | None:
+def get_by_libro(client: Client, libro_id: UUID, utente_id: UUID) -> dict[str, Any] | None:
     """La propria Voce per un Libro, se esiste. Regola 11 (al più una
     Voce per Libro) è garantita dal vincolo
     `uq_voce_di_libreria_utente_libro`: qui si interroga soltanto, per
-    decidere se `POST /voci` deve creare o restituire l'esistente."""
+    decidere se `POST /voci` deve creare o restituire l'esistente.
+
+    Filtro esplicito su `utente_id`, non solo la RLS: da quando la RLS di
+    `voce_di_libreria` permette anche a un collegato attivo di leggere
+    questa riga (issue #3), una `.eq("libro_id", ...)` senza filtro
+    troverebbe anche la Voce del collegato per lo stesso libro — al
+    minimo un dedup sbagliato (creerebbe la propria come se non
+    esistesse mai, o viceversa la scambierebbe per esistente), al
+    peggio un errore da `.maybe_single()` se entrambe le righe sono
+    visibili insieme."""
     response = (
         client.table("voce_di_libreria")
         .select(_SELECT_BASE)
         .eq("libro_id", str(libro_id))
+        .eq("utente_id", str(utente_id))
         .maybe_single()
         .execute()
     )
@@ -103,13 +114,18 @@ def create(client: Client, utente_id: UUID, libro_id: UUID) -> dict[str, Any]:
     return rows[0]
 
 
-def list_con_libro(client: Client) -> list[dict[str, Any]]:
-    """La libreria personale: RLS restringe già a `auth.uid() =
-    utente_id` (nessun parametro di filtro qui — questa issue non
-    espone la libreria di un collegato, vedi issue #3)."""
+def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
+    """La libreria di `utente_id`, con Libro incorporato: filtro
+    esplicito, non la sola RLS (issue #3 — la RLS permette anche a un
+    collegato attivo di leggere queste righe, quindi ometterlo
+    mescolerebbe qui la propria libreria con quella di un collegato).
+    Riusata identica sia per `GET /voci` (con `utente_id` = chi chiama)
+    sia per `GET /utenti/{id}/voci` (con l'id del collegato, dopo che
+    il chiamante ha già verificato il collegamento attivo)."""
     response = (
         client.table("voce_di_libreria")
         .select(_SELECT_LISTA)
+        .eq("utente_id", str(utente_id))
         .order("ordine", foreign_table="libro.libro_autore")
         .is_("lettura_aperta.data_fine", "null")
         .execute()
@@ -148,6 +164,35 @@ def update_pagine_adottate(
     response = (
         client.table("voce_di_libreria")
         .update({"pagine_adottate": pagine_adottate})
+        .eq("id", str(voce_id))
+        .select(_SELECT_BASE)
+        .execute()
+    )
+    rows = cast("list[dict[str, Any]]", response.data)
+    return rows[0] if rows else None
+
+
+def update_voto(client: Client, voce_id: UUID, voto: float | None) -> dict[str, Any] | None:
+    """Nessun trigger coinvolto (a differenza di pagine_adottate): il
+    vincolo 1-5 è un CHECK dichiarativo sulla colonna, non un vincolo tra
+    righe."""
+    response = (
+        client.table("voce_di_libreria")
+        .update({"voto": voto})
+        .eq("id", str(voce_id))
+        .select(_SELECT_BASE)
+        .execute()
+    )
+    rows = cast("list[dict[str, Any]]", response.data)
+    return rows[0] if rows else None
+
+
+def update_nota_intenzione(
+    client: Client, voce_id: UUID, nota_intenzione: str | None
+) -> dict[str, Any] | None:
+    response = (
+        client.table("voce_di_libreria")
+        .update({"nota_intenzione": nota_intenzione})
         .eq("id", str(voce_id))
         .select(_SELECT_BASE)
         .execute()

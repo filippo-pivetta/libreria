@@ -21,6 +21,7 @@ _LIBRO_ID = UUID("00000000-0000-0000-0000-0000000000b1")
 
 _VOCE: dict[str, Any] = {
     "id": str(_VOCE_ID),
+    "utente_id": str(_USER_ID),
     "libro_id": str(_LIBRO_ID),
     "stato": "da_leggere",
     "pagine_adottate": None,
@@ -56,8 +57,12 @@ def authenticated(client: TestClient) -> Iterator[TestClient]:
 
 
 def test_get_voci_returns_list(authenticated: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_elenco(access_token: str) -> list[dict[str, Any]]:
+    async def _fake_elenco(access_token: str, utente_id: UUID) -> list[dict[str, Any]]:
         assert access_token == "test-token"
+        # Il router passa esplicitamente l'id di chi chiama al service
+        # (issue #3, fix del bug latente: GET /voci non deve mai
+        # mescolare la propria libreria con quella di un collegato).
+        assert utente_id == _USER_ID
         return [{**_VOCE, "libro": _LIBRO}]
 
     monkeypatch.setattr(voci_service, "elenco_libreria", _fake_elenco)
@@ -341,5 +346,156 @@ def test_patch_pagine_adottate_returns_409_below_existing(
 
 def test_patch_pagine_adottate_requires_authentication(client: TestClient) -> None:
     response = client.patch(f"/voci/{_VOCE_ID}/pagine-adottate", json={"pagine_adottate": 10})
+
+    assert response.status_code == 401
+
+
+# --- PATCH /voci/{id}/voto -------------------------------------------------
+
+
+def test_patch_voto_returns_updated_voce(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_correggi(
+        access_token: str, voce_id: UUID, voto: float | None
+    ) -> dict[str, Any] | None:
+        assert voto == 4
+        return {**_VOCE, "voto": 4}
+
+    monkeypatch.setattr(voci_service, "correggi_voto", _fake_correggi)
+
+    response = authenticated.patch(f"/voci/{_VOCE_ID}/voto", json={"voto": 4})
+
+    assert response.status_code == 200
+    assert response.json()["voto"] == 4
+
+
+def test_patch_voto_accepts_null_to_clear(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_correggi(
+        access_token: str, voce_id: UUID, voto: float | None
+    ) -> dict[str, Any] | None:
+        assert voto is None
+        return {**_VOCE, "voto": None}
+
+    monkeypatch.setattr(voci_service, "correggi_voto", _fake_correggi)
+
+    response = authenticated.patch(f"/voci/{_VOCE_ID}/voto", json={"voto": None})
+
+    assert response.status_code == 200
+    assert response.json()["voto"] is None
+
+
+def test_patch_voto_rejects_out_of_range(authenticated: TestClient) -> None:
+    response = authenticated.patch(f"/voci/{_VOCE_ID}/voto", json={"voto": 6})
+
+    assert response.status_code == 422
+
+
+def test_patch_voto_accepts_half_star(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_correggi(
+        access_token: str, voce_id: UUID, voto: float | None
+    ) -> dict[str, Any] | None:
+        assert voto == 3.5
+        return {**_VOCE, "voto": 3.5}
+
+    monkeypatch.setattr(voci_service, "correggi_voto", _fake_correggi)
+
+    response = authenticated.patch(f"/voci/{_VOCE_ID}/voto", json={"voto": 3.5})
+
+    assert response.status_code == 200
+    assert response.json()["voto"] == 3.5
+
+
+def test_patch_voto_rejects_non_half_star(authenticated: TestClient) -> None:
+    response = authenticated.patch(f"/voci/{_VOCE_ID}/voto", json={"voto": 3.3})
+
+    assert response.status_code == 422
+
+
+def test_patch_voto_returns_404_when_missing(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_correggi(
+        access_token: str, voce_id: UUID, voto: float | None
+    ) -> dict[str, Any] | None:
+        return None
+
+    monkeypatch.setattr(voci_service, "correggi_voto", _fake_correggi)
+
+    response = authenticated.patch(f"/voci/{_VOCE_ID}/voto", json={"voto": 4})
+
+    assert response.status_code == 404
+
+
+def test_patch_voto_requires_authentication(client: TestClient) -> None:
+    response = client.patch(f"/voci/{_VOCE_ID}/voto", json={"voto": 4})
+
+    assert response.status_code == 401
+
+
+# --- PATCH /voci/{id}/nota-intenzione --------------------------------------
+
+
+def test_patch_nota_intenzione_returns_updated_voce(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_correggi(
+        access_token: str, voce_id: UUID, nota_intenzione: str | None
+    ) -> dict[str, Any] | None:
+        assert nota_intenzione == "Consigliato da Giulia."
+        return {**_VOCE, "nota_intenzione": "Consigliato da Giulia."}
+
+    monkeypatch.setattr(voci_service, "correggi_nota_intenzione", _fake_correggi)
+
+    response = authenticated.patch(
+        f"/voci/{_VOCE_ID}/nota-intenzione", json={"nota_intenzione": "Consigliato da Giulia."}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["nota_intenzione"] == "Consigliato da Giulia."
+
+
+def test_patch_nota_intenzione_accepts_null_to_clear(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_correggi(
+        access_token: str, voce_id: UUID, nota_intenzione: str | None
+    ) -> dict[str, Any] | None:
+        assert nota_intenzione is None
+        return {**_VOCE, "nota_intenzione": None}
+
+    monkeypatch.setattr(voci_service, "correggi_nota_intenzione", _fake_correggi)
+
+    response = authenticated.patch(
+        f"/voci/{_VOCE_ID}/nota-intenzione", json={"nota_intenzione": None}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["nota_intenzione"] is None
+
+
+def test_patch_nota_intenzione_returns_404_when_missing(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_correggi(
+        access_token: str, voce_id: UUID, nota_intenzione: str | None
+    ) -> dict[str, Any] | None:
+        return None
+
+    monkeypatch.setattr(voci_service, "correggi_nota_intenzione", _fake_correggi)
+
+    response = authenticated.patch(
+        f"/voci/{_VOCE_ID}/nota-intenzione", json={"nota_intenzione": "x"}
+    )
+
+    assert response.status_code == 404
+
+
+def test_patch_nota_intenzione_requires_authentication(client: TestClient) -> None:
+    response = client.patch(f"/voci/{_VOCE_ID}/nota-intenzione", json={"nota_intenzione": "x"})
 
     assert response.status_code == 401

@@ -8,7 +8,7 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.letture import EsitoLettura
 
@@ -48,10 +48,17 @@ class LibroEssenziale(BaseModel):
 
 class VoceResponse(BaseModel):
     id: UUID
+    # Proprietario della Voce: da quando GET /voci/{id} è raggiungibile
+    # anche da un collegato attivo (issue #3), il frontend usa questo
+    # campo per distinguere "è mia" da "è di un collegato" nella stessa
+    # pagina condivisa e nascondere i controlli di scrittura di
+    # conseguenza (design-frontend.md §15).
+    utente_id: UUID
     libro_id: UUID
     stato: StatoVoce
     pagine_adottate: int | None
-    voto: int | None
+    # Mezze stelle ammesse (design doc §9): 1, 1.5, 2, ..., 5.
+    voto: float | None
     nota_intenzione: str | None
     creato_at: datetime
     aggiornato_at: datetime
@@ -125,3 +132,27 @@ class CambiaStatoRequest(BaseModel):
 
 class CorreggiPagineRequest(BaseModel):
     pagine_adottate: int | None = Field(default=None, gt=0)
+
+
+class CorreggiVotoRequest(BaseModel):
+    """`null` cancella il voto. Mezze stelle ammesse: il vincolo "1-5, a
+    scatti di 0,5" ripete a livello applicativo `chk_voce_di_libreria_voto`
+    (AGENTS.md: "validazione lato server sempre, anche se il client valida
+    già")."""
+
+    voto: float | None = Field(default=None, ge=1, le=5)
+
+    @field_validator("voto")
+    @classmethod
+    def _voto_a_mezze_stelle(cls, value: float | None) -> float | None:
+        if value is not None and (value * 2) % 1 != 0:
+            raise ValueError("Il voto ammette solo mezze stelle (1, 1,5, 2, ... 5).")
+        return value
+
+
+class CorreggiNotaIntenzioneRequest(BaseModel):
+    """`null` cancella la nota. Nessun limite di lunghezza: il PRD non ne
+    impone uno ("nessun limite imposto, quindi nessun rifiuto previsto",
+    casi limite)."""
+
+    nota_intenzione: str | None = None

@@ -11,10 +11,8 @@ import { SignOutButton } from "@/components/layout/sign-out-button";
  * active item is marked with full-ink text and a rule underneath, never a
  * fill.
  *
- * Annals, Readers and Tower don't have a domain screen behind them yet
- * (none of those entities exist on the backend yet): the links point to
- * placeholder pages already in the right structure, ready for when the
- * data arrives — see the corresponding routes under app/(protected)/.
+ * Annals still points at a placeholder page (metrics, issue #7, not
+ * built yet); Readers and Tower now have real screens (issue #3).
  *
  * Labels stay Italian: the product's UI language today, pending the i18n
  * layer (AGENTS.md notes this isn't built yet).
@@ -33,9 +31,9 @@ export function ProtectedNav({
   userName: string;
   /**
    * Received-connection-request count (design doc §5): the only element
-   * in `alert` in the whole app. Not populated yet — the backend has no
-   * Connection entity yet (AGENTS.md, app/models is empty) — so it stays
-   * optional: no badge until a caller passes a number.
+   * in `alert` in the whole app. Populated by app/(protected)/layout.tsx
+   * from GET /collegamenti; stays optional so a failed fetch there just
+   * omits the badge instead of blocking the whole layout.
    */
   receivedRequestCount?: number;
 }) {

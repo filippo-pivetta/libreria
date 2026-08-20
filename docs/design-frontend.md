@@ -205,6 +205,9 @@ Il contatore delle richieste ricevute sta accanto a Torre ed è l'unico elemento
 tutta l'app: il PRD non ha notifiche, e senza contatore una richiesta resterebbe invisibile
 per sempre.
 
+Questa barra è quella di "casa tua". Nel contesto di un collegato (§15) sparisce del tutto,
+sostituita da una barra contestuale diversa: non è una variazione di questa, è un'altra barra.
+
 Il rimando letterario sta nell'insegna, non nella segnaletica interna: dentro le pagine i
 titoli restano piani (collegamenti, impostazioni, cancella il tuo account, chi vede cosa).
 
@@ -272,8 +275,8 @@ la costa**. Ogni volume, da sinistra a destra:
    avanzamento di 3px sul bordo inferiore della copertina. Su mobile scorre in orizzontale
    con aggancio (`scroll-snap-type: x proximity`) — provata come vista principale e
    scartata, perché costa dodici gesti per dodici libri, ma su due o tre funziona. **I libri
-   in lettura compaiono sia nella fascia sia nello scaffale sotto, ed è voluto**: sono due
-   viste sugli stessi dati, non due insiemi distinti.
+   in lettura stanno solo nella fascia**: due insiemi distinti, non due viste sugli stessi
+   dati — vederli ripetuti identici due volte nella stessa pagina non aggiunge informazione.
 9. **Le voci senza pagine adottate** hanno costa e copertina in contorno tratteggiato, senza
    riempimento e senza ombra: l'assenza di dato va dichiarata, non gridata.
 10. **Il sollevamento** è `translateY(-10px)` più il passaggio all'ombra del piano 2, su uno
@@ -387,11 +390,13 @@ il contenuto personale sotto la piega dello schermo.
   altre transizioni ammesse sotto un disclosure **"Altro"**. **L'interfaccia non offre mai una
   transizione vietata**, invece di offrirla e poi rifiutarla. Il campo data usa uno stile
   proprio (`CampoData`), mai l'aspetto nativo del browser.
-- **Emendamento del 20 agosto 2026.** Voto, recensione, nota di intenzione e insight
-  raggruppati per lettura **non sono ancora costruiti**: appartengono all'issue #5 (insight e
-  giudizio personale), fuori dal perimetro di questo intervento. Il testo del paragrafo
-  originale li descriveva come se esistessero già; restano nel documento come specifica per
-  quando l'issue #5 sarà implementata, non come stato attuale.
+- **Voto in stelle** (1-5 a scatti di mezza stella, ogni stella è due zone cliccabili — metà
+  sinistra/destra — e si solleva al passaggio del mouse come i volumi sullo scaffale, §7; un
+  secondo clic sul valore già scelto lo cancella) e
+  **nota di intenzione** (carta più calda, mai visibile a un collegato, in nessuno stato del
+  consenso) sono costruiti. **Recensione e insight raggruppati per lettura non lo sono
+  ancora**: appartengono per intero all'issue #5, non toccata da questo intervento — restano
+  nel documento come specifica per quando sarà implementata.
 - Se il libro è da leggere, **"me lo consigli?" prende il posto dei dati di lettura**. Vincoli
   del PRD: privata e mai condivisibile, sotto le ottanta parole, dichiarata come generata, e a
   consenso revocato l'interfaccia dice che è spenta invece di far finta che non esista.
@@ -493,43 +498,35 @@ compare dopo che hai digitato è un fallimento del disegno.
 si espande la sezione della tua copia. Senza strati sovrapposti non c'è nulla che possa
 chiudersi portandosi via il testo in scrittura, come impone la regola 25.
 
-Il pannello sale al piano 2 mentre si apre e la carta sotto resta al piano 1: è il salto di
-ombra a dire che l'attenzione è lì, senza oscurare il resto.
+**Segnalibro trascinabile e campo numerico, accoppiati.** Si trascina per avvicinarsi, si
+digita per precisare — su un libro da 1200 pagine un pixel vale diverse pagine. Il
+trascinamento rende fisico il vincolo del PRD: la porzione già letta è un muro, e il segnalibro
+non torna indietro perché il dito non ci riesce, non perché arriva un messaggio di rifiuto. Da
+tastiera, frecce ±1, con maiuscolo ±10. Il campo numerico non impone lo stesso muro mentre si
+sta ancora digitando le cifre — solo alla perdita del focus — per non combattere con chi sta
+scrivendo un numero a più cifre; il tetto (le pagine adottate), quando c'è, si applica sempre,
+anche a metà digitazione.
 
 | Elemento | Regola |
 |---|---|
 | Numero grande, a fuoco all'apertura, tastiera numerica, invio salva | Il caso normale è: tocco, tre cifre, invio |
 | "42 pagine dal 14 agosto" | Il PRD conta le pagine come somma degli **incrementi**, mai delle pagine raggiunte. Mostrarlo mentre lo crei insegna il modello facendolo. È anche l'unico numero gratificante |
-| Barra a due colori | Quello che avevi in `ink-soft`, quello che aggiungi adesso in `accent` |
+| Barra a due colori | Quello che avevi in `ink-soft`/`accent` attenuato, il tratto in più in `accent` pieno |
 | Rifiuto (pagina, data, tetto) | Un toast in fondo alla pagina (§19), non testo sotto il campo |
-| "Correggi il totale" | Via d'uscita visibile nel momento del blocco. Rifiutata se il nuovo totale è inferiore a un avanzamento già inserito |
+| "Correggi il totale" | Sta con gli altri fatti bibliografici sulla pagina sinistra, non nel pannello dell'avanzamento — è l'unico campo bibliografico che l'Utente corregge sulla propria copia. Si clicca il numero, si scrive, si esce dal campo: salva da solo, senza un bottone a parte. Rifiutata se il nuovo totale è inferiore a un avanzamento già inserito |
 
-**Emendamento del 20 agosto 2026.** Le due righe che dichiaravano i limiti in anticipo — "tra
-215 e 320" sotto il campo, "non prima del 14 agosto" accanto alla data — sono state rimosse su
-richiesta esplicita in corso d'opera: il vincolo si scopre tentando, non prima. `min`/`max` sul
-campo restano solo come suggerimento per tastiera numerica e lettori di schermo, senza bloccare
-l'invio (nessun fumetto nativo del browser, che non è testo — vedi §19).
+Nessun limite dichiarato in anticipo con una frase ("tra 215 e 320", "non prima del 14
+agosto"): il vincolo si scopre tentando. `min`/`max` sul campo restano solo come suggerimento
+per tastiera numerica e lettori di schermo, senza bloccare l'invio (nessun fumetto nativo del
+browser, che non è testo — vedi §19).
 
-**Emendamento del 20 agosto 2026 (secondo).** Il segnalibro trascinabile descritto sotto
-("### Inserimento" originale) **è stato rimosso per intero, codice compreso**, su richiesta
-esplicita: resta solo il campo numerico, il modo diretto e senza ambiguità di correggere una
-pagina di lettura passata quanto quella corrente. Il paragrafo seguente descrive il
-comportamento sostituito, mantenuto qui come traccia della decisione presa e non come stato
-attuale. La barra a due colori (riga sopra) **resta**, ma calcolata dal valore digitato nel
-campo invece che dalla posizione di un oggetto trascinato.
+**Salvataggio ottimistico.** Il segnalibro e il numero si spostano subito, la conferma arriva
+dopo. Se la scrittura fallisce, un toast lo dice e il valore salvato resta quello precedente.
+È la differenza fra un'app che sembra viva e una che sembra un modulo.
 
-### Inserimento (rimosso)
-
-*Testo originale, non più valido — vedi emendamento sopra.* Digitando il numero e trascinando
-il segnalibro. Il trascinamento rende il vincolo fisico: la porzione già letta è un muro e il
-segnalibro non può tornare indietro. Il rifiuto del PRD non arriva più come messaggio, il dito
-semplicemente non ci riesce. Il segnalibro era un oggetto del piano 2 su una barra del piano 1,
-con ombra propria a dichiarare che era afferrabile: l'unico caso dell'app in cui la profondità
-avrebbe dichiarato un affordance invece che una gerarchia.
-
-**Salvataggio ottimistico.** Il numero si aggiorna subito nella barra, la conferma arriva dopo.
-Se la scrittura fallisce, un toast lo dice e il valore salvato resta quello precedente. È la
-differenza fra un'app che sembra viva e una che sembra un modulo.
+**Nel contesto di un collegato:** sparisce il pannello per intero — niente campo, niente
+segnalibro trascinabile, niente "Salva". Restano barra e numeri in sola lettura, che sono un
+dato di lettura visibile ai collegati (§15).
 
 ### Due varianti
 
@@ -624,8 +621,25 @@ chiusura mentre le pagine restano divise fra i due anni secondo quando sono stat
 perde quasi tutto il croma; le carte restano, ma nastri e stelle passano da `accent` a
 `ink-soft`. Confrontandola con la propria si sente, da sola no.
 
-Nome utente sempre presente in alto, in Fraunces, dove nella propria libreria non c'è nulla. È
-il secondo segnale, e regge anche per chi non distingue i due bianchi.
+**La barra globale sparisce del tutto**, sostituita da una barra contestuale: link di uscita
+"‹ Lettori" (la stessa via da cui si è entrati, non il tasto indietro del browser), il nome
+della persona con le iniziali accanto, fisso mentre si scorre la pagina, e due schede interne
+— **Libreria** e **Annali**. È il segnale più forte possibile, più forte del solo cambio di
+luminanza: finché la barra dice "Libreria, Annali, Lettori, Torre" in cima, il cervello legge
+casa propria, qualunque sia la luce. La barra globale torna solo uscendo da "‹ Lettori". Vale
+identico per la scheda del singolo libro di un collegato (§9): anche lì la barra globale
+sparisce, sostituita da "‹ [nome]" verso la sua libreria e il titolo del libro accanto alle
+sue iniziali — un livello alla volta, mai un salto diretto a Lettori da dentro un libro.
+
+**Scheda Annali del collegato — dipende dall'issue #7, non ancora costruita.** La scheda
+compare comunque nella barra contestuale invece di sparire, con l'indicazione che arriva più
+avanti: nasconderla del tutto suggerirebbe che non è prevista, mentre lo è. Specifica completa
+in `docs/rimandato-annali-collegato.md`, da seguire quando Metriche di lettura (issue #7) sarà
+costruita — non da reinventare in quel momento.
+
+**Libri in comune.** L'intestazione della sua libreria porta anche il numero di opere che
+possiedi anche tu (stesso Libro in entrambe le librerie), calcolato dalle due liste già
+caricate — non è un dato nuovo, non richiede una rotta dedicata.
 
 **L'assenza è muta.** Nessun lucchetto dove starebbe la nota di intenzione, nessun "questo
 insight è privato", nessun posto vuoto che riveli che qualcosa esiste e non ti è dato. Un
@@ -662,6 +676,25 @@ indistinguibile da chi non ha mai chiesto. Nessun blocco, richiesta reinviabile.
 Qui non c'è scaffale e non ci sono oggetti: sono persone, non volumi. Una sola carta lunga sul
 piano 1, righe separate da filetti, iniziali in Fraunces. Nessuna immagine di profilo, che il
 PRD non prevede.
+
+**Due gruppi, non una lista sola.** L'elenco fa due mestieri con frequenze opposte: andare da
+qualcuno con cui sei già collegato, che è quotidiano, e trovare qualcuno da chiedere, che in un
+gruppo chiuso capita poche volte l'anno. Due carte, non una:
+
+- **I tuoi collegamenti** — solo chi ha una relazione attiva. Ogni riga è pura navigazione:
+  iniziali, nome, un chevron, l'intera riga è il link verso la sua libreria (§15). Nessuno
+  stato scritto accanto: essere nell'elenco è già lo stato.
+- **Altri membri** — chi non è (ancora) collegato. A destra della riga, tre varianti secondo
+  la relazione: un bottone "Chiedi il collegamento" quando è assente; il testo "Richiesta
+  inviata" quando l'hai chiesta tu; il testo "Ti ha chiesto il collegamento" quando l'ha
+  chiesta lui — la direzione della richiesta va distinta a parole, non lasciata a un generico
+  "In attesa", altrimenti non si capisce se c'è qualcosa da fare (nella Torre) o solo da
+  aspettare. Resta vero l'invariante sopra: qui è sempre testo, mai un pulsante che accetta o
+  rifiuta.
+
+Sotto il secondo gruppo, una riga ricorda che le richieste si accettano nella Torre. Un gruppo
+vuoto (nessun collegamento ancora, o tutti i membri già collegati) non mostra la sua carta:
+niente carte vuote fra le due.
 
 ---
 
@@ -736,13 +769,20 @@ Mai "con successo", mai "per favore", nessun punto esclamativo, nessun "ops". Gl
 cosa è successo e cosa fare. Verbo prima nei comandi. Un comando mantiene lo stesso nome per
 tutto il flusso.
 
-Nessun modale, nessun avviso che si sovrappone: solo pannelli in pagina. **Emendamento del 20
-agosto 2026:** unica eccezione, gli errori di scrittura sui dati di lettura (avanzamento,
-cambio di stato, correzione delle pagine, cancellazione di una Lettura) compaiono come un
-toast transitorio in fondo alla pagina invece che come testo sotto il campo — deciso in corso
-d'opera. Resta fermo tutto il resto della regola: nessun modale, nessuna sfocatura, il rosso
-(`alert`) non compare mai su un errore neppure nel toast, che è testo su una carta di piano 2
-come ogni altro pannello. Vedi §12 per il dettaglio sull'avanzamento.
+Nessun modale, nessun avviso che si sovrappone: solo pannelli in pagina. Unica eccezione, gli
+errori di scrittura sui dati di lettura (avanzamento, cambio di stato, correzione delle
+pagine, cancellazione di una Lettura) compaiono come un toast transitorio in fondo alla
+pagina invece che come testo sotto il campo. Resta fermo tutto il resto della regola: nessun
+modale, nessuna sfocatura, il rosso (`alert`) non compare mai su un errore neppure nel toast,
+che è testo su una carta di piano 2 come ogni altro pannello. Vedi §12 per il dettaglio
+sull'avanzamento.
+
+**Conferma di un salvataggio senza un bottone "Salva" esplicito** (pagine adottate, nota di
+intenzione: si scrive e si esce dal campo, il blur salva da solo): il toast resta riservato
+agli errori, quindi la conferma è una riga discreta ("Salvato.", mai "con successo") accanto
+al campo, che compare per un momento e sparisce. Un clic su "Salva" è già di per sé una
+conferma del gesto; un blur no, e senza questa riga non ci sarebbe alcun segnale che la
+scrittura sia partita.
 
 Interfaccia bilingue italiano e inglese dal primo giorno. Stringhe fuori dal codice fin
 dall'inizio; date e numeri seguono la lingua del browser. I contenuti scritti dagli utenti non

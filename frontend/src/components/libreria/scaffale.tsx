@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getVoci, type StatoVoce, type VoceConLibro } from "@/lib/api/voci";
+import { getLibreriaCollegato } from "@/lib/api/utenti";
 import { getAccessToken } from "@/lib/api/access-token";
 import { nomiAutori } from "@/lib/autori";
 import { RIBBON } from "@/lib/ribbon";
@@ -36,16 +37,43 @@ const STATI: { valore: StatoVoce; etichetta: string }[] = [
  * dal consenso IA, issue #6). L'indice a lettere è la tacca fra un volume
  * e l'altro (lib/shelf-pack.ts), non un elemento separato sul bordo.
  */
-export function Scaffale({ vociIniziali }: { vociIniziali: VoceConLibro[] }) {
+export function Scaffale({
+  vociIniziali,
+  utenteCollegatoId,
+}: {
+  vociIniziali: VoceConLibro[];
+  /** Presente solo sulla pagina /lettori/[id] (design doc §15): la
+   * libreria mostrata è quella di un collegato, non la propria — cambia
+   * solo da dove arrivano i dati, il rendering sotto resta identico
+   * (Volume è già di sola lettura). */
+  utenteCollegatoId?: string;
+}) {
   const [filtroTesto, setFiltroTesto] = useState("");
   const [statiEsclusi, setStatiEsclusi] = useState<Set<StatoVoce>>(() => new Set());
   const [containerRef, larghezza] = useContainerWidth<HTMLDivElement>();
   const coverWidth = useCoverWidth();
 
   const { data, isPending, isError, error, refetch } = useQuery({
-    queryKey: ["voci"],
+    queryKey: utenteCollegatoId ? ["utente-voci", utenteCollegatoId] : ["voci"],
     queryFn: async () => {
       const token = await getAccessToken();
+      if (utenteCollegatoId) {
+        const result = await getLibreriaCollegato(token, utenteCollegatoId);
+        if (result.status === "not_found") {
+          throw new Error("Questo utente non esiste.");
+        }
+        if (result.status === "non_collegato") {
+          // Refetch in background (es. l'altro interrompe il
+          // collegamento mentre si sta guardando la sua libreria):
+          // ricade sull'ErrorState con lo stesso testo della pagina
+          // (design doc §15, mai "sei stato rimosso"/"errore").
+          throw new Error("Quella libreria non è più accessibile.");
+        }
+        if (result.status === "error") {
+          throw new Error(result.message);
+        }
+        return result.voci;
+      }
       const result = await getVoci(token);
       if (result.status === "error") {
         throw new Error(result.message);
@@ -114,11 +142,11 @@ export function Scaffale({ vociIniziali }: { vociIniziali: VoceConLibro[] }) {
     );
   }
 
-  // I libri in lettura compaiono sia nella fascia in cima sia nello
-  // scaffale alfabetico sotto: due viste sugli stessi dati, non due
-  // insiemi distinti (design doc §7, regola 8).
+  // I libri in lettura stanno solo nella fascia in cima: due insiemi
+  // distinti, non due viste sugli stessi dati (design doc §7).
   const inCorso = filtrate.filter((voce) => IN_CORSO.has(voce.stato));
-  const righe = impacchetta(costruisciElementi(filtrate), larghezza, coverWidth);
+  const restoScaffale = filtrate.filter((voce) => !IN_CORSO.has(voce.stato));
+  const righe = impacchetta(costruisciElementi(restoScaffale), larghezza, coverWidth);
 
   return (
     <div className="flex flex-col gap-6">

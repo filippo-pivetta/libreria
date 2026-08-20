@@ -71,7 +71,18 @@ l'icona di sistema, design doc §9 — appearance: none non basta da solo a
 nascondere l'icona del calendario nei browser Chromium/WebKit, serve
 azzerare anche lo pseudo-elemento dedicato. Cliccare sul campo apre
 comunque il selettore nativo: il browser non lega quel comportamento
-all'icona visibile. */
+all'icona visibile.
+
+`position: relative` sul campo stesso è essenziale, non decorativo:
+senza un antenato posizionato, lo pseudo-elemento sotto (`position:
+absolute; width: 100%`) non resta contenuto nel riquadro del campo data
+ma scappa verso il più vicino antenato posizionato — o, in sua assenza,
+verso l'intera pagina — diventando un'area invisibile e cliccabile che
+può coprire i controlli accanto (bottoni "Salva" compresi) e aprire il
+selettore di data al posto loro. */
+.field-date {
+  position: relative;
+}
 .field-date::-webkit-calendar-picker-indicator {
   opacity: 0;
   position: absolute;

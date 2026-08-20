@@ -26,6 +26,19 @@ def get_utente(client: Client, utente_id: UUID) -> dict[str, Any] | None:
     return cast("dict[str, Any]", response.data)
 
 
+def list_altri(client: Client, self_id: UUID) -> list[dict[str, Any]]:
+    """Elenco membri (design-frontend.md §16), tutti tranne chi guarda:
+    non avrebbe senso mostrare a un Utente una relazione con se stesso."""
+    response = (
+        client.table("utente")
+        .select("id, nome_utente")
+        .neq("id", str(self_id))
+        .order("nome_utente")
+        .execute()
+    )
+    return cast("list[dict[str, Any]]", response.data)
+
+
 def get_utente_privato(client: Client, utente_id: UUID) -> dict[str, Any] | None:
     response = (
         client.table("utente_privato")

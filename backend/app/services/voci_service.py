@@ -61,7 +61,7 @@ async def aggiungi_libro(
     allo stato ricevuto."""
     client = get_user_client(access_token)
 
-    esistente = await run_in_threadpool(voce_repository.get_by_libro, client, libro_id)
+    esistente = await run_in_threadpool(voce_repository.get_by_libro, client, libro_id, utente_id)
     if esistente is not None:
         return esistente, True
 
@@ -74,9 +74,9 @@ async def aggiungi_libro(
     return creata, False
 
 
-async def elenco_libreria(access_token: str) -> list[dict[str, Any]]:
+async def elenco_libreria(access_token: str, utente_id: UUID) -> list[dict[str, Any]]:
     client = get_user_client(access_token)
-    return await run_in_threadpool(voce_repository.list_con_libro, client)
+    return await run_in_threadpool(voce_repository.list_con_libro, client, utente_id)
 
 
 async def dettaglio(access_token: str, voce_id: UUID) -> dict[str, Any] | None:
@@ -111,3 +111,19 @@ async def correggi_pagine(
         if error.code == "MTG11":
             raise PagineSottoAvanzamentoEsistenteError from error
         raise
+
+
+async def correggi_voto(
+    access_token: str, voce_id: UUID, voto: float | None
+) -> dict[str, Any] | None:
+    client = get_user_client(access_token)
+    return await run_in_threadpool(voce_repository.update_voto, client, voce_id, voto)
+
+
+async def correggi_nota_intenzione(
+    access_token: str, voce_id: UUID, nota_intenzione: str | None
+) -> dict[str, Any] | None:
+    client = get_user_client(access_token)
+    return await run_in_threadpool(
+        voce_repository.update_nota_intenzione, client, voce_id, nota_intenzione
+    )
