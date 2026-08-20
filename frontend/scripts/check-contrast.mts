@@ -61,6 +61,13 @@ const CHECKS: Check[] = [
 
 const worst = new Map<string, { ratio: number; when: string }>();
 
+// La mensola (design-frontend.md §7) deve restare più scura del piano 0 in
+// ogni istante: "se un giorno non lo è più, i libri sembrano fluttuare". Non
+// è un contrasto di leggibilità (nessun testo sta sulla mensola), è un
+// ordinamento di luminanza — tracciato nello stesso giro campionario invece
+// di un secondo passaggio sull'anno.
+let worstShelfMargin = { margin: Infinity, when: "" };
+
 for (let day = 0; day < 365; day++) {
   for (let min = 0; min < 1440; min += 10) {
     const d = new Date(Date.UTC(2026, 0, 1));
@@ -78,6 +85,13 @@ for (let day = 0; day < 365; day++) {
         });
       }
     }
+    const margin = p.surface0.l - p.shelf.l;
+    if (margin < worstShelfMargin.margin) {
+      worstShelfMargin = {
+        margin,
+        when: d.toLocaleString("it-IT", { timeZone: "Europe/Rome", dateStyle: "short", timeStyle: "short" }),
+      };
+    }
   }
 }
 
@@ -91,8 +105,14 @@ for (const chk of CHECKS) {
   );
 }
 
+const shelfOk = worstShelfMargin.margin > 0;
+if (!shelfOk) failed = true;
+console.log(
+  `${shelfOk ? "ok  " : "ROTTO"} shelf più scura di surface-0    margine minimo ${worstShelfMargin.margin.toFixed(3)} il ${worstShelfMargin.when}`
+);
+
 if (failed) {
-  console.error("\nUn valore della palette rompe il contrasto in almeno una fascia oraria.");
+  console.error("\nUn valore della palette rompe il contrasto o l'ordine di luminanza in almeno una fascia oraria.");
   process.exit(1);
 }
 console.log("\nContrasto a norma in ogni istante dell'anno.");

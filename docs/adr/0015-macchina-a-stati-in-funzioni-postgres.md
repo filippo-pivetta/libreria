@@ -1,0 +1,25 @@
+# 0015. La macchina a stati del ciclo di lettura vive in trigger e in un'unica RPC Postgres
+
+Stato: accettata
+Data: 2026-08-20
+
+## Contesto
+Il PRD impone regole tra righe che nessun CHECK a colonna singola può esprimere: la monotonia di data/pagina di un Avanzamento rispetto ai vicini della stessa Lettura, il tetto delle pagine adottate, la matrice di transizione di `voce_di_libreria.stato` con i suoi effetti collaterali (aprire/chiudere/cancellare una Lettura, generare l'avanzamento finale alla chiusura in "letto"). La migrazione originaria dello schema (20260818115830) le lascia esplicitamente fuori, con un commento che le rimanda a un trigger. Il precedente più vicino nel repository è `public.completa_registrazione` (ADR implicito nella migrazione 20260819064218): una funzione `security invoker` per un'operazione multi-tabella che deve restare atomica e soggetta alle RLS esistenti, non un privilegio in più.
+
+## Decisione
+Due meccanismi distinti, scelti in base alla natura del vincolo:
+
+- **Vincoli su una singola tabella** (monotonia e tetto di un Avanzamento — `trg_avanzamento_valida`; tetto e adeguamento dell'avanzamento finale alla correzione delle pagine adottate — `trg_voce_pagine_adottate`) sono **trigger**: valgono sempre, indipendentemente da chi scrive (backend applicativo, Studio, uno script del Manutentore), coerentemente con come il resto dello schema tratta le RLS.
+- **La macchina a stati**, che tocca più tabelle in un solo gesto, vive in un'unica funzione RPC `security invoker`, `public.cambia_stato_voce(p_voce_id, p_nuovo_stato, p_data)`: valida la matrice di transizione del PRD e applica i suoi effetti collaterali. È l'unico canale con cui l'applicazione cambia stato; riceve la data scelta dall'Utente (inizio o fine di una Lettura) come parametro esplicito, invece che tramite un secondo giro non atomico o una variabile di sessione letta da un trigger su `UPDATE OF stato`.
+
+Un'unica guardia di sessione (`montaigne.skip_ricalcolo_stato`) collega la funzione al trigger `AFTER DELETE` su `lettura` che ricalcola `voce_di_libreria.stato` dalle Letture rimaste: la funzione la imposta solo attorno alla propria `DELETE` interna (transizione "in lettura/in pausa → da leggere"), così il ricalcolo automatico — necessario anche per `DELETE /letture/{id}` chiamato da solo, su qualunque Lettura — non sovrascrive uno stato che il chiamante ha già deciso esplicitamente.
+
+## Alternative scartate
+**Un trigger `BEFORE UPDATE OF stato` al posto della RPC.** Un trigger a colonna singola non ha un canale pulito per ricevere "anche questa data" in modo atomico. Andava inoltre in conflitto con il trigger di ricalcolo su `DELETE`, necessario comunque: due trigger indipendenti che scrivono lo stesso stato nello stesso statement avrebbero richiesto la stessa guardia di sessione, ma coordinata tra due punti del codice invece che interna a un'unica funzione — più difficile da leggere e da testare.
+
+**Tutta la logica nel service layer Python, senza trigger né RPC.** Varrebbe solo per il backend ufficiale: un accesso diretto a Postgres (Studio, uno script) potrebbe scrivere stati e avanzamenti incoerenti senza che nulla se ne accorga. È lo stesso argomento che già motiva le RLS a vivere nel database invece che nel backend.
+
+**BEFORE invece di AFTER per `trg_voce_pagine_adottate`.** Scartato dopo un fallimento osservato: la funzione, quando adegua l'avanzamento finale automatico, inserisce/aggiorna una riga di `avanzamento` che a sua volta rilegge `voce_di_libreria.pagine_adottate` per il proprio tetto (`trg_avanzamento_valida`). In un trigger `BEFORE` quella lettura annidata vede ancora il valore precedente, perché la riga non è stata scritta nella tabella finché il `BEFORE` non restituisce `NEW`: il nuovo avanzamento verrebbe validato contro il tetto sbagliato. `AFTER` risolve perché, quando la funzione gira, la riga è già scritta nella transazione corrente; un'eccezione sollevata in `AFTER` fa comunque rollback dell'intero `UPDATE`, come in un trigger `BEFORE`.
+
+## Conseguenze
+Una scrittura diretta su `voce_di_libreria.stato` (Studio, uno script) bypassa la matrice di transizione e i suoi effetti collaterali: nessun trigger la intercetta. È un trade-off accettato consapevolmente — a differenza delle correzioni di genere o della creazione manuale di schede Libro, il cambio di stato di lettura non è mai un'operazione fuori banda legittima nel PRD, quindi nessun attore diverso dall'applicazione dovrebbe mai scrivere quella colonna direttamente. I vincoli di riga su `avanzamento` (`trg_avanzamento_valida`) restano invece imposti sempre, anche a scrittura diretta, perché lì il rischio di un errore fuori banda è reale (il Manutentore corregge dati bibliografici direttamente, non stati di lettura). Nessun test automatico in CI esercita i trigger o la RPC (non esiste un job con Supabase locale): la verifica è manuale, tramite `supabase/tests/verifica_ciclo_di_lettura.sql`, da eseguire dopo ogni modifica prima di aprire una PR.

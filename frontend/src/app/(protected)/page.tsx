@@ -1,17 +1,33 @@
-import { EmptyState } from "@/components/states/empty-state";
+import { getVoci } from "@/lib/api/voci";
+import { createClient } from "@/lib/supabase/server";
+import { ErrorState } from "@/components/states/error-state";
+import { Scaffale } from "@/components/libreria/scaffale";
 
 /**
- * Root of the protected area: will become the Libreria/Library (design
- * doc §7 "shelf of spines as the default view"), which depends on the
- * Book/Entry entity not yet present on the backend (AGENTS.md, app/models
- * is empty). For now it only verifies that layout, navigation and
- * redirect work.
+ * Libreria (design doc §7): scaffale di dorsi, vista predefinita di
+ * questa issue (l'alternativa a elenco resta fuori). Fetch iniziale lato
+ * server con il token già validato dal layout dell'area protetta;
+ * `Scaffale` lo idrata in TanStack Query per le mutazioni successive
+ * senza refetch completo.
  */
-export default function ProtectedHomePage() {
-  return (
-    <EmptyState
-      title="Nessun contenuto"
-      description="Questa pagina è intenzionalmente vuota: verifica il layout dell'area protetta e il redirect al login, non ancora una funzionalità di dominio. Diventerà la Libreria."
-    />
-  );
+export default async function ProtectedHomePage() {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    // Il layout ha già verificato la sessione prima di renderizzare
+    // questa pagina: se manca qui è una scadenza fra i due controlli,
+    // non un errore di logica.
+    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+  }
+
+  const result = await getVoci(session.access_token);
+
+  if (result.status === "error") {
+    return <ErrorState message={result.message} />;
+  }
+
+  return <Scaffale vociIniziali={result.data} />;
 }

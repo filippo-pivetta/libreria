@@ -37,7 +37,7 @@ Tutta l'interfaccia vive su tre piani e su non più di tre.
 |---|---|---|
 | **0, fondo** | La stanza. Non contiene mai testo di lettura | Colore pieno, nessuna ombra, nessuna grana |
 | **1, carta** | Le superfici su cui si legge e si scrive: schede, pannelli, elenchi | Luminanza più alta del fondo, grana 0.035, bordo 1px, ombra corta |
-| **2, oggetto** | Ciò che è sollevato: dorso al passaggio del mouse, pannello aperto, copertina | Luminanza più alta ancora, ombra doppia, bordo di luce sul lato illuminato |
+| **2, oggetto** | Ciò che è sollevato: volume al passaggio del mouse, pannello aperto, copertina | Luminanza più alta ancora, ombra doppia, bordo di luce sul lato illuminato |
 
 Non esiste un piano 3. Un elemento che sembra richiederne uno va spostato altrove nella
 pagina, non elevato.
@@ -55,7 +55,7 @@ alla bitmap della forma, quindi ogni cambiamento di forma o posizione lo ricalco
 quattro primitive concatenate le prestazioni su mobile crollano.
 
 **Bordi:** un solo spessore, 1px, sempre l'inchiostro del tema con alpha, mai un grigio
-scelto a mano. Raggi: 4px sugli oggetti piccoli (pastiglie, dorsi, barre), 10px su campi e
+scelto a mano. Raggi: 4px sugli oggetti piccoli (pastiglie, volumi, barre), 10px su campi e
 pulsanti, 14px sulle carte. Niente sopra i 14px, che dà l'aria di applicazione per bambini.
 
 ---
@@ -99,7 +99,8 @@ cambia solo al cambio pagina.
 | Bordo di luce | appena percettibile | più marcato: al buio è ciò che dà il volume |
 | Ombre | corte e chiare | lunghe e profonde |
 | Copertine | naturali | velate al 12%, velatura che si toglie al passaggio del mouse |
-| Dorsi | colore calcolato per la stanza chiara | seconda versione calcolata, più desaturata |
+| Mensola | più scura del piano 0 in entrambe le stanze | idem, invariante verificato in CI |
+| Colore dominante | calcolato per la stanza chiara | seconda versione calcolata, più desaturata |
 
 **La lampada.** Un solo `radial-gradient` a basso contrasto, fisso, ancorato in alto a
 sinistra. Non si muove, non pulsa, non segue il puntatore. È l'unica ragione per cui il piano
@@ -119,6 +120,12 @@ Valori OKLCH nella forma `L C H`. Sorgente di verità: `src/lib/light.ts`.
 | accent | `0.620 0.115 55` | `0.635 0.105 76` | `0.630 0.125 62` | `0.775 0.115 82` |
 | accent-strong | `0.470 0.110 58` | `0.470 0.100 72` | `0.455 0.115 62` | `0.820 0.110 84` |
 | alert | `0.530 0.170 27` | `0.545 0.170 27` | `0.535 0.170 27` | `0.700 0.150 28` |
+| shelf | `0.610 0.042 48` | `0.640 0.038 62` | `0.580 0.050 55` | `0.130 0.026 64` |
+
+**Invariante della mensola.** `shelf` deve restare più scuro di `surface-0` nei quattro
+ancoraggi, altrimenti il ripiano legge come una striscia di luce sotto i libri invece che
+come un oggetto d'ombra. Verificato in CI insieme ai contrasti (§21), non solo sui quattro
+ancoraggi ma campionando l'anno come per la luce.
 
 **Contrasti.** `ink` su `surface-1` sta fra 12.5:1 e 14.3:1. `ink-soft` su `surface-1` non
 scende sotto 6.0:1. `accent-strong` su `surface-1` non scende sotto 6.1:1. Testo scuro su
@@ -186,7 +193,7 @@ Tower.
 
 | Voce | Contenuto |
 |---|---|
-| Libreria | Scaffale, elenco, ricerca |
+| Libreria | Scaffale, filtri, ricerca |
 | Annali | Metriche per anno |
 | Lettori | Elenco membri |
 | Torre | Collegamenti e impostazioni |
@@ -225,82 +232,102 @@ condizione per entrare, quindi non è un avviso da scacciare, è una porta.
 
 ## 7. Libreria
 
-Scaffale di dorsi come vista predefinita, elenco come alternativa.
+**Riscritta il 20 agosto 2026: vista unica.** Non esiste un selettore di vista e non esiste
+una vista a elenco. Non esiste più un dorso da solo: esiste uno **scaffale di copertine con
+la costa**. Ogni volume, da sinistra a destra:
 
-**Larghezza dei dorsi fissa, minimo 30px.** Farla variare per realismo rende i titoli
-illeggibili e non porta nessun dato: l'informazione sta nell'altezza.
+- **La costa**, larga `clamp(6px, pagine / 22, 28px)`, nel colore dominante scurito. Lo
+  spessore è il numero di pagine — è fisicamente vero — non l'altezza, che è il formato di
+  stampa e non dice nulla. Le voci senza pagine adottate prendono uno spessore mediano.
+- **La copertina vera**, `120 × 180` px su desktop e `96 × 144` su mobile (proporzione 2:3
+  fissa, `object-fit: cover`, mai deformata, mai con bande).
+- **Il nastro di stato**, che esce dal lato di taglio (`right: 16px`), non dal centro, così
+  non copre mai la copertina.
 
-**Altezza proporzionale alle pagine adottate**, con minimo e massimo. Le voci senza pagine
-adottate prendono altezza mediana e un trattamento diverso, cioè nessuna venatura e un bordo
-tratteggiato appena accennato: l'assenza di dato si vede invece di essere finta.
+### Regole non negoziabili
 
-**Colore del dorso calcolato lato server** alla nascita della scheda, insieme a miniatura e
-versione grande, salvato come due esadecimali sul Libro, uno per la stanza chiara e uno per
-quella scura. Mai estratto nel browser con canvas. Strumento: `sharp-vibrant`, fork di
-node-vibrant senza supporto browser.
+1. **Il riquadro esiste prima dell'immagine.** Il recupero della copertina è un lavoro in
+   secondo piano (PRD): un libro appena aggiunto compare senza immagine e si riempie dopo. Il
+   volume nasce già della dimensione definitiva — `width`/`height` fissi, mai `aspect-ratio`
+   da solo — e non salta mai quando l'immagine atterra.
+2. **Nessuna didascalia sotto i libri.** La copertina è l'etichetta. Dove manca, il
+   segnaposto porta titolo e autore composti dentro il riquadro: l'informazione compare
+   esattamente dove serve, mai due volte.
+3. **Il segnaposto non è uno stato di errore.** Niente icona di immagine rotta, niente libro
+   generico, niente punto esclamativo: titolo in Fraunces e autore in Inter Tight sul colore
+   dominante. Un errore di caricamento ricade sul segnaposto in silenzio.
+4. **Il colore dominante serve ancora**, anche con le copertine vere: regge la costa, il
+   segnaposto e il riquadro nell'attesa.
+5. **Le mensole si riempiono sulla larghezza reale**, non su un numero fisso di libri. Una
+   mensola con due volumi fa sembrare la libreria abbandonata. Si impacchettano i volumi
+   finché entrano nella larghezza del contenitore, poi si chiude la mensola e se ne apre
+   una successiva; si ricalcola al ridimensionamento (`ResizeObserver`, debounce ~150ms).
+6. **La lettera dell'autore è una tacca fra un volume e l'altro**, larga 18px, con un filetto
+   di 10px che scende sulla mensola. Non è un ripiano a sé.
+7. **Ordinamento alfabetico per cognome dell'autore, stabile.** A parità di cognome, per
+   titolo. Un libro con più autori si ordina sul primo. Uno scaffale vero è stabile: impari
+   dove sta un libro e lo ritrovi con la coda dell'occhio; ordinare per attività recente
+   riordina la fila a ogni avanzamento e impedisce alla memoria spaziale di formarsi.
+8. **Fascia delle letture in corso in cima**, con gli stessi oggetti più un filo di
+   avanzamento di 3px sul bordo inferiore della copertina. Su mobile scorre in orizzontale
+   con aggancio (`scroll-snap-type: x proximity`) — provata come vista principale e
+   scartata, perché costa dodici gesti per dodici libri, ma su due o tre funziona. **I libri
+   in lettura compaiono sia nella fascia sia nello scaffale sotto, ed è voluto**: sono due
+   viste sugli stessi dati, non due insiemi distinti.
+9. **Le voci senza pagine adottate** hanno costa e copertina in contorno tratteggiato, senza
+   riempimento e senza ombra: l'assenza di dato va dichiarata, non gridata.
+10. **Il sollevamento** è `translateY(-10px)` più il passaggio all'ombra del piano 2, su uno
+    pseudo-elemento a cui si anima `opacity`, mai su `box-shadow` (non compositabile). Dietro
+    `prefers-reduced-motion` resta il salto di piano e sparisce il movimento. **Non allarga
+    più il volume** (32 → 44px nella stesura precedente): con la copertina vera il titolo non
+    è mai troncato in un'unica riga come lo era sul dorso, l'allargamento non risolverebbe più
+    nulla.
 
-**Il dorso è l'unico posto dell'app dove sopravvive la materia letterale.** Un gradiente a tre
-stop lungo la larghezza che simula la piega della costa: bordo scuro a sinistra, campo pieno
-al centro, ombra a destra. Nessuna texture bitmap. È tutto ciò che serve perché venti
-rettangoli affiancati leggano come volumi.
+**Colore dominante**, oggi un segnaposto deterministico calcolato lato client dall'id del
+Libro (nessuna copertina reale esiste ancora, la pipeline è l'issue #4): quando quella
+pipeline arriverà, andrà calcolato lato server con `sharp-vibrant` alla nascita della scheda
+e salvato sul Libro, come già previsto — mai estratto nel browser con canvas.
 
-**Nastri per lo stato**, nella stessa posizione del segnalibro sulla scheda: in lettura rosso,
-in pausa ambra, letto verde, abbandonato grigio, da leggere nessun nastro. I colori dei nastri
-sono un sistema a sé, indipendente dalla palette, perché codificano un dato e non
-l'atmosfera: restano uguali nei quattro ancoraggi, con la sola luminanza adattata per non
-sparire al buio.
+**La mensola.** Una barra di 10px sotto la fila, **più scura del piano 0** in tutti e quattro
+gli ancoraggi (ancoraggio `shelf` in `src/lib/light.ts`, verificato da
+`scripts/check-contrast.mts`: un ripiano più chiaro della stanza legge come una striscia di
+luce e i libri sembrano fluttuare), con l'ombra doppia rivolta verso il basso. È l'unico
+elemento dell'app che allude a un mobile, e basta: niente montanti, niente cornice, niente
+parete.
 
-**Ordinamento alfabetico per autore, stabile.** Uno scaffale vero è stabile: impari dove sta
-un libro e lo ritrovi con la coda dell'occhio. Ordinare per attività recente riordina la fila
-a ogni avanzamento e impedisce alla memoria spaziale di formarsi. Aggiungere un libro
-inserisce un dorso, non rimescola.
+### Filtri e ricerca
 
-**Fascia delle letture in corso in cima**, su desktop e mobile. Sono due o tre libri e
-risolvono l'obiezione all'ordinamento alfabetico.
+**Filtro testuale** su titoli e autori, sempre disponibile, che non chiama nessun modello: un
+campo con la sola riga inferiore, non una scatola arrotondata, `aria-label` esplicita.
 
-**La mensola.** Una barra di 10px sotto la fila, sul piano 1, con l'ombra doppia rivolta verso
-il basso. È l'unico elemento dell'app che allude a un mobile, e basta: niente montanti,
-niente cornice, niente parete.
+**Filtro per stato**, gratuito perché i nastri sono già un codice colore: pastiglie in
+contorno con un quadratino di colore di 7px e l'etichetta in `ink-soft`. Attive: nessun
+bordo, fondo `ink` al 9%, testo in `ink`. Non pastiglie piene colorate — erano la cosa più
+satura della schermata e rubavano l'attenzione ai libri, che sono l'unico posto dell'app
+dove il colore è un dato.
 
-### Sollevamento
-
-Al passaggio del mouse il dorso sale al piano 2 e si allarga (32 → 44px), con un bordo di luce
-sul lato illuminato e nessun testo aggiunto: l'allargamento completa i titoli troncati. I
-titoli molto lunghi restano troncati, e si clicca.
-
-- Solo `transform`. Mai larghezza o margine, che ricalcolerebbero il layout dell'intera fila
-  a ogni movimento del mouse.
-- L'ombra passa da quella del piano 1 a quella del piano 2, ed è ciò che rende leggibile il
-  salto. `box-shadow` non è compositabile, quindi si usa uno pseudo-elemento con l'ombra
-  superiore a cui si anima `opacity`.
-- L'area sensibile resta ferma mentre il dorso sale, altrimenti il puntatore ne esce e si
-  ottiene un tremolio.
-- Il nastro sale col dorso.
-- Tutto dietro `prefers-reduced-motion`, dove il salto di piano resta e il moto sparisce.
-
-### Azioni dal dorso, senza aprire il libro
-
-Il dorso sollevato ha spazio per i due gesti più frequenti: **registrare un avanzamento** e
-**cambiare stato** fra le sole transizioni ammesse. Tocco lungo su mobile.
-
-È il salto di qualità più importante dell'app e non è visivo. Il PRD dice che il tracciamento
-progressivo moltiplica per dieci le scritture: se registrare costa dieci secondi, in un mese
-l'app diventa un obbligo e la gente smette.
-
-### Come si salta dentro una libreria grande
-
-- **Indice a lettere sul bordo**, che è anche l'unghiatura delle rubriche.
-- **Filtro testuale** su titoli e autori, sempre disponibile, che non chiama nessun modello.
-- **Ricerca semantica separata**, sui propri insight, dipendente dal consenso. Il PRD impone
-  che a consenso revocato l'interfaccia dichiari che è spenta. **Non vanno fuse in un campo
-  solo**: revocare il consenso lascerebbe l'utente senza il modo di trovare un libro.
-- **Filtro per stato**, gratuito perché i nastri sono già un codice colore.
+**Ricerca semantica separata**, sui propri insight, dipendente dal consenso (fuori dal
+perimetro di questa vista, dipende dall'issue #6). Il PRD impone che a consenso revocato
+l'interfaccia dichiari che è spenta. **Non va fusa nel campo sopra**: revocare il consenso
+lascerebbe l'utente senza il modo di trovare un libro.
 
 ### Accessibilità
 
 Il colore del nastro da solo non basta: rosso e verde sono indistinguibili per un daltonico.
-La lunghezza del nastro porta la differenza, e il dorso in lettura ha anche una linea chiara
+La lunghezza del nastro porta la differenza, e il volume in lettura ha anche una linea chiara
 sul bordo.
+
+### Rimandato
+
+**Azioni dal volume senza aprire il libro** (registrare un avanzamento, cambiare stato con un
+tocco lungo su mobile): nella stesura precedente il dorso sollevato aveva spazio per questi
+due gesti. Con la copertina vera lo spazio libero sul volume è minore; resta un miglioramento
+da valutare, non ancora costruito — oggi il volume è solo un link alla scheda.
+
+**Indice a lettere sul bordo** come elemento a sé (l'unghiatura delle rubriche): sostituito
+dalle tacche fra i volumi (regola 6), che risolvono lo stesso problema senza un elemento
+separato; un indice fisso sul bordo per saltare direttamente a una lettera resta un possibile
+miglioramento successivo su una libreria molto grande.
 
 ---
 
@@ -309,15 +336,15 @@ sul bordo.
 Mobile pari a desktop, con il mobile come riferimento nei casi di dubbio. Ogni schermata si
 progetta e si verifica mobile-first, mai il contrario.
 
-**Scaffale a più mensole:** dorsi che vanno a capo su ripiani sovrapposti, trenta o quaranta
-libri per schermata, scorrimento verticale, tocco che apre. Il sollevamento non serve: il dito
-è già il puntatore. Ogni ripiano porta la sua mensola e la sua ombra, ed è la ripetizione
-delle ombre a dare la profondità che su desktop dà il sollevamento.
+**Scaffale a più mensole:** volumi (§7) che vanno a capo su ripiani impacchettati sulla
+larghezza reale, copertina ridotta a `96 × 144`, scorrimento verticale, tocco che apre. Il
+sollevamento non serve: il dito è già il puntatore. Ogni mensola porta la sua ombra doppia, ed
+è la ripetizione delle ombre a dare la profondità che su desktop dà il sollevamento.
 
-**Striscia orizzontale con aggancio solo per le letture in corso.** Provata come vista
-principale e scartata: dodici gesti per dodici libri, e perde il colpo d'occhio che è la
-ragione stessa dello scaffale. Su due o tre libri funziona, col centro dello schermo che fa da
-puntatore e la didascalia sotto che risolve la leggibilità dei titoli.
+**Fascia orizzontale con aggancio solo per le letture in corso** (§7, regola 8): provata come
+vista principale e scartata — dodici gesti per dodici libri, e perde il colpo d'occhio che è
+la ragione stessa dello scaffale — ma su due o tre libri funziona, col centro dello schermo
+che fa da puntatore.
 
 ---
 
@@ -347,36 +374,60 @@ il contenuto personale sotto la piega dello schermo.
 
 ### Pagina destra, la tua copia
 
-- Nastro nella stessa posizione del dorso: il libro che si apre non perde il segnalibro.
-- Stato, pagina raggiunta, data di inizio, barra di avanzamento in `accent`.
-- Voto in stelle in `accent-strong`, recensione.
-- Nota di intenzione su una carta leggermente più calda, angolo piegato, didascalia. Nessun
-  lucchetto.
-- Solo le transizioni ammesse dallo stato corrente, le frequenti in evidenza e le altre in un
-  menù. **L'interfaccia non offre mai una transizione vietata**, invece di offrirla e poi
-  rifiutarla.
+- Nastro nella stessa posizione del volume sullo scaffale: il libro che si apre non perde il
+  segnalibro.
+- Stato, pagina raggiunta, data di inizio in formato leggibile (`20 agosto 2026`, mai
+  `2026-08-20`), barra di avanzamento **a due colori**: quello già salvato in `ink-soft` al
+  50%, il tratto in più che si sta per salvare in `accent`, calcolati dal valore correntemente
+  in scrittura nel pannello sotto — non un solo colore statico.
+- Lingua originale come parola (`italiano`, non `it`), tramite i nomi di lingua della
+  piattaforma, con fallback sul codice se la piattaforma non la conosce.
+- Le transizioni: **una sola azione piena in evidenza** — la più frequente per lo stato
+  corrente (`in_lettura → letto`, `in_lettura → in_pausa`, `in_pausa → in_lettura`, …) — le
+  altre transizioni ammesse sotto un disclosure **"Altro"**. **L'interfaccia non offre mai una
+  transizione vietata**, invece di offrirla e poi rifiutarla. Il campo data usa uno stile
+  proprio (`CampoData`), mai l'aspetto nativo del browser.
+- **Emendamento del 20 agosto 2026.** Voto, recensione, nota di intenzione e insight
+  raggruppati per lettura **non sono ancora costruiti**: appartengono all'issue #5 (insight e
+  giudizio personale), fuori dal perimetro di questo intervento. Il testo del paragrafo
+  originale li descriveva come se esistessero già; restano nel documento come specifica per
+  quando l'issue #5 sarà implementata, non come stato attuale.
 - Se il libro è da leggere, **"me lo consigli?" prende il posto dei dati di lettura**. Vincoli
   del PRD: privata e mai condivisibile, sotto le ottanta parole, dichiarata come generata, e a
   consenso revocato l'interfaccia dice che è spenta invece di far finta che non esista.
+  **Non ancora costruito**, stessa issue #5.
 
 ### Sotto le due pagine
 
-Insight raggruppati per lettura, poi lo storico delle letture in un pannello che si apre. Sui
-libri con una lettura sola, la maggioranza, non compare nulla.
+Insight raggruppati per lettura (non ancora costruito, issue #5), poi lo storico delle letture
+in un pannello che si apre. Sui libri con una lettura sola già aperta, la maggioranza, non
+compare nulla — compare solo quando c'è più di una lettura, o quando l'unica lettura è già
+chiusa (rilettura in corso su un libro già finito una volta).
+
+**Cancellazione di una lettura passata.** Non un link "Cancella" sempre visibile accanto alla
+data: ogni riga porta un menù a comparsa ("⋯", `aria-label="Altre azioni"`) che rivela il
+comando, e il comando stesso rivela "Cancella davvero" / "Annulla" al posto della data invece
+di agire al primo tocco. Tre livelli di attrito deliberati per un'azione irreversibile che
+tocca lo storico di lettura.
 
 ### Su mobile
 
-Le due pagine si impilano e si invertono: la tua copia sopra, l'opera sotto. Su uno schermo
-alto la prima schermata va a ciò che cambia. Titolo, autore e copertina in cima in forma
-compatta sul piano 0. La piega diventa il vuoto fra due carte impilate.
+Le due pagine si impilano. **Emendamento del 20 agosto 2026:** l'ordine non si inverte più —
+l'opera resta sopra, la copia sotto, lo stesso ordine di desktop (dove l'opera è a sinistra),
+deciso in corso d'opera al posto di "la tua copia sopra, l'opera sotto" scritto qui in
+origine. Cade con questo anche l'header compatto separato ("titolo, autore e copertina in
+cima in forma compatta sul piano 0"): con l'opera già in cima, che porta copertina/titolo/
+autore, un riassunto sopra sarebbe una ripetizione dello stesso contenuto. La piega diventa il
+vuoto fra due carte impilate, orizzontale invece che verticale come su desktop.
 
 ### Rito di apertura
 
-Il dorso è già sollevato dal passaggio del mouse, quindi il clic parte da lì. Il dorso ruota
-mostrando la copertina, che cresce e va al suo posto nella pagina sinistra; la pagina destra
+**Non ancora costruito** (§23): oggi il volume è un link diretto, senza transizione. Specifica
+per quando verrà fatto — il volume è già sollevato dal passaggio del mouse, quindi il clic
+parte da lì; la copertina cresce e va al suo posto nella pagina sinistra, la pagina destra
 arriva un attimo dopo.
 
-Sotto i 400 millisecondi, **una volta sola, mai al ritorno**. Al ritorno il volume non si
+Sotto i 400 millisecondi, **una volta sola, mai al ritorno**. Al ritorno il libro non si
 richiude: elegante la prima volta, insopportabile la ventesima.
 
 ---
@@ -448,30 +499,37 @@ ombra a dire che l'attenzione è lì, senza oscurare il resto.
 | Elemento | Regola |
 |---|---|
 | Numero grande, a fuoco all'apertura, tastiera numerica, invio salva | Il caso normale è: tocco, tre cifre, invio |
-| "tra 215 e 320" sotto il campo | Dichiara i limiti prima dell'errore. Minimo dall'avanzamento precedente, massimo dalle pagine adottate |
 | "42 pagine dal 14 agosto" | Il PRD conta le pagine come somma degli **incrementi**, mai delle pagine raggiunte. Mostrarlo mentre lo crei insegna il modello facendolo. È anche l'unico numero gratificante |
 | Barra a due colori | Quello che avevi in `ink-soft`, quello che aggiungi adesso in `accent` |
-| "non prima del 14 agosto" accanto alla data | Regola 15: mai prima dell'avanzamento precedente, mai futura |
+| Rifiuto (pagina, data, tetto) | Un toast in fondo alla pagina (§19), non testo sotto il campo |
 | "Correggi il totale" | Via d'uscita visibile nel momento del blocco. Rifiutata se il nuovo totale è inferiore a un avanzamento già inserito |
 
-### Inserimento
+**Emendamento del 20 agosto 2026.** Le due righe che dichiaravano i limiti in anticipo — "tra
+215 e 320" sotto il campo, "non prima del 14 agosto" accanto alla data — sono state rimosse su
+richiesta esplicita in corso d'opera: il vincolo si scopre tentando, non prima. `min`/`max` sul
+campo restano solo come suggerimento per tastiera numerica e lettori di schermo, senza bloccare
+l'invio (nessun fumetto nativo del browser, che non è testo — vedi §19).
 
-Digitando il numero e trascinando il segnalibro. Il trascinamento rende il vincolo fisico: la
-porzione già letta è un muro e il segnalibro non può tornare indietro. Il rifiuto del PRD non
-arriva più come messaggio, il dito semplicemente non ci riesce.
+**Emendamento del 20 agosto 2026 (secondo).** Il segnalibro trascinabile descritto sotto
+("### Inserimento" originale) **è stato rimosso per intero, codice compreso**, su richiesta
+esplicita: resta solo il campo numerico, il modo diretto e senza ambiguità di correggere una
+pagina di lettura passata quanto quella corrente. Il paragrafo seguente descrive il
+comportamento sostituito, mantenuto qui come traccia della decisione presa e non come stato
+attuale. La barra a due colori (riga sopra) **resta**, ma calcolata dal valore digitato nel
+campo invece che dalla posizione di un oggetto trascinato.
 
-Il segnalibro è un oggetto del piano 2 su una barra del piano 1, quindi ha ombra propria e si
-vede che è afferrabile. È l'unico caso dell'app in cui la profondità dichiara un affordance,
-ed è esattamente il lavoro per cui la profondità esiste.
+### Inserimento (rimosso)
 
-Il trascinamento va sempre accoppiato al numero, che si aggiorna in tempo reale e resta
-modificabile: su un libro da 1200 pagine su telefono un pixel vale quattro pagine, quindi si
-trascina per avvicinarsi e si digita per precisare. Serve l'equivalente da tastiera con le
-frecce.
+*Testo originale, non più valido — vedi emendamento sopra.* Digitando il numero e trascinando
+il segnalibro. Il trascinamento rende il vincolo fisico: la porzione già letta è un muro e il
+segnalibro non può tornare indietro. Il rifiuto del PRD non arriva più come messaggio, il dito
+semplicemente non ci riesce. Il segnalibro era un oggetto del piano 2 su una barra del piano 1,
+con ombra propria a dichiarare che era afferrabile: l'unico caso dell'app in cui la profondità
+avrebbe dichiarato un affordance invece che una gerarchia.
 
-**Salvataggio ottimistico.** Il segnalibro si muove subito, la conferma arriva dopo. Se
-fallisce, torna indietro con una riga chiara. È la differenza fra un'app che sembra viva e una
-che sembra un modulo.
+**Salvataggio ottimistico.** Il numero si aggiorna subito nella barra, la conferma arriva dopo.
+Se la scrittura fallisce, un toast lo dice e il valore salvato resta quello precedente. È la
+differenza fra un'app che sembra viva e una che sembra un modulo.
 
 ### Due varianti
 
@@ -509,10 +567,10 @@ di un libro già in libreria, quindi l'artefatto ha sempre una Voce a cui legars
 **Velocità percepita.** Risultati che compaiono mentre si digita, con le schede già nel sistema
 mostrate per prime perché non richiedono una chiamata esterna.
 
-**Copertina assente:** segnaposto con titolo e autore, composto in Fraunces sul colore del
-dorso. Il recupero è un lavoro in secondo piano, quindi un libro appena aggiunto può comparire
-sullo scaffale con un dorso tipografico e riempirsi dopo. **Il dorso non deve saltare quando
-arriva l'immagine**: nasce già della dimensione definitiva.
+**Copertina assente:** segnaposto con titolo e autore, composto in Fraunces sul colore
+dominante (§7). Il recupero è un lavoro in secondo piano, quindi un libro appena aggiunto può
+comparire sullo scaffale come segnaposto tipografico e riempirsi dopo. **Il volume non deve
+saltare quando arriva l'immagine**: nasce già della dimensione definitiva.
 
 **Nessun risultato è un vicolo cieco e lo dice.** Il PRD vieta la creazione manuale di schede:
 il libro va chiesto a chi mantiene l'istanza. Nessun pulsante "crea comunque", perché non
@@ -654,7 +712,7 @@ Uno stato vuoto è un invito ad agire, tranne quando non c'è niente da fare, e 
 dice.
 
 Gli stati vuoti sono il posto dove questa direzione rischia di sembrare fredda, perché il colore
-lo portano i dorsi e senza dorsi non ce n'è. Quindi qui, e solo qui, si concede un disegno: **una
+lo portano i volumi e senza volumi non ce n'è. Quindi qui, e solo qui, si concede un disegno: **una
 mensola vuota in SVG a tratto**, un chilobyte, colore `ink-soft`, larga quanto il contenuto. Non
 un rettangolo tratteggiato, non un'illustrazione piena, non una mascotte.
 
@@ -678,7 +736,13 @@ Mai "con successo", mai "per favore", nessun punto esclamativo, nessun "ops". Gl
 cosa è successo e cosa fare. Verbo prima nei comandi. Un comando mantiene lo stesso nome per
 tutto il flusso.
 
-Nessun modale, nessun avviso che si sovrappone: solo pannelli in pagina.
+Nessun modale, nessun avviso che si sovrappone: solo pannelli in pagina. **Emendamento del 20
+agosto 2026:** unica eccezione, gli errori di scrittura sui dati di lettura (avanzamento,
+cambio di stato, correzione delle pagine, cancellazione di una Lettura) compaiono come un
+toast transitorio in fondo alla pagina invece che come testo sotto il campo — deciso in corso
+d'opera. Resta fermo tutto il resto della regola: nessun modale, nessuna sfocatura, il rosso
+(`alert`) non compare mai su un errore neppure nel toast, che è testo su una carta di piano 2
+come ogni altro pannello. Vedi §12 per il dettaglio sull'avanzamento.
 
 Interfaccia bilingue italiano e inglese dal primo giorno. Stringhe fuori dal codice fin
 dall'inizio; date e numeri seguono la lingua del browser. I contenuti scritti dagli utenti non
@@ -708,11 +772,11 @@ Next.js App Router su Vercel, come impone il PRD.
 | Strumento | A cosa serve |
 |---|---|
 | **Motion** (`motion/react`) | Sollevamento, fisarmonica, taglio della pagina. Anima direttamente valori oklch, il che rende gratuita l'interpolazione della luce |
-| **GSAP** | Rotazione del dorso in copertina, se Motion non basta. Gratuito, plugin del Club compresi |
+| **GSAP** | Rotazione della costa in copertina, se Motion non basta. Gratuito, plugin del Club compresi |
 | **View Transitions** | Rito di apertura. Dentro la stessa pagina disponibile ovunque; fra pagine diverse ancora in movimento. **Miglioramento progressivo, mai fondamenta** |
 | **Animazioni CSS guidate dallo scroll** | Fisarmonica, striscia agganciata. Girano sul compositore **solo se si animano transform e opacity** |
 | **`sibling-index()`** | Scaglionare la fisarmonica senza JavaScript |
-| **Query `scroll-state`** | Sollevare il dorso agganciato al centro su mobile |
+| **Query `scroll-state`** | Sollevare il volume agganciato al centro su mobile |
 | **`@starting-style`** | Ingresso dei pannelli senza JavaScript |
 
 **Si animano solo `transform` e `opacity`.** `box-shadow` non è compositabile: ogni transizione
@@ -732,10 +796,10 @@ alcune fonti si contraddicono, in particolare su Safari e le transizioni fra pag
 
 ### Il diamante: lo scaffale
 
-È l'unico posto dell'app dove **il dato diventa materia**: l'altezza è le pagine, il colore è la
-copertina, il nastro è lo stato. Tre dimensioni di informazione dentro un oggetto che sembra un
-libro e non un grafico. Prima cosa che si vede a ogni sessione, identità visiva, e la cosa che
-nessuna app concorrente fa.
+È l'unico posto dell'app dove **il dato diventa materia**: la costa è le pagine, la copertina è
+la copertina vera (o il colore dominante quando manca), il nastro è lo stato. Tre dimensioni di
+informazione dentro un oggetto che sembra un libro e non un grafico. Prima cosa che si vede a
+ogni sessione, identità visiva, e la cosa che nessuna app concorrente fa.
 
 Tutto lo sforzo di raffinatezza va lì: gradiente della costa, ombra sotto la mensola,
 fisarmonica, bordo di luce, autori accostati. **Se lo scaffale è perfetto e il resto è solo
@@ -746,8 +810,9 @@ pulito, l'app è splendida. Se lo scaffale è mediocre, nessun'altra animazione 
 1. **Il sistema di piani applicato con disciplina.** Non si nota mai e regge tutto. È anche la
    cosa più facile da sbagliare: basta una carta di troppo sul piano 2 per perdere la gerarchia.
 2. **Gli insight in Literata a due voci ottiche.** Cuore emotivo invece che identità visiva.
-3. **Il segnalibro trascinabile.** L'unico caso in cui una regola di validazione diventa fisica.
-   Piccolo, ripetuto, trasforma la schermata più noiosa nella più soddisfacente.
+3. ~~**Il segnalibro trascinabile.**~~ Costruito e poi rimosso il 20 agosto 2026 (§12): il
+   rischio di ambiguità del gesto su libri lunghi ha pesato più della soddisfazione del
+   trascinamento. Resta il campo numerico con la barra a due colori.
 4. **La luce continua.** Non si nota mai, ed è il suo pregio.
 5. **Il rito di apertura.** La ciliegina meno preziosa, perché con le View Transitions lo avranno
    tutti. Farlo bene senza spenderci settimane.
@@ -788,12 +853,12 @@ StoryGraph, Fable, Hardcover, Bookly).
 
 | Lamentela | Perché non ti riguarda |
 |---|---|
-| Interfaccia ferma al 2013, ricerca lenta, molti tocchi per cambiare scaffale | App nuova, e le azioni stanno sul dorso |
+| Interfaccia ferma al 2013, ricerca lenta, molti tocchi per cambiare scaffale | App nuova, filtro e ricerca sempre a vista sullo scaffale (le azioni rapide dal volume senza aprire il libro, §7, sono ancora rimandate) |
 | Paywall sulle statistiche di base | Istanza privata |
 | Feed, club e consigli di influencer che intralciano chi legge da solo | Il PRD esclude feed, notifiche, commenti |
 | Ludicizzazione paternalistica, sfida annuale demotivante | Il PRD esclude obiettivi, sfide, serie. **Tenerle fuori anche post MVP** |
 | App mobile che arranca dietro al web | Parità decisa |
-| Copertine sgranate o deformate, lamentela ricorrente su almeno quattro app | Le copertine sono conservate a due misure fisse e i dorsi hanno un colore proprio calcolato, quindi una copertina mancante o brutta non rovina mai lo scaffale |
+| Copertine sgranate o deformate, lamentela ricorrente su almeno quattro app | Le copertine sono conservate a due misure fisse e i volumi senza copertina hanno un colore dominante calcolato, quindi una copertina mancante o brutta non rovina mai lo scaffale |
 
 ### Dove Montaigne è peggio di tutta la categoria
 
@@ -811,7 +876,7 @@ rendere facile la richiesta al manutentore.
 Il tracciamento pagina per pagina sposta l'attenzione dalla lettura alla registrazione, e se il
 tracciamento sembra un compito a casa si smette di farlo. Il PRD moltiplica per dieci le scritture
 rispetto al conteggio a fine lettura: **hai costruito il modello che rende il fenomeno più
-probabile.** Contromisure già nel documento: azioni dal dorso, salvataggio ottimistico, tastiera
+probabile.** Contromisure già nel documento: azioni dal volume (rimandate, §7), salvataggio ottimistico, tastiera
 numerica, invio che salva.
 
 ---

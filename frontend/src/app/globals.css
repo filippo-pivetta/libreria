@@ -47,3 +47,38 @@
  * required by the design-token package.
  */
 @import "../styles/tokens.css";
+
+/* Ingresso di un toast d'errore (providers/toast-provider.tsx): solo
+transform/opacity, come impone tokens.css §6. Neutralizzata in automatico
+sotto prefers-reduced-motion dalla regola globale già in tokens.css. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-in {
+  animation: toast-in var(--dur-panel) var(--ease-rise);
+}
+
+/* Campo data (components/ui/campo-data.tsx): niente riquadro nativo con
+l'icona di sistema, design doc §9 — appearance: none non basta da solo a
+nascondere l'icona del calendario nei browser Chromium/WebKit, serve
+azzerare anche lo pseudo-elemento dedicato. Cliccare sul campo apre
+comunque il selettore nativo: il browser non lega quel comportamento
+all'icona visibile. */
+.field-date::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  cursor: pointer;
+}
+.field-date::-webkit-inner-spin-button {
+  display: none;
+}

@@ -33,6 +33,7 @@ function block(name: Anchor, p: Palette, selector: string): string {
   --raw-accent:        ${fmt(p.accent)};
   --raw-accent-strong: ${fmt(p.accentStrong)};
   --raw-alert:         ${fmt(p.alert)};
+  --raw-shelf:         ${fmt(p.shelf)};
   --raw-lamp:          ${fmt(p.lamp)};
   --shadow-alpha-1: ${p.shadowAlpha1};
   --shadow-alpha-2: ${p.shadowAlpha2};

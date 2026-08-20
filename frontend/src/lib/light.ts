@@ -27,6 +27,11 @@ export type Palette = {
   accent: Oklch;
   accentStrong: Oklch;
   alert: Oklch;
+  /** La mensola dello scaffale (design-frontend.md §7). DEVE restare più
+   * scura di surface0 nei quattro ancoraggi — verificato da
+   * scripts/check-contrast.mts — altrimenti il ripiano legge come una
+   * striscia di luce e i libri sembrano fluttuare. */
+  shelf: Oklch;
   lamp: Oklch;
   shadowAlpha1: number;
   shadowAlpha2: number;
@@ -53,6 +58,7 @@ export const ANCHORS: Record<Anchor, Palette> = {
     accent: { l: 0.620, c: 0.115, h: 55 },
     accentStrong: { l: 0.470, c: 0.110, h: 58 },
     alert: { l: 0.530, c: 0.170, h: 27 },
+    shelf: { l: 0.610, c: 0.042, h: 48 },
     lamp: { l: 0.960, c: 0.045, h: 50, a: 0.50 },
     shadowAlpha1: 0.16,
     shadowAlpha2: 0.24,
@@ -67,6 +73,7 @@ export const ANCHORS: Record<Anchor, Palette> = {
     accent: { l: 0.635, c: 0.105, h: 76 },
     accentStrong: { l: 0.470, c: 0.100, h: 72 },
     alert: { l: 0.545, c: 0.170, h: 27 },
+    shelf: { l: 0.640, c: 0.038, h: 62 },
     lamp: { l: 0.985, c: 0.030, h: 85, a: 0.55 },
     shadowAlpha1: 0.18,
     shadowAlpha2: 0.28,
@@ -81,6 +88,7 @@ export const ANCHORS: Record<Anchor, Palette> = {
     accent: { l: 0.630, c: 0.125, h: 62 },
     accentStrong: { l: 0.455, c: 0.115, h: 62 },
     alert: { l: 0.535, c: 0.170, h: 27 },
+    shelf: { l: 0.580, c: 0.050, h: 55 },
     lamp: { l: 0.930, c: 0.060, h: 58, a: 0.62 },
     shadowAlpha1: 0.20,
     shadowAlpha2: 0.32,
@@ -95,6 +103,13 @@ export const ANCHORS: Record<Anchor, Palette> = {
     accent: { l: 0.775, c: 0.115, h: 82 },
     accentStrong: { l: 0.820, c: 0.110, h: 84 },
     alert: { l: 0.700, c: 0.150, h: 28 },
+    // l: 0.130, non 0.300 come da specifica originale: notte.surface0 qui
+    // è già a 0.185, quindi 0.300 sarebbe risultato PIÙ CHIARO del fondo,
+    // violando l'invariante "la mensola resta più scura del piano 0 nei
+    // quattro ancoraggi" (verificato da scripts/check-contrast.mts). La
+    // specifica è arrivata senza i valori reali di questo repo — corretto
+    // qui mantenendo croma/tonalità e scurendo la luminanza sotto 0.185.
+    shelf: { l: 0.130, c: 0.026, h: 64 },
     lamp: { l: 0.820, c: 0.100, h: 78, a: 0.26 },
     shadowAlpha1: 0.42,
     shadowAlpha2: 0.62,
@@ -179,7 +194,7 @@ function crossesNight(a: Anchor, b: Anchor): boolean {
 }
 
 function lerpPalette(a: Palette, b: Palette, t: number): Palette {
-  const keys = ["surface0","surface1","surface2","ink","inkSoft","accent","accentStrong","alert","lamp"] as const;
+  const keys = ["surface0","surface1","surface2","ink","inkSoft","accent","accentStrong","alert","shelf","lamp"] as const;
   const out = {} as Palette;
   for (const k of keys) out[k] = lerpColor(a[k], b[k], t);
   out.shadowAlpha1 = lerp(a.shadowAlpha1, b.shadowAlpha1, t);
@@ -257,6 +272,7 @@ export function paletteToCssVars(p: Palette): Record<string, string> {
     "--raw-accent": fmt(p.accent),
     "--raw-accent-strong": fmt(p.accentStrong),
     "--raw-alert": fmt(p.alert),
+    "--raw-shelf": fmt(p.shelf),
     "--raw-lamp": fmt(p.lamp),
     "--shadow-alpha-1": p.shadowAlpha1.toFixed(3),
     "--shadow-alpha-2": p.shadowAlpha2.toFixed(3),

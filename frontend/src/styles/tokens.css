@@ -78,6 +78,13 @@
   /* bordo di luce sul lato illuminato di un oggetto del piano 2 */
   --mtg-rim: color-mix(in oklab, var(--mtg-surface-2) 70%, white);
 
+  /* La mensola dello scaffale: DEVE restare più scura del piano 0 in tutti e
+     quattro gli ancoraggi (verificato da scripts/check-contrast.mts) —
+     un ripiano più chiaro della stanza legge come una striscia di luce e i
+     libri sembrano fluttuare. Fallback qui solo per sicurezza: il valore
+     vero vive nell'ancoraggio "shelf" di src/lib/light.ts. */
+  --mtg-shelf: var(--raw-shelf, oklch(0.640 0.038 62));
+
   /* --------------------------------------------------------------------------
      NASTRI DI STATO
      Sistema a sé, indipendente dalla palette: codificano un dato, non
@@ -146,6 +153,8 @@
   --color-ribbon-done:      var(--mtg-ribbon-done);
   --color-ribbon-abandoned: var(--mtg-ribbon-abandoned);
 
+  --color-shelf: var(--mtg-shelf);
+
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-read:    var(--font-literata), Georgia, serif;
   --font-ui:      var(--font-inter-tight), system-ui, sans-serif;
@@ -199,6 +208,92 @@
 
   /* Bordi: un solo spessore in tutta l'app. */
   --border-width: 1px;
+
+  /* ---------------------------------------------------------------------
+     SCALA DI SPAZIATURA
+     Otto passi, nessun valore intermedio. Un margine che non è in questa
+     lista è un margine scelto a occhio.
+       sp2  fra elementi della stessa riga
+       sp3  fra un'etichetta e il suo campo
+       sp4  fra blocchi dentro una carta
+       sp5  padding di una carta
+       sp6  fra carte
+       sp7  fra sezioni di una pagina
+       sp8  margine superiore di una pagina
+     -------------------------------------------------------------------- */
+  --sp1: 4px;
+  --sp2: 8px;
+  --sp3: 12px;
+  --sp4: 16px;
+  --sp5: 24px;
+  --sp6: 32px;
+  --sp7: 48px;
+  --sp8: 64px;
+
+  /* ---------------------------------------------------------------------
+     FUOCO DA TASTIERA
+     Senza questa regola si eredita l'outline di sistema, spesso invisibile
+     sul fondo bruno. SEMPRE :focus-visible, mai :focus, altrimenti l'anello
+     compare anche al clic del mouse.
+     -------------------------------------------------------------------- */
+  --focus: var(--mtg-accent-strong);
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* ---------------------------------------------------------------------
+     LA MENSOLA (scaffale)
+     Il colore vero vive nell'ancoraggio "shelf" (src/lib/light.ts);
+     --mtg-shelf, definito in sezione 2, lo espone con un fallback.
+     -------------------------------------------------------------------- */
+  --shelf-height: 10px;
+
+  /* ---------------------------------------------------------------------
+     LA COPERTINA
+     Una misura sola in tutto lo scaffale, proporzione 2:3 (la più comune
+     del libro commerciale). Le copertine reali variano fra 0.60 e 0.75: si
+     riempie il riquadro con object-fit: cover e si accetta un ritaglio ai
+     bordi, mai una deformazione e mai una banda.
+     -------------------------------------------------------------------- */
+  --cover-w: 120px;
+  --cover-h: 180px;
+  --cover-ratio: 2 / 3;
+  --spine-min: 6px;     /* spessore minimo leggibile della costa */
+  --spine-max: 28px;    /* oltre, un mattone da 1200 pagine sfonda la riga */
+  --spine-per-page: 22; /* pagine per pixel di spessore */
+
+  /* ---------------------------------------------------------------------
+     BREAKPOINT
+     Tre soglie, dichiarate qui perché siano le stesse ovunque. In CSS non
+     si possono usare le variabili dentro @media: restano un riferimento
+     scritto e i valori vanno ripetuti, ma almeno esiste un posto dove
+     leggerli.
+       640px   la scheda del libro impila le due pagine, la copertina rimpicciolisce
+       900px   lo scaffale ha spazio per la fascia delle letture in corso affiancata
+       1180px  larghezza massima del contenuto
+     -------------------------------------------------------------------- */
+  --bp-s: 640px;
+  --bp-m: 900px;
+  --measure: 1180px;
+}
+
+@media (max-width: 640px) {
+  :root { --cover-w: 96px; --cover-h: 144px; }
+}
+
+/* -----------------------------------------------------------------------------
+   Anello di fuoco, una regola sola per tutta l'app.
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+  border-radius: 2px;
+}
+/* I campi con la sola riga inferiore non possono portare un anello intorno:
+   il fuoco lo dichiara la riga stessa, ispessita e in accento. */
+.field-line:focus-visible {
+  outline: none;
+  border-bottom-color: var(--focus);
+  box-shadow: 0 1px 0 var(--focus);
 }
 
 /* Utility di piano. Usare queste, non ricomporre ombre a mano. */
@@ -231,20 +326,33 @@
   background-image: var(--grain-url);
   mix-blend-mode: multiply;
 }
+
+/* Scheda del libro (§9): le due pagine leggono come un volume aperto, non
+   due carte indipendenti, sia impilate (mobile) sia affiancate (tablet
+   in su) — angoli esterni arrotondati come ogni .plane-1, angoli interni
+   (verso la piega) squadrati. La piega centrale è il VUOTO di 2px fra le
+   due carte (il gap nel markup, che lascia intravedere il piano 0 sotto),
+   non una linea disegnata con l'ombra: "il vuoto dice la stessa cosa e
+   non imita una rilegatura" — niente pseudo-elemento con inset shadow qui
+   (rimosso: era esattamente quella linea disegnata). La piega è
+   orizzontale su mobile (pagina-opera sopra, bordo arrotondato solo in
+   alto; pagina-copia sotto, solo in basso) e verticale da tablet in su
+   (opera a sinistra, copia a destra). Nomi semantici (opera/copia, non
+   sinistra/destra): la posizione cambia con il breakpoint, il significato
+   no. */
+.pagina-opera { border-radius: var(--radius-card) var(--radius-card) 0 0; }
+.pagina-copia { border-radius: 0 0 var(--radius-card) var(--radius-card); }
+
+@media (min-width: 768px) {
+  .pagina-opera { border-radius: var(--radius-card) 0 0 var(--radius-card); }
+  .pagina-copia { border-radius: 0 var(--radius-card) var(--radius-card) 0; }
+}
 [data-light="notte"] .grain::before { mix-blend-mode: screen; opacity: calc(var(--grain-opacity) * 0.8); }
 
 /* Salto di piano animato.
    box-shadow NON è compositabile e anima sul thread principale. Ogni
    transizione fra piani si fa con uno pseudo-elemento che porta l'ombra del
    piano superiore e a cui si anima solo `opacity`. */
-.liftable { position: relative; transition: transform 280ms var(--ease-rise); }
-.liftable::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  box-shadow: var(--shadow-2);
-  opacity: 0; transition: opacity 280ms var(--ease-rise);
-}
-.liftable:hover, .liftable:focus-visible { transform: translateY(-14px); }
-.liftable:hover::before, .liftable:focus-visible::before { opacity: 1; }
 
 /* Mobile: le stesse ombre, su uno schermo tenuto a trenta centimetri, sembrano
    sporco. Si accorcia il raggio della componente lunga.
@@ -254,28 +362,166 @@
   :root { --shadow-alpha-2: calc(var(--shadow-alpha-1) * 1.2); }
 }
 
-/* Dorso del libro: l'unico posto dell'app dove sopravvive la materia letterale.
-   Tre stop lungo la larghezza che simulano la piega della costa. Nessuna
-   texture bitmap. --spine-color arriva dal server, calcolato alla nascita
-   della scheda con sharp-vibrant, salvato in due versioni sul Libro. */
-.spine {
-  --spine-color: oklch(0.50 0.08 60);
+/* -----------------------------------------------------------------------------
+   LIBRERIA — VISTA UNICA (design-frontend.md §7, riscritta il 20 agosto 2026)
+   Scaffale di copertine con la costa. Non esiste più un dorso da solo: ogni
+   volume è costa (spessore = pagine) + copertina vera 2:3 (var(--cover-w/h))
+   rivolta a chi guarda, con un segnaposto tipografico finché l'immagine non
+   arriva (o non esiste). --cover-color e --spine-w li scrive il componente,
+   uno per libro (colore dominante, oggi un segnaposto deterministico finché
+   non esiste la pipeline reale — issue #4).
+   -------------------------------------------------------------------------- */
+
+/* La mensola: doppia ombra come ogni oggetto, una corta sopra (lo spigolo su
+   cui i libri appoggiano) e una lunga sotto (l'aria fra un ripiano e
+   l'altro). DEVE restare più scura del piano 0 (--mtg-shelf, sezione 2). */
+.shelf-board {
+  height: var(--shelf-height);
+  border-radius: 1px 1px 3px 3px;
   background: linear-gradient(
-    90deg,
-    oklch(from var(--spine-color) calc(l - 0.10) c h) 0 3px,
-    var(--spine-color) 3px 84%,
-    oklch(from var(--spine-color) calc(l - 0.14) c h) 84% 100%
+    180deg,
+    color-mix(in oklab, var(--mtg-shelf) 74%, white) 0 2px,
+    var(--mtg-shelf) 2px 100%
   );
-  border-radius: var(--radius-object) var(--radius-object) 1px 1px;
-}
-/* Voce senza pagine adottate: altezza mediana e trattamento diverso.
-   L'assenza di dato si vede invece di essere finta. */
-.spine[data-no-pages] {
-  background: var(--mtg-surface-1);
-  border: 1px dashed var(--mtg-line-strong);
+  box-shadow:
+    0 -1px 3px -1px color-mix(in oklab, var(--mtg-ink) 60%, transparent),
+    0 16px 24px -14px color-mix(in oklab, var(--mtg-ink) 90%, transparent),
+    0 2px 0 color-mix(in oklab, var(--mtg-ink) 34%, transparent);
 }
 
-/* Copertina: di notte una copertina bianca acceca.
+/* Il volume: costa a sinistra, copertina rivolta a chi guarda. */
+.volume {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  border: 0; padding: 0; background: none; text-align: left; cursor: pointer;
+  transition: transform 260ms var(--ease-rise);
+}
+/* Il salto al piano 2 passa da uno pseudo-elemento: box-shadow non è
+   compositabile e animarla manda il lavoro sul thread principale. */
+.volume::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  border-radius: 2px var(--radius-object) var(--radius-object) 2px;
+  box-shadow: var(--shadow-2); opacity: 0;
+  transition: opacity 260ms var(--ease-rise);
+}
+.volume:hover, .volume:focus-visible { transform: translateY(-10px); }
+.volume:hover::after, .volume:focus-visible::after { opacity: 1; }
+
+.volume__spine {
+  flex: 0 0 auto;
+  width: var(--spine-w, 12px);
+  border-radius: 2px 0 0 2px;
+  background: linear-gradient(
+    90deg,
+    oklch(from var(--cover-color) calc(l - 0.16) c h),
+    oklch(from var(--cover-color) calc(l - 0.07) c h)
+  );
+  box-shadow: inset -1px 0 2px rgb(0 0 0 / 0.28);
+}
+
+.volume__cover {
+  width: var(--cover-w);
+  height: var(--cover-h);
+  border-radius: 0 var(--radius-object) var(--radius-object) 0;
+  position: relative;
+  overflow: hidden;
+  /* il colore dominante regge il riquadro finché l'immagine non arriva */
+  background: var(--cover-color);
+  box-shadow: var(--shadow-1), inset 1px 0 0 rgb(255 255 255 / 0.16);
+}
+.volume__cover img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  opacity: 0; transition: opacity 320ms var(--ease-rise);
+}
+.volume__cover img[data-loaded] { opacity: 1; }
+
+/* Velatura notturna: una copertina bianca al buio acceca.
+   Si toglie al passaggio del mouse. */
+.volume__cover::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: var(--mtg-surface-0);
+  opacity: var(--cover-veil);
+  transition: opacity 200ms var(--ease-settle);
+}
+.volume:hover .volume__cover::after { opacity: 0; }
+
+/* Segnaposto tipografico. Non è uno stato di errore ed è composto, non
+   un'icona di immagine rotta e non un libro generico. */
+.volume__placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: var(--sp3);
+  color: rgb(255 255 255 / 0.94);
+  pointer-events: none;
+}
+.volume__placeholder b {
+  font-family: var(--font-display); font-weight: 400; font-size: 14px;
+  line-height: 1.16; letter-spacing: -0.005em;
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+}
+.volume__placeholder span { font-family: var(--font-ui); font-size: 10px; color: rgb(255 255 255 / 0.68); }
+
+/* Voce senza pagine adottate: l'assenza di dato si dichiara, non si grida.
+   Prima era l'oggetto più luminoso dello scaffale. */
+.volume[data-no-pages] .volume__spine,
+.volume[data-no-pages] .volume__cover {
+  background: transparent;
+  border: 1px dashed var(--mtg-line-strong);
+  box-shadow: none;
+}
+.volume[data-no-pages] .volume__spine { border-right: 0; }
+.volume[data-no-pages] .volume__cover { border-left: 0; }
+.volume[data-no-pages] .volume__placeholder b { color: var(--mtg-ink); }
+.volume[data-no-pages] .volume__placeholder span { color: var(--mtg-ink-soft); }
+
+/* Nastro di stato: esce dal lato di taglio, non dal centro, così non passa
+   mai sopra alla copertina né sopra al titolo del segnaposto. */
+.volume__ribbon {
+  position: absolute; top: -5px; right: 16px; width: 5px; z-index: 2;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+/* Filo di avanzamento sulla fascia delle letture in corso: stessi oggetti,
+   con un indicatore di 3px sul bordo inferiore della copertina. */
+.volume__prog {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 2;
+  background: rgb(0 0 0 / 0.28);
+}
+.volume__prog i { display: block; height: 100%; background: var(--mtg-accent); }
+
+/* La lettera dell'autore: una tacca fra un volume e l'altro, non un ripiano
+   a sé — un filetto di 10px scende sulla mensola. */
+.shelf-tick {
+  flex: 0 0 auto; align-self: flex-end; width: 18px; text-align: center;
+  font-family: var(--font-ui); font-size: 10.5px; letter-spacing: 0.12em;
+  color: var(--mtg-ink-soft); padding-bottom: 3px; position: relative;
+}
+.shelf-tick::after {
+  content: ""; position: absolute; left: 50%; bottom: -10px;
+  width: 1px; height: 10px; background: var(--mtg-line-strong);
+}
+
+/* La fascia delle letture in corso scorre in orizzontale con aggancio su
+   mobile. Su due o tre libri funziona; come vista principale era stata
+   provata e scartata, perché costa dodici gesti per dodici libri. */
+.reading-band {
+  display: flex; gap: var(--sp3); align-items: flex-end;
+  overflow-x: auto; overflow-y: visible;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.reading-band::-webkit-scrollbar { display: none; }
+.reading-band .volume { scroll-snap-align: start; }
+
+@media (prefers-reduced-motion: reduce) {
+  .volume:hover, .volume:focus-visible { transform: none; }
+  .volume:hover::after, .volume:focus-visible::after { opacity: 1; }
+}
+
+/* Copertina della scheda del libro: di notte una copertina bianca acceca.
    La velatura si toglie al passaggio del mouse. */
 .cover { position: relative; box-shadow: var(--shadow-2); border-radius: var(--radius-object); }
 .cover::after {
@@ -397,7 +643,7 @@ p, li { text-wrap: pretty; }
     scroll-behavior: auto !important;
   }
   .liftable:hover { transform: none; }
-  .liftable:hover::before { opacity: 1; } /* il salto di piano resta, senza moto */
+  .liftable:hover::after { opacity: 1; } /* il salto di piano resta, senza moto */
 }
 
 /* La luce non transisce: il valore si aggiorna al cambio pagina, mai con un

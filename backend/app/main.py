@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.exception_handlers import gestore_eccezioni_non_gestite
-from app.routers import health, me
+from app.routers import avanzamenti, health, letture, me, voci
 
 
 def create_app() -> FastAPI:
@@ -26,6 +26,9 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(me.router)
+    app.include_router(voci.router)
+    app.include_router(letture.router)
+    app.include_router(avanzamenti.router)
     return app
 
 
