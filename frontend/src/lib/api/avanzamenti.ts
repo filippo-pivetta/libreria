@@ -1,9 +1,9 @@
 /**
- * Fetcher per `/letture/{id}/avanzamenti` e `/avanzamenti/{id}` sul
- * backend FastAPI (registrazione, correzione, cancellazione di un
- * Avanzamento — issue #2). Il 409 porta un `errorCode` stabile
- * (`avanzamento_data_futura`, `avanzamento_pagina_regressiva`, ecc. —
- * docs/adr/0015), non un messaggio da fare il parsing.
+ * Fetcher per `/letture/{id}/avanzamenti` sul backend FastAPI
+ * (registrazione di un Avanzamento — issue #2). Il 409 porta un
+ * `errorCode` stabile (`avanzamento_data_futura`,
+ * `avanzamento_pagina_regressiva`, ecc. — docs/adr/0015), non un
+ * messaggio da fare il parsing.
  */
 
 export type Avanzamento = {
@@ -43,7 +43,6 @@ export type AvanzamentoResult =
 async function inviaAvanzamento(
   accessToken: string,
   path: string,
-  method: "POST" | "PATCH",
   body: Record<string, unknown>,
 ): Promise<AvanzamentoResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -54,7 +53,7 @@ async function inviaAvanzamento(
   let response: Response;
   try {
     response = await fetch(`${baseUrl}${path}`, {
-      method,
+      method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
@@ -92,52 +91,9 @@ export function registraAvanzamento(
   pagina: number,
   data?: string,
 ): Promise<AvanzamentoResult> {
-  return inviaAvanzamento(accessToken, `/letture/${letturaId}/avanzamenti`, "POST", {
+  return inviaAvanzamento(accessToken, `/letture/${letturaId}/avanzamenti`, {
     pagina,
     ...(data ? { data } : {}),
   });
 }
 
-/** PATCH /avanzamenti/{id}: corregge un avanzamento già registrato. */
-export function correggiAvanzamento(
-  accessToken: string,
-  avanzamentoId: string,
-  campi: { pagina?: number; data?: string },
-): Promise<AvanzamentoResult> {
-  return inviaAvanzamento(accessToken, `/avanzamenti/${avanzamentoId}`, "PATCH", campi);
-}
-
-export type CancellaAvanzamentoResult =
-  | { status: "ok" }
-  | { status: "not_found" }
-  | { status: "error"; message: string };
-
-/** DELETE /avanzamenti/{id}: cancella un avanzamento sbagliato. */
-export async function cancellaAvanzamento(
-  accessToken: string,
-  avanzamentoId: string,
-): Promise<CancellaAvanzamentoResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
-  }
-
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}/avanzamenti/${avanzamentoId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-  } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
-  }
-
-  if (response.status === 404) {
-    return { status: "not_found" };
-  }
-  if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
-  }
-  return { status: "ok" };
-}

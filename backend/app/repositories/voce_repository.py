@@ -15,8 +15,8 @@ from uuid import UUID
 from supabase import Client
 
 _SELECT_BASE = (
-    "id, utente_id, libro_id, stato, pagine_adottate, voto, nota_intenzione, creato_at, "
-    "aggiornato_at"
+    "id, utente_id, libro_id, stato, pagine_adottate, voto, creato_at, "
+    "aggiornato_at, voce_di_libreria_privata(nota_intenzione)"
 )
 
 _SELECT_CON_LIBRO = (
@@ -61,6 +61,20 @@ def _appiattisci_autori(voce: dict[str, Any]) -> dict[str, Any]:
     return voce
 
 
+def _appiattisci_nota_intenzione(voce: dict[str, Any]) -> dict[str, Any]:
+    """`nota_intenzione` vive in `voce_di_libreria_privata` (RLS chiusa al
+    solo proprietario — fix sicurezza 20260820221500), incorporata da
+    PostgREST come relazione uno-a-uno. `None` sia quando non è mai stata
+    scritta sia quando la RLS della tabella privata la nasconde a un
+    collegato attivo: nel secondo caso è il comportamento voluto, non un
+    dato mancante."""
+    privata = voce.pop("voce_di_libreria_privata", None)
+    if isinstance(privata, list):
+        privata = privata[0] if privata else None
+    voce["nota_intenzione"] = privata["nota_intenzione"] if privata else None
+    return voce
+
+
 def _con_pagina_corrente(voce: dict[str, Any]) -> dict[str, Any]:
     """Estrae la pagina dell'ultimo avanzamento della sola Lettura aperta
     (se c'è) in un campo piatto `pagina_corrente`, e rimuove la busta
@@ -98,7 +112,7 @@ def get_by_libro(client: Client, libro_id: UUID, utente_id: UUID) -> dict[str, A
     )
     if response is None:
         return None
-    return cast("dict[str, Any]", response.data)
+    return _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
 
 
 def create(client: Client, utente_id: UUID, libro_id: UUID) -> dict[str, Any]:
@@ -111,7 +125,7 @@ def create(client: Client, utente_id: UUID, libro_id: UUID) -> dict[str, Any]:
         .execute()
     )
     rows = cast("list[dict[str, Any]]", response.data)
-    return rows[0]
+    return _appiattisci_nota_intenzione(rows[0])
 
 
 def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
@@ -131,7 +145,10 @@ def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
         .execute()
     )
     righe = cast("list[dict[str, Any]]", response.data)
-    return [_con_pagina_corrente(_appiattisci_autori(riga)) for riga in righe]
+    return [
+        _con_pagina_corrente(_appiattisci_nota_intenzione(_appiattisci_autori(riga)))
+        for riga in righe
+    ]
 
 
 def get_dettaglio(client: Client, voce_id: UUID) -> dict[str, Any] | None:
@@ -152,7 +169,7 @@ def get_dettaglio(client: Client, voce_id: UUID) -> dict[str, Any] | None:
     )
     if response is None:
         return None
-    return _appiattisci_autori(cast("dict[str, Any]", response.data))
+    return _appiattisci_nota_intenzione(_appiattisci_autori(cast("dict[str, Any]", response.data)))
 
 
 def update_pagine_adottate(
@@ -169,7 +186,7 @@ def update_pagine_adottate(
         .execute()
     )
     rows = cast("list[dict[str, Any]]", response.data)
-    return rows[0] if rows else None
+    return _appiattisci_nota_intenzione(rows[0]) if rows else None
 
 
 def update_voto(client: Client, voce_id: UUID, voto: float | None) -> dict[str, Any] | None:
@@ -184,21 +201,36 @@ def update_voto(client: Client, voce_id: UUID, voto: float | None) -> dict[str, 
         .execute()
     )
     rows = cast("list[dict[str, Any]]", response.data)
-    return rows[0] if rows else None
+    return _appiattisci_nota_intenzione(rows[0]) if rows else None
 
 
 def update_nota_intenzione(
-    client: Client, voce_id: UUID, nota_intenzione: str | None
+    client: Client, voce_id: UUID, utente_id: UUID, nota_intenzione: str | None
 ) -> dict[str, Any] | None:
+    """`nota_intenzione` vive in `voce_di_libreria_privata` (fix sicurezza
+    20260820221500), mai in `voce_di_libreria`: un upsert su questa
+    tabella, non un update sulla riga condivisa. La FK composita verso
+    voce_di_libreria(id, utente_id) rifiuta la scrittura (23503) se
+    `voce_id` non è già di `utente_id` — tradotto in eccezione di dominio
+    dal service layer, come per `LibroInesistenteError`."""
+    client.table("voce_di_libreria_privata").upsert(
+        {
+            "voce_id": str(voce_id),
+            "utente_id": str(utente_id),
+            "nota_intenzione": nota_intenzione,
+        },
+        on_conflict="voce_id",
+    ).execute()
     response = (
         client.table("voce_di_libreria")
-        .update({"nota_intenzione": nota_intenzione})
-        .eq("id", str(voce_id))
         .select(_SELECT_BASE)
+        .eq("id", str(voce_id))
+        .maybe_single()
         .execute()
     )
-    rows = cast("list[dict[str, Any]]", response.data)
-    return rows[0] if rows else None
+    if response is None:
+        return None
+    return _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
 
 
 def cambia_stato(
@@ -206,9 +238,12 @@ def cambia_stato(
 ) -> dict[str, Any]:
     """Unico canale di scrittura per `stato`: la RPC `cambia_stato_voce`
     valida la matrice di transizione e applica i suoi effetti collaterali
-    (docs/adr/0015). La funzione non è SETOF: PostgREST restituisce un
-    singolo oggetto, non un elenco."""
-    response = client.rpc(
+    (docs/adr/0015). La funzione non è SETOF e restituisce
+    `public.voce_di_libreria` come tipo composito: da quando
+    `nota_intenzione` è uscita da quella tabella (fix sicurezza
+    20260820221500) il tipo non la porta più, quindi va recuperata con
+    una query separata, non incorporabile nella RPC stessa."""
+    client.rpc(
         "cambia_stato_voce",
         {
             "p_voce_id": str(voce_id),
@@ -216,4 +251,11 @@ def cambia_stato(
             "p_data": data.isoformat() if data is not None else None,
         },
     ).execute()
-    return cast("dict[str, Any]", response.data)
+    response = (
+        client.table("voce_di_libreria")
+        .select(_SELECT_BASE)
+        .eq("id", str(voce_id))
+        .single()
+        .execute()
+    )
+    return _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))

@@ -121,9 +121,14 @@ async def correggi_voto(
 
 
 async def correggi_nota_intenzione(
-    access_token: str, voce_id: UUID, nota_intenzione: str | None
+    access_token: str, utente_id: UUID, voce_id: UUID, nota_intenzione: str | None
 ) -> dict[str, Any] | None:
     client = get_user_client(access_token)
-    return await run_in_threadpool(
-        voce_repository.update_nota_intenzione, client, voce_id, nota_intenzione
-    )
+    try:
+        return await run_in_threadpool(
+            voce_repository.update_nota_intenzione, client, voce_id, utente_id, nota_intenzione
+        )
+    except APIError as error:
+        if error.code == "23503":
+            return None
+        raise
