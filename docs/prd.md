@@ -85,7 +85,7 @@ Transizioni ammesse:
 - Da "da leggere" non si passa direttamente a letto o abbandonato: senza una Lettura aperta non c'è nulla da chiudere.
 Le transizioni non elencate sono vietate. Cancellando una Lettura, la Voce assume lo stato che deriva dalle Letture rimaste: quello dell'ultima chiusa, oppure "da leggere" se non ne resta nessuna. Gli insight legati a una Lettura cancellata restano sulla Voce, senza più alcuna Lettura associata.
 
-**Voto** Da 1 a 5 stelle intere, uno per Voce. Una rilettura non lo azzera: resta quello finché l'Utente non lo cambia. Segue la Voce: sempre visibile ai collegati, non ha visibilità propria.
+**Voto** Da 1 a 5 stelle, a scatti di mezza stella (1, 1,5, 2, ... 5), uno per Voce. Una rilettura non lo azzera: resta quello finché l'Utente non lo cambia. Segue la Voce: sempre visibile ai collegati, non ha visibilità propria.
 
 **Recensione** Una per Voce. Una rilettura non la cancella: resta quella finché l'Utente non la riscrive, e in quel caso la precedente non viene conservata. Condivisa per default, cioè visibile ai soli Utenti collegati; l'Utente può renderla privata in qualsiasi momento. Nessun limite di lunghezza.
 

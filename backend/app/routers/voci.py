@@ -140,7 +140,7 @@ async def patch_voce_nota_intenzione(
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
 ) -> dict[str, Any]:
     voce = await voci_service.correggi_nota_intenzione(
-        current_user.access_token, voce_id, body.nota_intenzione
+        current_user.access_token, current_user.id, voce_id, body.nota_intenzione
     )
     if voce is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")

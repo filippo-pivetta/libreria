@@ -15,18 +15,6 @@ from supabase import Client
 _SELECT = "id, lettura_id, pagina, data, generato_automaticamente, creato_at"
 
 
-def list_per_lettura(client: Client, lettura_id: UUID) -> list[dict[str, Any]]:
-    response = (
-        client.table("avanzamento")
-        .select(_SELECT)
-        .eq("lettura_id", str(lettura_id))
-        .order("data")
-        .order("creato_at")
-        .execute()
-    )
-    return cast("list[dict[str, Any]]", response.data)
-
-
 def create(
     client: Client, utente_id: UUID, lettura_id: UUID, pagina: int, data: date | None
 ) -> dict[str, Any]:

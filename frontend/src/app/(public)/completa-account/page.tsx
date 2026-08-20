@@ -60,9 +60,10 @@ export default function CompletaAccountPage() {
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
       if (accessToken && refreshToken) {
-        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        // I token non devono restare nella cronologia del browser.
+        // I token non devono restare nell'URL nemmeno per la breve
+        // finestra dell'attesa di setSession: rimossi subito, non dopo.
         window.history.replaceState(null, "", window.location.pathname);
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       }
 
       const {

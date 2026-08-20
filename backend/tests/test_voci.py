@@ -444,8 +444,9 @@ def test_patch_nota_intenzione_returns_updated_voce(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_correggi(
-        access_token: str, voce_id: UUID, nota_intenzione: str | None
+        access_token: str, utente_id: UUID, voce_id: UUID, nota_intenzione: str | None
     ) -> dict[str, Any] | None:
+        assert utente_id == _USER_ID
         assert nota_intenzione == "Consigliato da Giulia."
         return {**_VOCE, "nota_intenzione": "Consigliato da Giulia."}
 
@@ -463,7 +464,7 @@ def test_patch_nota_intenzione_accepts_null_to_clear(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_correggi(
-        access_token: str, voce_id: UUID, nota_intenzione: str | None
+        access_token: str, utente_id: UUID, voce_id: UUID, nota_intenzione: str | None
     ) -> dict[str, Any] | None:
         assert nota_intenzione is None
         return {**_VOCE, "nota_intenzione": None}
@@ -482,7 +483,7 @@ def test_patch_nota_intenzione_returns_404_when_missing(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_correggi(
-        access_token: str, voce_id: UUID, nota_intenzione: str | None
+        access_token: str, utente_id: UUID, voce_id: UUID, nota_intenzione: str | None
     ) -> dict[str, Any] | None:
         return None
 

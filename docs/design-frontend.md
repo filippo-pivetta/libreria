@@ -2,7 +2,7 @@
 
 Il come dell'interfaccia. Compagno del PRD, che porta il cosa.
 
-Revisione del 19 agosto 2026.
+Revisione del 20 agosto 2026.
 
 ---
 
@@ -801,8 +801,8 @@ Next.js App Router su Vercel, come impone il PRD.
   a mano in un componente.
 - **Una sola sorgente di verità per la palette:** `src/lib/light.ts`. Uno script di build genera
   `src/styles/tokens.anchors.css`, che non si modifica a mano.
-- **Radix primitives** invece di shadcn/ui preso così com'è, che porta un'estetica già decisa da
-  disfare quasi ovunque.
+- **Base UI** (`@base-ui/react`, ADR-0014) invece di shadcn/ui preso così com'è, che porta
+  un'estetica già decisa da disfare quasi ovunque.
 - **`next/font/local`** per le tre famiglie variabili, subset latino.
 - **Nessuna libreria 3D, nessuna libreria di smooth scroll, nessuna libreria di illustrazioni.**
   Gli unici SVG dell'app sono la mensola vuota, la grana e le icone, disegnati a mano e inline.

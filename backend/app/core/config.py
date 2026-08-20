@@ -5,6 +5,7 @@ Vedi backend/.env.example per l'elenco commentato di tutte le variabili.
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +46,21 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def _rifiuta_wildcard_cors(self) -> "Settings":
+        # main.py monta CORSMiddleware con allow_credentials=True sempre
+        # attivo: con "*" tra le origini, Starlette riflette l'Origin
+        # della richiesta invece del wildcard letterale, autorizzando di
+        # fatto richieste autenticate da qualunque sito. Fail-fast
+        # all'avvio invece di un errore di configurazione silenzioso.
+        if "*" in self.cors_origins_list:
+            raise ValueError(
+                "CORS_ORIGINS non può contenere '*': con allow_credentials=True "
+                "(main.py) equivarrebbe ad autorizzare qualunque origine a fare "
+                "richieste autenticate. Elenca le origini ammesse esplicitamente."
+            )
+        return self
 
 
 @lru_cache
