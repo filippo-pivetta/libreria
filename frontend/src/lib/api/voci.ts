@@ -30,6 +30,10 @@ export type Libro = {
 
 export type Voce = {
   id: string;
+  /** Proprietario della Voce: distingue "è mia" da "è di un collegato"
+   * quando la stessa scheda (/libro/[id]) è raggiunta via un collegamento
+   * attivo (issue #3). */
+  utenteId: string;
   libroId: string;
   stato: StatoVoce;
   pagineAdottate: number | null;
@@ -80,6 +84,7 @@ type LibroBody = {
 
 type VoceBody = {
   id: string;
+  utente_id: string;
   libro_id: string;
   stato: StatoVoce;
   pagine_adottate: number | null;
@@ -90,7 +95,7 @@ type VoceBody = {
   pagina_corrente: number | null;
 };
 
-type VoceConLibroBody = VoceBody & { libro: LibroBody };
+export type VoceConLibroBody = VoceBody & { libro: LibroBody };
 
 type AvanzamentoBody = {
   id: string;
@@ -124,6 +129,7 @@ function toLibro(body: LibroBody): Libro {
 function toVoce(body: VoceBody): Voce {
   return {
     id: body.id,
+    utenteId: body.utente_id,
     libroId: body.libro_id,
     stato: body.stato,
     pagineAdottate: body.pagine_adottate,
@@ -135,7 +141,7 @@ function toVoce(body: VoceBody): Voce {
   };
 }
 
-function toVoceConLibro(body: VoceConLibroBody): VoceConLibro {
+export function toVoceConLibro(body: VoceConLibroBody): VoceConLibro {
   return { ...toVoce(body), libro: toLibro(body.libro) };
 }
 
@@ -198,6 +204,44 @@ export async function getVoci(accessToken: string): Promise<VociResult> {
 
   const body = (await response.json()) as VoceConLibroBody[];
   return { status: "ok", data: body.map(toVoceConLibro) };
+}
+
+export type AggiungiVoceResult =
+  | { status: "ok"; data: Voce; alreadyExisted: boolean }
+  | { status: "not_found" }
+  | { status: "error"; message: string };
+
+/** POST /voci: aggiunge un Libro già presente nel catalogo alla propria
+ * libreria. Usata dalla fascia "Nella tua libreria" sul libro di un
+ * collegato (design doc §15) — non da una ricerca, che è l'issue #4. */
+export async function aggiungiVoce(accessToken: string, libroId: string): Promise<AggiungiVoceResult> {
+  const config = baseUrlOrError();
+  if ("status" in config) return config;
+
+  let response: Response;
+  try {
+    response = await fetch(`${config.baseUrl}/voci`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ libro_id: libroId }),
+      cache: "no-store",
+    });
+  } catch {
+    return { status: "error", message: "Il backend non è raggiungibile." };
+  }
+
+  if (response.status === 404) {
+    return { status: "not_found" };
+  }
+  if (!response.ok) {
+    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+  }
+
+  const body = (await response.json()) as { voce: VoceBody; already_existed: boolean };
+  return { status: "ok", data: toVoce(body.voce), alreadyExisted: body.already_existed };
 }
 
 export type VoceDettaglioResult =
@@ -306,5 +350,25 @@ export function correggiPagine(
 ): Promise<ScritturaVoceResult> {
   return patchVoce(accessToken, `/voci/${voceId}/pagine-adottate`, {
     pagine_adottate: pagineAdottate,
+  });
+}
+
+/** PATCH /voci/{id}/voto: `voto: null` cancella il voto. */
+export function correggiVoto(
+  accessToken: string,
+  voceId: string,
+  voto: number | null,
+): Promise<ScritturaVoceResult> {
+  return patchVoce(accessToken, `/voci/${voceId}/voto`, { voto });
+}
+
+/** PATCH /voci/{id}/nota-intenzione: `notaIntenzione: null` la cancella. */
+export function correggiNotaIntenzione(
+  accessToken: string,
+  voceId: string,
+  notaIntenzione: string | null,
+): Promise<ScritturaVoceResult> {
+  return patchVoce(accessToken, `/voci/${voceId}/nota-intenzione`, {
+    nota_intenzione: notaIntenzione,
   });
 }

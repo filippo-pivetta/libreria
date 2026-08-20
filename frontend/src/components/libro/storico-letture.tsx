@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { cancellaLettura } from "@/lib/api/letture";
@@ -31,10 +31,46 @@ const ETICHETTA_ESITO: Record<string, string> = {
  * linea. Un primo clic sul menù apre "Cancella davvero"/"Annulla" al
  * posto delle date; niente modale.
  */
-export function StoricoLetture({ voceId, letture }: { voceId: string; letture: Lettura[] }) {
+export function StoricoLetture({
+  voceId,
+  letture,
+  isOwner,
+}: {
+  voceId: string;
+  letture: Lettura[];
+  /** Niente menù "⋯" di cancellazione sul libro di un collegato (issue
+   * #3, Regola 5): l'RLS bloccherebbe comunque la scrittura, ma
+   * l'affordance stessa non va mostrata (design doc §15, "nessuna
+   * traccia di dove sarebbero" i comandi di scrittura). L'elenco in
+   * sola lettura resta visibile: è un dato di lettura reciprocamente
+   * condiviso (Regola 4). */
+  isOwner: boolean;
+}) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
   const [inConfermaId, setInConfermaId] = useState<string | null>(null);
+  // Chiusura ritardata del menù "⋯" (non al primo mouseleave): un
+  // timer per riga, non uno solo — righe diverse possono essere aperte
+  // e richiuse in rapida successione (design doc §9).
+  const timerAltreAzioni = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  function annullaChiusuraAltreAzioni(letturaId: string) {
+    const timer = timerAltreAzioni.current.get(letturaId);
+    if (timer) {
+      clearTimeout(timer);
+      timerAltreAzioni.current.delete(letturaId);
+    }
+  }
+
+  function programmaChiusuraAltreAzioni(letturaId: string, dettagli: HTMLDetailsElement) {
+    timerAltreAzioni.current.set(
+      letturaId,
+      setTimeout(() => {
+        dettagli.open = false;
+        timerAltreAzioni.current.delete(letturaId);
+      }, 350),
+    );
+  }
 
   const mutazione = useMutation({
     mutationFn: async (letturaId: string) => {
@@ -96,22 +132,31 @@ export function StoricoLetture({ voceId, letture }: { voceId: string; letture: L
               </span>
             )}
 
-            {inConfermaId !== lettura.id && (
-              <details className="relative shrink-0">
+            {isOwner && inConfermaId !== lettura.id && (
+              <details
+                className="relative shrink-0"
+                onMouseEnter={() => annullaChiusuraAltreAzioni(lettura.id)}
+                onMouseLeave={(event) => programmaChiusuraAltreAzioni(lettura.id, event.currentTarget)}
+              >
                 <summary
                   aria-label="Altre azioni"
-                  className="t-meta flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-object text-ink-soft hover:bg-surface-2 hover:text-ink"
+                  className="t-meta flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-object text-ink-soft hover:bg-surface-2 hover:text-ink"
                 >
                   ⋯
                 </summary>
-                <div className="absolute top-full right-0 z-10 mt-1 min-w-32 rounded-field border border-line bg-surface-1 p-1 shadow-plane-2">
-                  <button
-                    type="button"
-                    onClick={() => setInConfermaId(lettura.id)}
-                    className="w-full rounded-object px-2 py-1.5 text-left font-ui text-sm text-ink hover:bg-surface-2"
-                  >
-                    Cancella
-                  </button>
+                {/* `pt-1.5` invece di un margine: niente spazio morto fra
+                    "⋯" e il menù dove il mouse potrebbe uscire dal
+                    `<details>` a metà del movimento. */}
+                <div className="absolute top-full right-0 z-10 pt-1.5">
+                  <div className="min-w-32 rounded-field border border-line bg-surface-1 p-1.5 shadow-plane-2">
+                    <button
+                      type="button"
+                      onClick={() => setInConfermaId(lettura.id)}
+                      className="w-full rounded-object px-3 py-2 text-left font-ui text-sm text-ink hover:bg-surface-2"
+                    >
+                      Cancella
+                    </button>
+                  </div>
                 </div>
               </details>
             )}

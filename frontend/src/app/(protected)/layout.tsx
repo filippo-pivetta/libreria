@@ -1,17 +1,21 @@
 import { redirect } from "next/navigation";
 
 import { getMe } from "@/lib/api/me";
+import { getCollegamenti } from "@/lib/api/collegamenti";
 import { createClient } from "@/lib/supabase/server";
-import { ProtectedNav } from "@/components/layout/protected-nav";
+import { Chrome } from "@/components/layout/chrome";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ErrorState } from "@/components/states/error-state";
 
 /**
- * Chrome dell'area protetta: guardia di autenticazione lato server più
- * navigazione. Il Proxy (src/proxy.ts) fa già da prima linea e redirige
- * prima che questa pagina venga renderizzata; il controllo qui è un
- * secondo livello indipendente, nel caso un matcher del Proxy non copra
- * una rotta — la stessa logica di difesa in profondità già scelta per la
+ * Guardia di autenticazione dell'area protetta più i dati che la
+ * navigazione condivide (nome utente, contatore richieste): quale barra
+ * mostrare — quella globale o nessuna, nel contesto di un collegato —
+ * è deciso da `Chrome` (design doc §5/§15, emendamento 20 agosto 2026).
+ * Il Proxy (src/proxy.ts) fa già da prima linea e redirige prima che
+ * questa pagina venga renderizzata; il controllo qui è un secondo
+ * livello indipendente, nel caso un matcher del Proxy non copra una
+ * rotta — la stessa logica di difesa in profondità già scelta per la
  * RLS lato database, applicata qui lato routing.
  */
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -52,10 +56,22 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     );
   }
 
+  // Il contatore delle richieste ricevute accanto a Torre (design doc
+  // §5): un fallimento qui non deve bloccare il layout, a differenza di
+  // getMe sopra — il badge resta semplicemente assente.
+  const collegamenti = session
+    ? await getCollegamenti(session.access_token)
+    : { status: "error" as const, message: "Sessione assente." };
+  const receivedRequestCount =
+    collegamenti.status === "ok"
+      ? collegamenti.data.filter((c) => c.stato === "in_attesa" && !c.richiestoDaMe).length
+      : undefined;
+
   return (
     <div className="plane-0-lit flex min-h-screen flex-col">
-      <ProtectedNav userName={me.data.nomeUtente} />
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">{children}</main>
+      <Chrome userName={me.data.nomeUtente} receivedRequestCount={receivedRequestCount}>
+        {children}
+      </Chrome>
     </div>
   );
 }

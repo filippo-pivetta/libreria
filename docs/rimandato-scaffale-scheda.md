@@ -23,17 +23,28 @@ rimuovere il calcolo client. Le dimensioni `120×180`/`96×144` e le regole 1-4 
 di `docs/design-frontend.md` (riquadro prima dell'immagine, nessuna didascalia, segnaposto
 silenzioso) restano valide indipendentemente e non vanno ridiscusse.
 
-## 2. Voto, recensione, nota di intenzione, insight per lettura (issue #5)
+## 2. Recensione e insight per lettura (issue #5)
 
-Punto 7 delle correzioni Scheda: la pagina destra ("la tua copia") dovrebbe mostrare voto in
-stelle, recensione, nota di intenzione su carta più calda con angolo piegato, e insight
-raggruppati per lettura sotto le due pagine. Nessuno di questi dati/blocchi esiste ancora nel
-dominio applicativo: appartengono per intero all'issue #5, non a questa.
+Voto in stelle e nota di intenzione sono stati costruiti il 20 agosto 2026 (`VotoStelle`,
+`NotaIntenzione` in `frontend/src/components/libro/`, endpoint `PATCH /voci/{id}/voto` e
+`PATCH /voci/{id}/nota-intenzione`). Restano da costruire, per intero, insieme all'issue #5:
 
-`docs/design-frontend.md` §9 descrive già questi blocchi (sono la specifica valida per
-quando #5 sarà costruita) con un emendamento che dichiara che non sono ancora presenti.
-Quando #5 sarà implementata, i blocchi vanno aggiunti alla pagina destra della Scheda
-(`frontend/src/components/libro/scheda.tsx`) seguendo quella specifica, non riscrivendola.
+- **Recensione**: un paragrafo di testo lungo (Literata) sulla pagina destra, sotto le stelle.
+- **Insight raggruppati per lettura**: sotto le due pagine, non dentro la colonna stretta della
+  copia — un appunto lungo in una colonna stretta diventa una striscia di testo. Due
+  trattamenti tipografici scelti dal sistema in base alla lunghezza (`docs/design-frontend.md`
+  §10: sentenza `opsz 32`/19px sotto le ~200 battute, appunto `opsz 12`/15px oltre), mai una
+  scelta chiesta all'Utente.
+- **Taglio spoiler**: `clip-path` animata su una carta del piano 1 (§11) — il testo non è nel
+  DOM finché non si chiede di scoprirlo, l'animazione copre la latenza della richiesta. Vale
+  anche sugli insight di un collegato.
+- **Fascia "Nella tua libreria" completa**: oggi (`NellaTuaLibreria`) mostra solo stato e voto
+  della propria copia. Con recensione e insight costruiti va a mostrarne anche il conteggio
+  ("una recensione, tre insight"), come nel mockup di riferimento.
+
+`docs/design-frontend.md` §9/§10/§11 restano la specifica valida per tutti questi blocchi.
+Vanno aggiunti alla pagina destra di `frontend/src/components/libro/scheda.tsx` seguendo
+quella specifica, non riscrivendola.
 
 ## 3. `max-width` in `ch` per insight e recensione
 

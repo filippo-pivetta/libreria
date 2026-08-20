@@ -512,6 +512,19 @@
   overflow-x: auto; overflow-y: visible;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
+  /* `overflow-y: visible` qui è una bugia che il browser corregge da solo:
+     se un asse non è `visible`, l'altro smette di esserlo per davvero e
+     si comporta come `auto` (regola CSS sui "computed overflow values").
+     Il riquadro di scorrimento taglia quindi su TUTTI e quattro i lati,
+     non solo in verticale: l'ultimo volume della fascia, contro il
+     bordo destro del riquadro scorrevole, perde l'ombra proprio come i
+     volumi sopra/sotto perdevano nastro e sollevamento al passaggio del
+     mouse. Padding su ogni lato, compensato da un margine negativo
+     uguale e contrario perché la fascia non sposti gli elementi
+     attorno: lo scaffale normale non ha questo problema perché non
+     imposta alcun overflow. */
+  padding: var(--sp6);
+  margin: calc(var(--sp6) * -1);
 }
 .reading-band::-webkit-scrollbar { display: none; }
 .reading-band .volume { scroll-snap-align: start; }

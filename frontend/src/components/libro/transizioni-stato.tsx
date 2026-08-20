@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { cambiaStato, type StatoVoce, type VoceDettaglio } from "@/lib/api/voci";
@@ -19,7 +19,13 @@ type Transizione = { stato: StatoVoce; etichetta: string; chiedeData?: boolean }
  * cambia, questa tabella va aggiornata insieme.
  */
 const TRANSIZIONI: Record<StatoVoce, Transizione[]> = {
-  da_leggere: [{ stato: "in_lettura", etichetta: "Inizia a leggere" }],
+  // `chiedeData`: il PRD lo impone esplicitamente ("entrambe le date sono
+  // scelte dall'Utente, con il giorno corrente come predefinito: è ciò
+  // che permette di registrare letture concluse prima di usare l'app").
+  // Senza, la data di inizio resterebbe sempre oggi, e con essa il
+  // minimo selezionabile per ogni avanzamento — impedendo di fatto di
+  // registrare una lettura già cominciata in passato.
+  da_leggere: [{ stato: "in_lettura", etichetta: "Inizia a leggere", chiedeData: true }],
   in_lettura: [
     { stato: "in_pausa", etichetta: "Metti in pausa" },
     { stato: "letto", etichetta: "Ho finito", chiedeData: true },
@@ -64,6 +70,23 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
   const { showError } = useToast();
   const [pendente, setPendente] = useState<Transizione | null>(null);
   const [data, setData] = useState<string>(oggiISO);
+  const altroRef = useRef<HTMLDetailsElement>(null);
+  const chiusuraAltroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Chiusura ritardata (non al primo mouseleave): fra "Altro" e il menù
+  // sotto c'è comunque un attimo di movimento diagonale del mouse, e un
+  // ritardo breve lo assorbe senza dover ricliccare (design doc §9).
+  function programmaChiusuraAltro() {
+    chiusuraAltroTimer.current = setTimeout(() => {
+      if (altroRef.current) altroRef.current.open = false;
+    }, 350);
+  }
+  function annullaChiusuraAltro() {
+    if (chiusuraAltroTimer.current) {
+      clearTimeout(chiusuraAltroTimer.current);
+      chiusuraAltroTimer.current = null;
+    }
+  }
 
   const mutazione = useMutation({
     mutationFn: async ({ stato, conData }: { stato: StatoVoce; conData?: string }) => {
@@ -100,6 +123,7 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
   const altre = nomiFrequenti ? opzioni.filter((o) => !nomiFrequenti.includes(o.stato)) : [];
 
   function avvia(opzione: Transizione) {
+    if (altroRef.current) altroRef.current.open = false;
     if (opzione.chiedeData) {
       setData(oggiISO());
       setPendente(opzione);
@@ -124,22 +148,36 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
         ))}
 
         {altre.length > 0 && (
-          <details className="relative">
-            <summary className="t-meta inline-flex h-7 cursor-pointer list-none items-center px-1 text-ink-soft hover:text-ink">
+          <details
+            ref={altroRef}
+            className="relative"
+            onMouseEnter={annullaChiusuraAltro}
+            onMouseLeave={programmaChiusuraAltro}
+          >
+            <summary className="t-meta inline-flex h-8 cursor-pointer list-none items-center gap-1 rounded-field px-2.5 text-ink-soft hover:bg-surface-2 hover:text-ink">
               Altro
+              <span aria-hidden className="text-[9px]">
+                ▾
+              </span>
             </summary>
-            <div className="absolute top-full left-0 z-10 mt-1 flex min-w-40 flex-col gap-0.5 rounded-field border border-line bg-surface-1 p-1 shadow-plane-2">
-              {altre.map((opzione) => (
-                <button
-                  key={opzione.stato}
-                  type="button"
-                  disabled={mutazione.isPending}
-                  onClick={() => avvia(opzione)}
-                  className="rounded-object px-2 py-1.5 text-left font-ui text-sm text-ink hover:bg-surface-2"
-                >
-                  {opzione.etichetta}
-                </button>
-              ))}
+            {/* `pt-1.5` invece di un margine sul riquadro sotto: il
+                riquadro comincia subito a `top-full`, senza spazio morto
+                fra "Altro" e il menù dove il mouse potrebbe "uscire" dal
+                `<details>` a metà del movimento. */}
+            <div className="absolute top-full left-0 z-10 pt-1.5">
+              <div className="flex min-w-44 flex-col gap-0.5 rounded-field border border-line bg-surface-1 p-1.5 shadow-plane-2">
+                {altre.map((opzione) => (
+                  <button
+                    key={opzione.stato}
+                    type="button"
+                    disabled={mutazione.isPending}
+                    onClick={() => avvia(opzione)}
+                    className="rounded-object px-3 py-2 text-left font-ui text-sm text-ink hover:bg-surface-2"
+                  >
+                    {opzione.etichetta}
+                  </button>
+                ))}
+              </div>
             </div>
           </details>
         )}

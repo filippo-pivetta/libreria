@@ -15,7 +15,9 @@ from app.schemas.voci import (
     AggiungiVoceRequest,
     AggiungiVoceResponse,
     CambiaStatoRequest,
+    CorreggiNotaIntenzioneRequest,
     CorreggiPagineRequest,
+    CorreggiVotoRequest,
     VoceConLibroResponse,
     VoceDettaglioResponse,
     VoceResponse,
@@ -29,7 +31,7 @@ router = APIRouter(tags=["voci"])
 async def get_voci(
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
 ) -> list[dict[str, Any]]:
-    return await voci_service.elenco_libreria(current_user.access_token)
+    return await voci_service.elenco_libreria(current_user.access_token, current_user.id)
 
 
 @router.post("/voci", response_model=AggiungiVoceResponse)
@@ -114,6 +116,32 @@ async def patch_voce_pagine_adottate(
                 "message": "Il nuovo totale è inferiore a un avanzamento già registrato.",
             },
         ) from error
+    if voce is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")
+    return voce
+
+
+@router.patch("/voci/{voce_id}/voto", response_model=VoceResponse)
+async def patch_voce_voto(
+    voce_id: UUID,
+    body: CorreggiVotoRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+) -> dict[str, Any]:
+    voce = await voci_service.correggi_voto(current_user.access_token, voce_id, body.voto)
+    if voce is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")
+    return voce
+
+
+@router.patch("/voci/{voce_id}/nota-intenzione", response_model=VoceResponse)
+async def patch_voce_nota_intenzione(
+    voce_id: UUID,
+    body: CorreggiNotaIntenzioneRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+) -> dict[str, Any]:
+    voce = await voci_service.correggi_nota_intenzione(
+        current_user.access_token, voce_id, body.nota_intenzione
+    )
     if voce is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")
     return voce
