@@ -35,13 +35,19 @@ _LIBRO: dict[str, Any] = {
     "id": str(_LIBRO_ID),
     "titolo_canonico": "Prova",
     "anno_prima_pubblicazione": 1980,
+    "anno_dedotto": False,
     "lingua_originale": "it",
+    "lingua_dedotta": False,
+    "generi": [{"id": "literary_fiction", "etichetta": "Narrativa contemporanea"}],
+    "descrizione": None,
+    "descrizione_riformulata": False,
     # URL firmati e non percorsi interni: il bucket è privato (PRD regola
     # 6) e un percorso da solo non apre nulla. `copertina_stato` è ciò che
     # lo scaffale osserva mentre il recupero è in corso.
     "copertina_miniatura_url": None,
     "copertina_grande_url": None,
     "copertina_colore_dominante": None,
+    "copertina_colore_dominante_scuro": None,
     "copertina_stato": "assente",
     "autori": [{"id": "00000000-0000-0000-0000-0000000000a9", "nome_canonico": "Autrice Prova"}],
 }

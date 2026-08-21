@@ -277,8 +277,11 @@ la costa**. Ogni volume, da sinistra a destra:
    scartata, perché costa dodici gesti per dodici libri, ma su due o tre funziona. **I libri
    in lettura stanno solo nella fascia**: due insiemi distinti, non due viste sugli stessi
    dati — vederli ripetuti identici due volte nella stessa pagina non aggiunge informazione.
-9. **Le voci senza pagine adottate** hanno costa e copertina in contorno tratteggiato, senza
-   riempimento e senza ombra: l'assenza di dato va dichiarata, non gridata.
+9. **Le voci senza pagine adottate** hanno la costa in contorno tratteggiato, senza riempimento
+   e senza ombra: l'assenza di dato va dichiarata, non gridata. **Emendamento del 22 agosto
+   2026**: il tratteggio tocca solo la costa (lo spessore, che deriva dal conteggio pagine), non
+   più la copertina — foto vera o segnaposto colorato che sia, la copertina non dipende dalle
+   pagine e resta quella normale anche quando le pagine sono ignote.
 10. **Il sollevamento** è `translateY(-10px)` più il passaggio all'ombra del piano 2, su uno
     pseudo-elemento a cui si anima `opacity`, mai su `box-shadow` (non compositabile). Dietro
     `prefers-reduced-motion` resta il salto di piano e sparisce il movimento. **Non allarga
@@ -369,12 +372,19 @@ il contenuto personale sotto la piega dello schermo.
   pena che si veda come oggetto.
 - Titolo in Fraunces, nella variante della lingua dell'interfaccia; autori sotto in Inter
   Tight.
-- Anno e lingua originale, con etichetta **"dedotto"** quando il valore viene dal modello e
-  non dal catalogo.
+- Anno e lingua originale. **Emendamento del 22 agosto 2026**: l'etichetta "dedotto" prevista
+  qui quando il valore viene dal modello e non dal catalogo è stata costruita e poi tolta su
+  richiesta esplicita — resta solo il valore, senza distinguere in interfaccia un anno/lingua
+  dedotti da uno di fonte. Il dato (`anno_dedotto`/`lingua_dedotta`) resta comunque in database
+  e nell'API, per un'eventuale reintroduzione futura.
 - Generi come pastiglie **senza alcun affordance di modifica**: il PRD vieta la correzione a
   qualsiasi utente e non prevede nemmeno una segnalazione. L'assenza di comandi è il
   messaggio. Bordo 1px, nessun riempimento.
 - Descrizione dell'opera, nella lingua dell'interfaccia quando esiste, sotto i generi: prosa breve (l'apertura di una voce enciclopedica, non l'intera scheda editoriale), con l'attribuzione della fonte quando i suoi termini la richiedono. Nessun ripiego su un'altra lingua se manca in quella dell'interfaccia — a differenza del titolo, una trama nella lingua sbagliata non assolve alla stessa funzione — e nessuna riga vuota: se la fonte non ce l'ha, quel blocco non compare.
+  **Da verificare**: l'attribuzione della fonte non è costruita — `libro_descrizione.url_fonte`
+  esiste in database (necessario per i testi CC BY-SA di Wikipedia, la cui licenza la richiede)
+  ma non è esposto né da `LibroEssenziale` né dalla scheda. Non toccato in questa sessione,
+  segnalato qui perché la sezione lo dà per fatto.
 
 ### Pagina destra, la tua copia
 
@@ -542,8 +552,12 @@ sembra che l'app abbia inventato un dato.
 
 ## 13. Ricerca e aggiunta
 
-Un campo solo, con sotto "titolo o autore". Il PRD è netto: non esistono altre vie d'ingresso,
+Un campo solo, placeholder "Titolo o autore". Il PRD è netto: non esistono altre vie d'ingresso,
 né codice digitato né scansione. Nessun selettore di modalità.
+
+**Emendamento del 22 agosto 2026:** il testo di supporto sotto il campo ("titolo o autore", in
+piccolo) è stato tolto — ripeteva il placeholder senza aggiungere informazione, solo rumore
+visivo sotto la linea del campo.
 
 Risultati da schede esistenti e cataloghi esterni presentati insieme, senza distinzione, come
 impone il PRD. Ma i libri già in libreria cambiano verbo:
@@ -946,3 +960,43 @@ ricerca e aggiunta libro, con emendamento al PRD (entità Descrizione). Fonte pr
 Wikipedia — prosa scritta per spiegare di cosa parla un libro, non per venderlo — con ripiego
 su Google Books quando l'opera non è abbastanza notabile per avere una voce. Nessuna
 generazione da un modello: solo testo che una fonte ha già scritto, mai inventato.
+
+**Emendamento del 21 agosto 2026, esteso il 22 agosto 2026: standardizzazione assistita delle
+descrizioni fuori standard.** Misurato dal vivo: alcune voci Wikipedia si riducono a una sola
+frase ("Le notti bianche è un racconto giovanile di Fëdor Dostoevskij."), sotto lo standard di
+prosa breve che questa sezione chiede; altre — soprattutto le trame di Google Books, scritte per
+vendere — lo superano abbondantemente. La regola "mai inventato" resta, ma si applica ai *fatti*,
+non alla *formulazione*: un lavoro in secondo piano (issue #20bis,
+`app/lavori/standardizzazione_descrizione.py`) riformula le sole descrizioni fuori dalla fascia
+200-900 caratteri — espandendole o accorciandole secondo il caso — a **400-600 caratteri, 3-5
+frasi, registro enciclopedico** (lo stesso di un incipit Wikipedia: neutro, informativo, mai
+promozionale). Quelle già nella fascia restano quelle originali della fonte, senza passare dal
+modello. Chiamato "standardizzazione" e non "arricchimento": un nome che promettesse solo di
+espandere sarebbe disonesto per un lavoro che accorcia altrettanto spesso.
+
+Tre vincoli che tengono ferma la regola originale:
+
+- **Ancorato solo a fatti già verificati**: il modello riceve il testo sorgente reale e i dati
+  già presenti nel database (titolo, autori, anno di prima pubblicazione, generi) — mai la sua
+  conoscenza generale dell'opera. Verificato dal vivo che un modello generico non rispetta questo
+  vincolo per default su un'opera nota (ha aggiunto l'ambientazione a San Pietroburgo di "Le notti
+  bianche" pur non essendo nella frase sorgente): il prompt istruisce esplicitamente a fingere di
+  non sapere altro sull'opera, con un esempio concreto di cosa non fare. Se il sorgente è troppo
+  scarno per raggiungere 400 caratteri restando fedele, il testo prodotto resta più breve — anche
+  100-200 caratteri sono un esito corretto, preferibile a un testo più lungo con anche un solo
+  dettaglio non verificabile.
+- **Accorciare non deve alterare il significato**: nessun fatto nuovo (si toglie, non si
+  aggiunge), ma il prompt vieta esplicitamente di tagliare un dettaglio che ne qualifica un altro
+  (una data, una condizione) lasciando un'affermazione che il testo originale non faceva — nel
+  dubbio, il prompt istruisce a restare sopra i 600 caratteri piuttosto che perdere un fatto
+  qualificante.
+- **Tracciato in database**: `libro_descrizione.riformulata` marca il testo come riformulato dal
+  modello (espanso o accorciato) — stesso trattamento di `anno_dedotto`/`lingua_dedotta`.
+  **Emendamento del 22 agosto 2026**: l'etichetta di trasparenza in scheda che segnalava questo
+  stato è stata costruita e poi tolta su richiesta esplicita, insieme a quella per "dedotto"
+  (§9) — il campo resta nell'API per un'eventuale reintroduzione, ma oggi il testo riformulato
+  si mostra senza distinguerlo dalla citazione letterale della fonte.
+
+Non richiede consenso dell'Utente (funzione bibliografica su dato condiviso, come le altre tre
+dell'issue #20 — ADR 0008): lavora solo su titolo/autori/anno/generi/descrizione di catalogo,
+mai su contenuto personale.

@@ -52,6 +52,12 @@ class SchedaRisolta:
     lingua_dedotta: bool
     pagine_mediane: int | None
     generi: list[str]
+    soggetti: list[str] = field(default_factory=list)
+    """L'unione dei soggetti di catalogo (Google + Open Library) da cui
+    `generi` è stato dedotto — non solo un log: è il contesto che il
+    lavoro in secondo piano di arricchimento assistito (issue #20, punti
+    1+2) invia al modello quando la mappatura deterministica non decide,
+    senza doverlo ricalcolare."""
     riferimenti: list[tuple[str, str, bool]] = field(default_factory=list)
     """(fonte, identificativo, principale) da scrivere in
     `libro_riferimento_esterno`."""
@@ -241,6 +247,7 @@ async def risolvi(opera_google: google_books.Opera) -> SchedaRisolta:
     # rosa": la sola Google dà `literary_fiction`, l'unione dà
     # `crime_thriller, history, literary_fiction`.
     soggetti = [*volume.categorie, *(opera_ol.soggetti if opera_ol else ())]
+    scheda.soggetti = soggetti
     scheda.generi = mappatura_generi.mappa(soggetti)
 
     await _arricchisci(scheda, opera_ol.work_id if opera_ol else None, volume)

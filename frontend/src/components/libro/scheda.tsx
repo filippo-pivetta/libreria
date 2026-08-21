@@ -27,12 +27,12 @@ const ETICHETTA_STATO: Record<string, string> = {
 
 /**
  * Volume aperto, due pagine (design doc §9). A sinistra l'opera, dato
- * condiviso — titolo, autori, anno, lingua, e le pagine della TUA copia
+ * condiviso — titolo, autori, anno, lingua, generi come pastiglie senza
+ * affordance di modifica, descrizione, e le pagine della TUA copia
  * (unico dato bibliografico che l'Utente può correggere, quindi sta coi
  * fatti dell'opera e non nel pannello dell'avanzamento). A destra la tua
  * copia: stato, registrazione dell'avanzamento, transizioni, voto,
- * nota di intenzione, storico. Niente generi: l'elenco non è ancora
- * popolato fuori banda. Niente recensione/insight: issue #5, non
+ * nota di intenzione, storico. Niente recensione/insight: issue #5, non
  * costruita.
  *
  * Nel contesto di un collegato (`isOwner === false`) la pagina destra
@@ -96,11 +96,27 @@ export function Scheda({
       {...(!isOwner ? { "data-guest": "" } : {})}
     >
       <section className="plane-1 pagina-opera grain min-h-[420px] flex-1 p-6 md:min-h-[640px]">
-        <div
-          className="cover mb-4 flex h-48 w-32 items-center justify-center p-3 text-center"
-          style={{ backgroundColor: colore }}
-        >
-          <p className="font-display text-base leading-snug text-on-accent">
+        <div className="cover mb-4 h-48 w-32" style={{ backgroundColor: colore }}>
+          {data.libro.copertinaGrandeUrl && (
+            // <img> piano, non next/image: come sullo scaffale
+            // (components/libreria/volume.tsx), il dominio delle
+            // copertine è privato e firmato, non configurabile in
+            // anticipo per l'ottimizzatore di Next.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              ref={(elemento) => {
+                if (elemento?.complete) elemento.setAttribute("data-loaded", "");
+              }}
+              src={data.libro.copertinaGrandeUrl}
+              alt=""
+              decoding="async"
+              onLoad={(event) => event.currentTarget.setAttribute("data-loaded", "")}
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+          )}
+          <p className="cover__placeholder flex items-center justify-center p-3 text-center font-display text-base leading-snug text-on-accent">
             {data.libro.titoloCanonico}
           </p>
         </div>
@@ -129,6 +145,27 @@ export function Scheda({
             </div>
           )}
         </div>
+
+        {data.libro.generi.length > 0 && (
+          // Pastiglie senza alcun affordance di modifica (design doc §9):
+          // il PRD vieta la correzione a qualsiasi utente e non prevede
+          // nemmeno una segnalazione. L'assenza di comandi è il
+          // messaggio — bordo 1px, nessun riempimento.
+          <div className="mt-4 flex flex-wrap gap-2">
+            {data.libro.generi.map((genere) => (
+              <span
+                key={genere.id}
+                className="t-meta rounded-object border border-line px-2.5 py-1"
+              >
+                {genere.etichetta}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {data.libro.descrizione && (
+          <p className="t-meta mt-4 leading-relaxed">{data.libro.descrizione}</p>
+        )}
       </section>
 
       <section className="plane-1 pagina-copia grain relative min-h-[420px] flex-1 p-6 md:min-h-[640px]">

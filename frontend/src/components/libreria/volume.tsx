@@ -20,6 +20,10 @@ import { spessoreCosta } from "@/lib/shelf-pack";
  * Il colore di fondo è quello dominante estratto dalla copertina vera; se
  * non c'è ancora — o non ci sarà mai — si ricade sul colore derivato
  * dall'id (`lib/spine-color.ts`), che resta il ripiego e non la regola.
+ * Nella stanza scura vince la variante desaturata (design doc §3): la
+ * scelta fra le due sta in CSS (`[data-light="notte"] .volume`,
+ * styles/tokens.css), non qui, perché la stanza cambia con l'orario del
+ * server e questo componente non deve saperlo.
  *
  * `inFascia` aggiunge il filo di avanzamento di 3px sul bordo inferiore
  * (design doc §7, regola 8), disponibile solo per le voci nella fascia
@@ -31,7 +35,9 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
   const ribbon = RIBBON[voce.stato];
   const autori = nomiAutori(voce.libro.autori);
   const etichetta = autori ? `${voce.libro.titoloCanonico} · ${autori}` : voce.libro.titoloCanonico;
-  const colore = voce.libro.copertinaColoreDominante ?? coloreDorso(voce.libro.id);
+  const ripiego = coloreDorso(voce.libro.id);
+  const colore = voce.libro.copertinaColoreDominante ?? ripiego;
+  const coloreScuro = voce.libro.copertinaColoreDominanteScuro ?? ripiego;
   const spessore = spessoreCosta(voce.pagineAdottate);
   const immagine = voce.libro.copertinaMiniaturaUrl;
 
@@ -50,6 +56,7 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
       style={
         {
           "--cover-color": colore,
+          "--cover-color-notte": coloreScuro,
           "--spine-w": `${spessore}px`,
         } as CSSProperties
       }

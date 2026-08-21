@@ -187,7 +187,6 @@ export function RicercaLibri() {
           placeholder="Titolo o autore"
           className="field-line w-full max-w-lg border-0 border-b border-line bg-transparent px-0 py-2 font-display text-lg text-ink outline-none placeholder:text-ink-soft"
         />
-        <p className="t-meta">titolo o autore</p>
       </div>
 
       {locali.isError && (

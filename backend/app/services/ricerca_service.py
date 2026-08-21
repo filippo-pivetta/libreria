@@ -59,6 +59,7 @@ def _riga_locale(riga: dict[str, Any]) -> dict[str, Any]:
         "anno_prima_pubblicazione": riga.get("anno_prima_pubblicazione"),
         "copertina_url": firmati.get(percorso) if percorso else None,
         "copertina_colore_dominante": riga.get("copertina_colore_dominante"),
+        "copertina_colore_dominante_scuro": riga.get("copertina_colore_dominante_scuro"),
         "copertina_stato": riga.get("copertina_stato") or "assente",
         "voce": _voce(riga),
     }
@@ -243,6 +244,7 @@ def _trova_o_crea(scheda: risoluzione.SchedaRisolta) -> UUID:
             lingua_originale=scheda.lingua_originale,
             pagine_mediane=scheda.pagine_mediane,
             generi=scheda.generi,
+            soggetti=scheda.soggetti,
             riferimenti=scheda.riferimenti,
             varianti_titolo=scheda.varianti_titolo,
             descrizioni=scheda.descrizioni,

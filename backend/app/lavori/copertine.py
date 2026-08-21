@@ -197,6 +197,36 @@ def colore_dominante(immagine: Image.Image) -> str:
     return _esadecimale(ripiego)
 
 
+_DESATURAZIONE_SCURA = 0.4
+"""Quota di miscela verso il grigio medio per la variante della stanza
+scura (docs/design-frontend.md §3: "seconda versione calcolata, più
+desaturata"). Non è una seconda estrazione indipendente — stesso pixel
+dominante di colore_dominante(), solo desaturato — perché il punto è la
+leggibilità sotto la luce bassa della stanza notturna, non un colore
+diverso."""
+
+
+def colore_dominante_scuro(immagine: Image.Image) -> str:
+    """La variante desaturata di `colore_dominante` per la stanza scura.
+
+    Miscela il colore dominante verso un grigio di pari luminanza: la
+    tonalità resta riconoscibile (un dorso rosso resta rossastro) ma
+    perde saturazione, coerente con "seconda versione calcolata, più
+    desaturata" (design-frontend.md §3). Non richiede una seconda
+    decodifica dell'immagine: gira sempre subito dopo colore_dominante()
+    sulla stessa immagine già in memoria.
+    """
+    chiaro = colore_dominante(immagine)
+    r, g, b = (int(chiaro[i : i + 2], 16) for i in (1, 3, 5))
+    grigio = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    desaturato = (
+        round(r + (grigio - r) * _DESATURAZIONE_SCURA),
+        round(g + (grigio - g) * _DESATURAZIONE_SCURA),
+        round(b + (grigio - b) * _DESATURAZIONE_SCURA),
+    )
+    return _esadecimale(desaturato)
+
+
 def _luminanza(rgb: tuple[int, int, int]) -> float:
     """Luminanza relativa secondo WCAG, la stessa base su cui il frontend
     verifica i contrasti (`npm run check:contrast`)."""
@@ -269,6 +299,7 @@ async def esegui(payload: dict[str, Any]) -> None:
 
     immagine = _apri(dati)
     colore = colore_dominante(immagine)
+    colore_scuro = colore_dominante_scuro(immagine)
     miniatura = converti(immagine, LATO_MINIATURA)
     grande = converti(immagine, LATO_GRANDE)
 
@@ -280,7 +311,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     def _scrivi() -> None:
         with database.apri_connessione() as connessione:
             catalogo_repository.aggiorna_copertina(
-                connessione, libro_id, percorso_miniatura, percorso_grande, colore
+                connessione, libro_id, percorso_miniatura, percorso_grande, colore, colore_scuro
             )
 
     await run_in_threadpool(_scrivi)
