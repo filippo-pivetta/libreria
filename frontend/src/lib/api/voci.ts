@@ -4,11 +4,6 @@
  * `lib/api/me.ts`: unioni discriminate per ogni esito, mai un'eccezione
  * per il flusso di controllo, mapping snake_case -> camelCase a carico
  * di questo modulo.
- *
- * Nessuna funzione per `POST /voci`: questa issue non costruisce una
- * schermata di aggiunta (la ricerca sui cataloghi è l'issue #4),
- * l'endpoint resta testabile via Swagger/API con dati seminati
- * (`supabase/seed.sql`).
  */
 
 export type StatoVoce = "da_leggere" | "in_lettura" | "in_pausa" | "abbandonato" | "letto";
@@ -18,13 +13,29 @@ export type Autore = {
   nomeCanonico: string;
 };
 
+export type StatoCopertina = "in_attesa" | "presente" | "assente" | "fallita";
+
 export type Libro = {
   id: string;
   titoloCanonico: string;
   annoPrimaPubblicazione: number | null;
   linguaOriginale: string | null;
-  copertinaMiniaturaPath: string | null;
-  copertinaGrandePath: string | null;
+  /** URL firmato, non il percorso interno: il bucket delle copertine è
+   * privato (PRD regola 6) e un percorso da solo non apre nulla. La firma
+   * dura sette giorni ed è stabile tra le richieste, così il browser può
+   * davvero metterla in cache. */
+  copertinaMiniaturaUrl: string | null;
+  copertinaGrandeUrl: string | null;
+  /** Colore dominante estratto dalla copertina, per ombra e fondo del
+   * volume sullo scaffale (design doc §7). Null finché la copertina non è
+   * stata recuperata: in quel caso si ricade sul colore derivato dall'id
+   * (`lib/spine-color.ts`). */
+  copertinaColoreDominante: string | null;
+  /** `in_attesa` mentre il lavoro in secondo piano sta recuperando la
+   * copertina: è ciò che permette allo scaffale di sapere che vale la
+   * pena ricontrollare, invece di aspettare per sempre un'immagine che
+   * forse non arriverà. */
+  copertinaStato: StatoCopertina;
   autori: Autore[];
 };
 
@@ -77,8 +88,10 @@ type LibroBody = {
   titolo_canonico: string;
   anno_prima_pubblicazione: number | null;
   lingua_originale: string | null;
-  copertina_miniatura_path: string | null;
-  copertina_grande_path: string | null;
+  copertina_miniatura_url: string | null;
+  copertina_grande_url: string | null;
+  copertina_colore_dominante: string | null;
+  copertina_stato: StatoCopertina;
   autori: AutoreBody[];
 };
 
@@ -120,8 +133,10 @@ function toLibro(body: LibroBody): Libro {
     titoloCanonico: body.titolo_canonico,
     annoPrimaPubblicazione: body.anno_prima_pubblicazione,
     linguaOriginale: body.lingua_originale,
-    copertinaMiniaturaPath: body.copertina_miniatura_path,
-    copertinaGrandePath: body.copertina_grande_path,
+    copertinaMiniaturaUrl: body.copertina_miniatura_url,
+    copertinaGrandeUrl: body.copertina_grande_url,
+    copertinaColoreDominante: body.copertina_colore_dominante,
+    copertinaStato: body.copertina_stato,
     autori: body.autori.map((autore) => ({ id: autore.id, nomeCanonico: autore.nome_canonico })),
   };
 }

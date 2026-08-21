@@ -10,11 +10,15 @@ import { nomiAutori } from "@/lib/autori";
 import { RIBBON } from "@/lib/ribbon";
 import { costruisciElementi, impacchetta, type ShelfItem } from "@/lib/shelf-pack";
 import { useContainerWidth, useCoverWidth } from "@/lib/use-container-width";
+import Link from "next/link";
+
 import { Volume } from "@/components/libreria/volume";
 import { EmptyShelf } from "@/components/states/empty-shelf";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const IN_CORSO = new Set(["in_lettura", "in_pausa"]);
 
@@ -81,6 +85,15 @@ export function Scaffale({
       return result.data;
     },
     initialData: vociIniziali,
+    // Un libro appena aggiunto compare come segnaposto tipografico e si
+    // riempie quando il lavoro in secondo piano ha recuperato la
+    // copertina (design doc §13). Si ricontrolla finché c'è almeno una
+    // scheda in attesa, e **si smette da soli** quando non ce n'è più:
+    // un intervallo fisso terrebbe sveglia una pagina che non aspetta
+    // più nulla. È lo stato osservabile della colonna a dirlo, non la
+    // coda dei lavori, che resta chiusa.
+    refetchInterval: (query) =>
+      query.state.data?.some((voce) => voce.libro.copertinaStato === "in_attesa") ? 5000 : false,
   });
 
   const filtrate = useMemo(() => {
@@ -138,6 +151,11 @@ export function Scaffale({
           Puoi datare una lettura a quando è successa, non solo a oggi: la libreria storica non
           si schiaccia sulla data in cui la registri.
         </p>
+        {!utenteCollegatoId && (
+          <Link href="/aggiungi" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            Aggiungi il primo libro
+          </Link>
+        )}
       </div>
     );
   }
@@ -184,6 +202,19 @@ export function Scaffale({
           {data.length} {data.length === 1 ? "volume" : "volumi"}
           {inCorso.length > 0 ? ` · ${inCorso.length} in lettura` : ""}
         </span>
+        {/* Il campo qui accanto è un filtro locale sulla propria libreria,
+            non la ricerca sui cataloghi: sono due mestieri che il design
+            §7 tiene separati, e trasformare il primo nel secondo li
+            confonderebbe entrambi. Da qui si va alla ricerca vera.
+            Nascosto sulla libreria di un collegato: lì non si aggiunge. */}
+        {!utenteCollegatoId && (
+          <Link
+            href="/aggiungi"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            Aggiungi un libro
+          </Link>
+        )}
       </div>
 
       {inCorso.length === 0 && righe.length === 0 ? (

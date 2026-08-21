@@ -9,6 +9,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.core.supabase import get_user_client
 from app.repositories import collegamento_repository, utente_repository, voce_repository
+from app.services import voci_service
 
 
 class UtenteInesistenteError(Exception):
@@ -66,4 +67,5 @@ async def libreria_di(access_token: str, self_id: UUID, utente_id: UUID) -> dict
         raise NonCollegatoError
 
     voci = await run_in_threadpool(voce_repository.list_con_libro, client, utente_id)
+    voci = await run_in_threadpool(voci_service.firma_copertine, voci)
     return {"utente": utente, "voci": voci}

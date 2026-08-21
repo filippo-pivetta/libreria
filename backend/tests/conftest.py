@@ -10,6 +10,14 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:54322/postgres")
 
+# Il worker dei lavori in secondo piano non deve mai partire nella suite:
+# tenterebbe di connettersi a un database che i test non hanno. Oggi
+# basterebbe il fatto che `TestClient(app)` non esegue il lifespan se non
+# usato come context manager, ma è una protezione accidentale: il primo
+# `with TestClient(app)` scritto per un test futuro la farebbe cadere
+# senza che nulla lo segnali.
+os.environ.setdefault("WORKER_ABILITATO", "false")
+
 import time  # noqa: E402
 from collections.abc import Iterator  # noqa: E402
 from types import SimpleNamespace  # noqa: E402

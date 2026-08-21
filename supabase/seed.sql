@@ -22,10 +22,13 @@
 -- seed non può inventare un utente reale, che nasce solo completando un
 -- invito.
 
--- Nessun ON CONFLICT: identificativo_canonico resta NULL su ogni riga (i
--- vincoli unique di Postgres non considerano due NULL in conflitto), e
--- questo file gira solo dopo `db reset --local`, che riparte da un
--- database vuoto — non c'è nulla con cui confliggere.
+-- Nessun ON CONFLICT: questo file gira solo dopo `db reset --local`, che
+-- riparte da un database vuoto, quindi non c'è nulla con cui confliggere.
+-- (Prima della migrazione 20260821120000 il motivo era un altro:
+-- `libro.identificativo_canonico` restava NULL su ogni riga e i vincoli
+-- unique di Postgres non considerano due NULL in conflitto. Quella
+-- colonna non esiste più: l'identità esterna vive in
+-- `libro_riferimento_esterno`, seminata in fondo a questo file.)
 insert into public.libro (titolo_canonico, anno_prima_pubblicazione, lingua_originale) values
   ('Le città invisibili', 1972, 'it'),
   ('Il barone rampante', 1957, 'it'),
@@ -111,3 +114,43 @@ join public.autore a on (
   or (l.titolo_canonico = 'La strada' and a.nome_canonico = 'Cormac McCarthy')
   or (l.titolo_canonico = 'Uomini e topi' and a.nome_canonico = 'John Steinbeck')
 );
+
+
+-- Il seed gira DOPO le migrazioni, quindi queste righe prendono il default
+-- di colonna `copertina_stato = 'in_attesa'` — e lo scaffale resterebbe in
+-- attesa per sempre di un'immagine che nessun lavoro produrrà, perché
+-- nessuna di queste schede è nata da una fonte esterna. 'assente' è
+-- l'esito corretto (PRD: "Copertina assente alla nascita della scheda:
+-- segnaposto con titolo e autore, senza ulteriori tentativi automatici").
+update public.libro set copertina_stato = 'assente';
+
+-- Tre riferimenti esterni veri, verificati contro Open Library il 21
+-- agosto 2026. Non sono decorativi: senza di loro il primo passo della
+-- catena di risoluzione — "identificativo già noto, zero chiamate
+-- esterne" — è l'unico ramo che in locale non si può esercitare senza
+-- rete. Con questi, `POST /libri` su uno di questi ISBN deve restituire
+-- la scheda seminata senza interrogare nessuno.
+--
+-- `pagine_mediane_catalogo` viene dalla stessa risposta
+-- (`number_of_pages_median` di search.json), così la Voce che nasce da
+-- questi libri esercita anche la precompilazione delle pagine.
+insert into public.libro_riferimento_esterno (libro_id, fonte, identificativo, principale)
+select l.id, r.fonte, r.identificativo, r.principale
+from public.libro l
+join (values
+  ('Le città invisibili', 'open_library', 'OL15297W',      true),
+  ('Le città invisibili', 'isbn13',       '9788774967231', true),
+  ('Se questo è un uomo', 'open_library', 'OL860066W',     true),
+  ('Se questo è un uomo', 'isbn13',       '9788491214694', true),
+  ('Il nome della rosa',  'open_library', 'OL8996439W',    true),
+  ('Il nome della rosa',  'isbn13',       '9780330284783', true)
+) as r (titolo, fonte, identificativo, principale)
+  on r.titolo = l.titolo_canonico;
+
+update public.libro set pagine_mediane_catalogo = m.mediana
+from (values
+  ('Le città invisibili', 165),
+  ('Se questo è un uomo', 206),
+  ('Il nome della rosa',  533)
+) as m (titolo, mediana)
+where public.libro.titolo_canonico = m.titolo;

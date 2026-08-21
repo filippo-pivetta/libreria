@@ -11,11 +11,15 @@ import { spessoreCosta } from "@/lib/shelf-pack";
 
 /**
  * Il volume: costa (spessore = pagine) + copertina vera 2:3 rivolta a chi
- * guarda, con un segnaposto tipografico finché l'immagine non arriva — o
- * non esiste, che oggi è sempre il caso: la pipeline copertine (issue #4)
- * non è ancora costruita, `copertinaMiniaturaPath` è sempre null. Il
- * riquadro ha dimensioni fisse (--cover-w/--cover-h in tokens.css): non
- * salta mai quando un'immagine reale arriverà.
+ * guarda, con un segnaposto tipografico finché l'immagine non arriva o
+ * quando non esiste. Il riquadro ha dimensioni fisse (--cover-w/--cover-h
+ * in tokens.css): **non salta mai** quando l'immagine arriva, che è
+ * esattamente ciò che il design §13 chiede per il libro appena aggiunto,
+ * il cui recupero copertina gira in secondo piano.
+ *
+ * Il colore di fondo è quello dominante estratto dalla copertina vera; se
+ * non c'è ancora — o non ci sarà mai — si ricade sul colore derivato
+ * dall'id (`lib/spine-color.ts`), che resta il ripiego e non la regola.
  *
  * `inFascia` aggiunge il filo di avanzamento di 3px sul bordo inferiore
  * (design doc §7, regola 8), disponibile solo per le voci nella fascia
@@ -27,9 +31,9 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
   const ribbon = RIBBON[voce.stato];
   const autori = nomiAutori(voce.libro.autori);
   const etichetta = autori ? `${voce.libro.titoloCanonico} · ${autori}` : voce.libro.titoloCanonico;
-  const colore = coloreDorso(voce.libro.id);
+  const colore = voce.libro.copertinaColoreDominante ?? coloreDorso(voce.libro.id);
   const spessore = spessoreCosta(voce.pagineAdottate);
-  const immagine = voce.libro.copertinaMiniaturaPath;
+  const immagine = voce.libro.copertinaMiniaturaUrl;
 
   const percentuale =
     inFascia && voce.pagineAdottate && voce.paginaCorrente != null
@@ -70,6 +74,16 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
           // anticipo senza saperlo.
           // eslint-disable-next-line @next/next/no-img-element
           <img
+            // Ref e non solo onLoad: se il browser decodifica l'immagine
+            // prima che React attacchi il listener — rete locale veloce,
+            // cache — l'evento `load` non si ripete e `onLoad` non scatta
+            // mai (verificato: `complete` e `naturalWidth` confermano
+            // l'immagine caricata, ma nessun evento arriva). La ref gira a
+            // ogni render e copre anche il caso sincrono; `onLoad` resta
+            // per il caso asincrono normale.
+            ref={(elemento) => {
+              if (elemento?.complete) elemento.setAttribute("data-loaded", "");
+            }}
             src={immagine}
             alt=""
             loading="lazy"

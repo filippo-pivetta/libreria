@@ -41,8 +41,13 @@ _LIBRO: dict[str, Any] = {
     "titolo_canonico": "Prova",
     "anno_prima_pubblicazione": 1980,
     "lingua_originale": "it",
-    "copertina_miniatura_path": None,
-    "copertina_grande_path": None,
+    # URL firmati e non percorsi interni: il bucket è privato (PRD regola
+    # 6) e un percorso da solo non apre nulla. `copertina_stato` è ciò che
+    # lo scaffale osserva mentre il recupero è in corso.
+    "copertina_miniatura_url": None,
+    "copertina_grande_url": None,
+    "copertina_colore_dominante": None,
+    "copertina_stato": "assente",
     "autori": [],
 }
 

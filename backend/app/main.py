@@ -1,13 +1,56 @@
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 
 from app.core.config import get_settings
 from app.core.exception_handlers import gestore_eccezioni_non_gestite
-from app.routers import avanzamenti, collegamenti, health, letture, me, utenti, voci
+from app.core.rate_limit import limiter
+from app.lavori.worker import Worker
+from app.routers import (
+    avanzamenti,
+    collegamenti,
+    health,
+    letture,
+    me,
+    ricerca,
+    utenti,
+    voci,
+)
+
+logger = logging.getLogger("app.lavori")
+
+
+@asynccontextmanager
+async def _ciclo_di_vita(_app: FastAPI) -> AsyncIterator[None]:
+    """Avvia e ferma il worker dei lavori in secondo piano (docs/adr/0016).
+
+    Il worker gira nello stesso processo dell'API: la coda vive nel
+    database, quindi più processi possono comunque spartirsela
+    (`FOR UPDATE SKIP LOCKED`) senza coordinamento esterno.
+
+    `worker_abilitato = false` copre due casi: il worker avviato come
+    processo separato (`python -m app.lavori`), e i test — che pure oggi
+    non eseguono il lifespan, perché `TestClient(app)` lo esegue solo se
+    usato come context manager, ma è una protezione accidentale su cui non
+    conviene appoggiarsi (vedi tests/conftest.py).
+    """
+    settings = get_settings()
+    worker = Worker() if settings.worker_abilitato else None
+    if worker is not None:
+        await worker.avvia()
+        logger.info("Worker dei lavori in secondo piano avviato.")
+    try:
+        yield
+    finally:
+        if worker is not None:
+            await worker.ferma()
+            logger.info("Worker dei lavori in secondo piano fermato.")
 
 
 def create_app() -> FastAPI:
@@ -21,12 +64,14 @@ def create_app() -> FastAPI:
         docs_url="/docs" if docs_abilitati else None,
         redoc_url="/redoc" if docs_abilitati else None,
         openapi_url="/openapi.json" if docs_abilitati else None,
+        lifespan=_ciclo_di_vita,
     )
 
     # Rete di sicurezza generica per richiesta/IP: nessun endpoint aveva
     # un limite, incluso POST /collegamenti (enumerabile per differenza
-    # di risposta 404 vs 200/201 su utente_id altrui).
-    limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+    # di risposta 404 vs 200/201 su utente_id altrui). Definito in
+    # app/core/rate_limit.py perché i router possano stringerlo dove
+    # serve (la ricerca esterna consuma quota).
     app.state.limiter = limiter
     app.add_exception_handler(
         RateLimitExceeded,
@@ -55,6 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(avanzamenti.router)
     app.include_router(utenti.router)
     app.include_router(collegamenti.router)
+    app.include_router(ricerca.router)
     return app
 
 

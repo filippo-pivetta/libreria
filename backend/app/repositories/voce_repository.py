@@ -22,8 +22,8 @@ _SELECT_BASE = (
 _SELECT_CON_LIBRO = (
     f"{_SELECT_BASE}, "
     "libro:libro_id (id, titolo_canonico, anno_prima_pubblicazione, lingua_originale, "
-    "copertina_miniatura_path, copertina_grande_path, "
-    "libro_autore(ordine, autore:autore_id(id, nome_canonico)))"
+    "copertina_miniatura_path, copertina_grande_path, copertina_colore_dominante, "
+    "copertina_stato, libro_autore(ordine, autore:autore_id(id, nome_canonico)))"
 )
 
 # GET /voci: come sopra, più la pagina raggiunta nella Lettura aperta (se

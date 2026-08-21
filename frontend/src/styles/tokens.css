@@ -455,7 +455,13 @@
   padding: var(--sp3);
   color: rgb(255 255 255 / 0.94);
   pointer-events: none;
+  opacity: 1; transition: opacity 320ms var(--ease-rise);
 }
+/* Il segnaposto è sempre nel markup (ripiego per il caso onError, che
+   nasconde solo l'<img>), ma una volta che la copertina vera ha
+   caricato dev'essere illeggibile: titolo/autore sopra l'immagine è
+   esattamente il difetto che l'intero componente esiste per evitare. */
+.volume__cover:has(img[data-loaded]) .volume__placeholder { opacity: 0; }
 .volume__placeholder b {
   font-family: var(--font-display); font-weight: 400; font-size: 14px;
   line-height: 1.16; letter-spacing: -0.005em;
