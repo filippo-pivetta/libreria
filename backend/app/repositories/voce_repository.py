@@ -107,9 +107,7 @@ def _appiattisci_descrizione(voce: dict[str, Any]) -> dict[str, Any]:
     libro = voce.get("libro")
     if libro is not None:
         descrizioni = libro.pop("libro_descrizione", [])
-        riga = next(
-            (d for d in descrizioni if d.get("lingua") == _LINGUA_INTERFACCIA), None
-        )
+        riga = next((d for d in descrizioni if d.get("lingua") == _LINGUA_INTERFACCIA), None)
         libro["descrizione"] = riga["testo"] if riga else None
         libro["descrizione_riformulata"] = bool(riga["riformulata"]) if riga else False
     return voce

@@ -31,6 +31,4 @@ def test_ogni_gestore_punta_al_modulo_giusto() -> None:
     assert GESTORI["arricchimento_bibliografico"].esegui is arricchimento_bibliografico.esegui
     assert GESTORI["riconduzione_autore"].esegui is riconduzione_autori_modulo.esegui
     assert GESTORI["deduplicazione_libro"].esegui is deduplicazione.esegui
-    assert (
-        GESTORI["standardizzazione_descrizione"].esegui is standardizzazione_descrizione.esegui
-    )
+    assert GESTORI["standardizzazione_descrizione"].esegui is standardizzazione_descrizione.esegui

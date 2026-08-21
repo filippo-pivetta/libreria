@@ -26,9 +26,7 @@ def _run(coro: Any) -> Any:
 def scritture(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     registro: dict[str, Any] = {"scritto": None}
     monkeypatch.setattr(modulo.database, "apri_connessione", lambda: _ConnessioneContesto())
-    monkeypatch.setattr(
-        modulo.catalogo_repository, "generi_ammessi", lambda conn: _GENERI_AMMESSI
-    )
+    monkeypatch.setattr(modulo.catalogo_repository, "generi_ammessi", lambda conn: _GENERI_AMMESSI)
     monkeypatch.setattr(
         modulo.catalogo_repository,
         "scrivi_arricchimento_bibliografico",
@@ -91,7 +89,7 @@ def test_llm_non_disponibile_e_transitorio_e_non_scrive(
 
 
 def test_su_fallimento_non_scrive_nulla() -> None:
-    """"Non tentato" e "tentato e fallito" restano intenzionalmente
+    """ "Non tentato" e "tentato e fallito" restano intenzionalmente
     indistinguibili: "non classificato" è già lo stato terminale visibile
     in entrambi i casi (PRD)."""
     _run(modulo.su_fallimento({"libro_id": _LIBRO_ID}, "tre timeout"))

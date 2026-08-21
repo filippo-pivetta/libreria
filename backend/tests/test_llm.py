@@ -239,9 +239,7 @@ def test_espandi_descrizione_analizza_una_risposta_valida(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _con_chiave(monkeypatch)
-    _con_risposta(
-        monkeypatch, _risposta_openai({"testo": "Versione espansa, 400-600 caratteri."})
-    )
+    _con_risposta(monkeypatch, _risposta_openai({"testo": "Versione espansa, 400-600 caratteri."}))
 
     testo = _run(
         llm.espandi_descrizione(
