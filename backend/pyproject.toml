@@ -11,6 +11,13 @@ dependencies = [
     "psycopg[binary]>=3.2,<4.0",
     "pyjwt[crypto]>=2.9,<3.0",
     "slowapi>=0.1.9,<1.0",
+    # Interrogazione dei cataloghi bibliografici e scaricamento delle
+    # copertine: era in [dev] per il solo TestClient di Starlette, ora è
+    # anche runtime (app/cataloghi/, app/lavori/copertine.py).
+    "httpx>=0.27,<1.0",
+    # Conversione delle copertine nei due formati richiesti dal PRD e
+    # estrazione del colore dominante (app/lavori/copertine.py).
+    "pillow>=10.4,<12.0",
 ]
 
 [project.optional-dependencies]

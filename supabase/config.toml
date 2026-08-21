@@ -235,8 +235,19 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-# Vedi enable_signup sopra: invito-only, non self-signup.
-enable_signup = false
+# ATTENZIONE, verificato sul binario del CLI (2.114.0): questa chiave non
+# governa solo la creazione di account, come farebbe pensare il nome —
+# il CLI la usa anche per GOTRUE_EXTERNAL_EMAIL_ENABLED, che è
+# l'interruttore generale del provider email. A `false` (il valore
+# "logico" per invito-only) il login con password del frontend
+# (signInWithPassword) fallisce con "email_provider_disabled": non solo
+# la creazione di nuovi account, ANCHE l'accesso di chi un account ce
+# l'ha già. Il blocco vero della self-signup resta comunque attivo, ed è
+# un flag diverso: `[auth] enable_signup` sopra, che il CLI mappa su
+# GOTRUE_DISABLE_SIGNUP — quello sì è specifico per /auth/v1/signup e non
+# tocca il login. Quindi qui resta `true`: riapre solo il provider email
+# (login compreso), la self-signup resta chiusa dal flag di sopra.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true

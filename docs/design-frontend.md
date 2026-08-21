@@ -286,10 +286,11 @@ la costa**. Ogni volume, da sinistra a destra:
     è mai troncato in un'unica riga come lo era sul dorso, l'allargamento non risolverebbe più
     nulla.
 
-**Colore dominante**, oggi un segnaposto deterministico calcolato lato client dall'id del
-Libro (nessuna copertina reale esiste ancora, la pipeline è l'issue #4): quando quella
-pipeline arriverà, andrà calcolato lato server con `sharp-vibrant` alla nascita della scheda
-e salvato sul Libro, come già previsto — mai estratto nel browser con canvas.
+**Colore dominante**, calcolato lato server alla nascita della scheda (`app/lavori/
+copertine.py`, backend) e salvato sul Libro — mai estratto nel browser con canvas. Il
+segnaposto client dall'id del Libro (`spine-color.ts`) resta il ripiego per le schede senza
+copertina, non più la regola. **Resta un solo valore, non due**: la tabella §3 chiede una
+seconda versione più desaturata per la stanza scura, non ancora costruita (issue #20).
 
 **La mensola.** Una barra di 10px sotto la fila, **più scura del piano 0** in tutti e quattro
 gli ancoraggi (ancoraggio `shelf` in `src/lib/light.ts`, verificato da
@@ -373,7 +374,7 @@ il contenuto personale sotto la piega dello schermo.
 - Generi come pastiglie **senza alcun affordance di modifica**: il PRD vieta la correzione a
   qualsiasi utente e non prevede nemmeno una segnalazione. L'assenza di comandi è il
   messaggio. Bordo 1px, nessun riempimento.
-- Nessuna descrizione o trama: il Libro non ne ha.
+- Descrizione dell'opera, nella lingua dell'interfaccia quando esiste, sotto i generi: prosa breve (l'apertura di una voce enciclopedica, non l'intera scheda editoriale), con l'attribuzione della fonte quando i suoi termini la richiedono. Nessun ripiego su un'altra lingua se manca in quella dell'interfaccia — a differenza del titolo, una trama nella lingua sbagliata non assolve alla stessa funzione — e nessuna riga vuota: se la fonte non ce l'ha, quel blocco non compare.
 
 ### Pagina destra, la tua copia
 
@@ -938,8 +939,10 @@ Sei punti che si risolvono provandoli con contenuti veri, non discutendone.
 
 ---
 
-## 24. Lacuna segnalata sul PRD
+## 24. Descrizione dell'opera
 
-**Il Libro non ha descrizione.** Deciso di lasciarlo così. Conseguenza accettata: per sapere di
-cosa parla un libro l'utente esce dall'app. Google Books la fornirebbe quasi sempre, quindi la
-porta resta aperta post MVP.
+La lacuna era temporanea: il Libro ha una descrizione (§9), aggiunta durante l'analisi della
+ricerca e aggiunta libro, con emendamento al PRD (entità Descrizione). Fonte preferita
+Wikipedia — prosa scritta per spiegare di cosa parla un libro, non per venderlo — con ripiego
+su Google Books quando l'opera non è abbastanza notabile per avere una voce. Nessuna
+generazione da un modello: solo testo che una fonte ha già scritto, mai inventato.

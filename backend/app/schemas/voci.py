@@ -41,8 +41,20 @@ class LibroEssenziale(BaseModel):
     titolo_canonico: str
     anno_prima_pubblicazione: int | None
     lingua_originale: str | None
-    copertina_miniatura_path: str | None
-    copertina_grande_path: str | None
+    copertina_miniatura_url: str | None
+    """URL firmato, non il percorso interno: il bucket è privato (PRD
+    regola 6) e il percorso da solo non apre nulla. La firma dura sette
+    giorni ed è stabile tra le richieste, così il browser può davvero
+    metterla in cache (app/core/storage.py)."""
+    copertina_grande_url: str | None
+    copertina_colore_dominante: str | None
+    """Governa ombra e fondo del volume sullo scaffale (design §7).
+    Assente finché la copertina non è stata recuperata."""
+    copertina_stato: str
+    """`in_attesa` mentre il lavoro in secondo piano sta lavorando: è ciò
+    che permette allo scaffale di sapere che vale la pena ricontrollare,
+    invece di aspettare per sempre un'immagine che forse non arriverà
+    (PRD, "lavori in secondo piano con uno stato osservabile")."""
     autori: list[AutoreEssenziale]
 
 

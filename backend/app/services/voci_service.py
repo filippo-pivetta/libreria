@@ -15,6 +15,7 @@ from uuid import UUID
 from fastapi.concurrency import run_in_threadpool
 from postgrest.exceptions import APIError
 
+from app.core import storage
 from app.core.supabase import get_user_client
 from app.repositories import voce_repository
 
@@ -74,14 +75,48 @@ async def aggiungi_libro(
     return creata, False
 
 
+def firma_copertine(voci: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sostituisce i percorsi interni delle copertine con URL firmati.
+
+    Una chiamata sola per l'intero scaffale, non una per copertina:
+    firmarne cento singolarmente sarebbe cento richieste all'API Storage
+    dentro una sola richiesta di pagina (app/core/storage.py).
+
+    I percorsi non escono mai da qui: sono chiavi interne di un bucket
+    privato, e al client non servono a nulla — con la firma sono
+    ridondanti, senza la firma sono inservibili.
+    """
+    percorsi = [
+        p
+        for voce in voci
+        if (libro := voce.get("libro"))
+        for chiave in ("copertina_miniatura_path", "copertina_grande_path")
+        if (p := libro.get(chiave))
+    ]
+    firmati = storage.firma_in_blocco(percorsi) if percorsi else {}
+
+    for voce in voci:
+        libro = voce.get("libro")
+        if libro is None:
+            continue
+        libro["copertina_miniatura_url"] = firmati.get(libro.pop("copertina_miniatura_path", None))
+        libro["copertina_grande_url"] = firmati.get(libro.pop("copertina_grande_path", None))
+        libro.setdefault("copertina_stato", "assente")
+    return voci
+
+
 async def elenco_libreria(access_token: str, utente_id: UUID) -> list[dict[str, Any]]:
     client = get_user_client(access_token)
-    return await run_in_threadpool(voce_repository.list_con_libro, client, utente_id)
+    voci = await run_in_threadpool(voce_repository.list_con_libro, client, utente_id)
+    return await run_in_threadpool(firma_copertine, voci)
 
 
 async def dettaglio(access_token: str, voce_id: UUID) -> dict[str, Any] | None:
     client = get_user_client(access_token)
-    return await run_in_threadpool(voce_repository.get_dettaglio, client, voce_id)
+    dettaglio = await run_in_threadpool(voce_repository.get_dettaglio, client, voce_id)
+    if dettaglio is None:
+        return None
+    return (await run_in_threadpool(firma_copertine, [dettaglio]))[0]
 
 
 async def cambia_stato(

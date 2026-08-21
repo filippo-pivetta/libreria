@@ -39,9 +39,25 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     """Origini ammesse per il CORS, separate da virgola."""
 
-    # --- Funzioni assistite (non ancora implementate, vedi docs/prd.md) ---
+    # --- Cataloghi bibliografici ---
     google_books_api_key: str | None = None
+    """Fonte primaria della ricerca (PRD). Senza chiave l'API non risponde
+    affatto: restituisce 429 con `quota_limit_value: "0"`, non un limite
+    ridotto. Opzionale qui perché la sua assenza è uno stato che
+    l'interfaccia deve saper dichiarare ("fonte irraggiungibile",
+    docs/design-frontend.md §13), non un errore di avvio."""
+
+    # --- Funzioni assistite (non ancora implementate, vedi docs/prd.md) ---
     openai_api_key: str | None = None
+
+    # --- Lavori in secondo piano (docs/adr/0016) ---
+    worker_abilitato: bool = True
+    """Avvia il worker dei lavori in secondo piano dentro il processo
+    FastAPI (app/lavori/worker.py). A false quando il worker gira come
+    processo separato (`python -m app.lavori`) e nei test."""
+
+    worker_intervallo_secondi: float = 2.0
+    """Attesa tra due passaggi sulla coda quando non c'è nulla da fare."""
 
     @property
     def cors_origins_list(self) -> list[str]:
