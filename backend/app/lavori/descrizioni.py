@@ -20,7 +20,7 @@ from fastapi.concurrency import run_in_threadpool
 from app.cataloghi import wikipedia
 from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.lavori.errori import ErroreTransitorio
-from app.repositories import catalogo_repository, database
+from app.repositories import catalogo_repository, database, lavoro_repository
 
 logger = logging.getLogger("app.lavori.descrizioni")
 
@@ -55,6 +55,24 @@ async def esegui(payload: dict[str, Any]) -> None:
     def _scrivi() -> None:
         with database.apri_connessione() as connessione:
             catalogo_repository.scrivi_descrizioni(connessione, libro_id, trovate)
+            # Emendamento design-frontend.md §24: Wikipedia a volte è una
+            # frase sola, altre volte più lunga dello standard. Accodato
+            # qui, non nel gestore di standardizzazione stesso, perché
+            # solo chi scrive sa se il testo appena scritto è fuori
+            # standard — il gestore rilegge comunque il valore fresco
+            # all'esecuzione, non si fida di questo controllo.
+            for lingua, testo, _, _ in trovate:
+                fuori_standard = (
+                    len(testo) < catalogo_repository.SOGLIA_MINIMA_DESCRIZIONE
+                    or len(testo) > catalogo_repository.SOGLIA_MASSIMA_DESCRIZIONE
+                )
+                if fuori_standard:
+                    lavoro_repository.accoda(
+                        connessione,
+                        "standardizzazione_descrizione",
+                        f"{libro_id}:{lingua}",
+                        {"libro_id": libro_id, "lingua": lingua},
+                    )
 
     await run_in_threadpool(_scrivi)
 

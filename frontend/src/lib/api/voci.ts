@@ -15,11 +15,37 @@ export type Autore = {
 
 export type StatoCopertina = "in_attesa" | "presente" | "assente" | "fallita";
 
+export type Genere = {
+  id: string;
+  etichetta: string;
+};
+
 export type Libro = {
   id: string;
   titoloCanonico: string;
   annoPrimaPubblicazione: number | null;
+  /** Vero quando il valore viene dal modello e non dal catalogo/Wikidata.
+   * L'etichetta "dedotto" prevista da design doc §9 è stata costruita e
+   * poi tolta dall'interfaccia (emendamento 22 agosto 2026): il campo
+   * resta esposto, non più mostrato in scheda. */
+  annoDedotto: boolean;
   linguaOriginale: string | null;
+  linguaDedotta: boolean;
+  /** Fino a tre (PRD), mai correggibili da app: "nessun affordance di
+   * modifica" è il messaggio, non solo l'assenza di un comando (design
+   * doc §9). */
+  generi: Genere[];
+  /** Solo nella lingua dell'interfaccia, mai un ripiego su un'altra
+   * (design doc §9). */
+  descrizione: string | null;
+  /** Vero quando il testo è stato riformulato dal modello (espanso se
+   * troppo corto, accorciato se troppo lungo) a partire dalla
+   * descrizione sorgente (design doc §24, emendamento 21 agosto 2026).
+   * L'etichetta di trasparenza in scheda è stata costruita e poi tolta
+   * dall'interfaccia (emendamento 22 agosto 2026): il campo resta
+   * esposto, non più distinto in scheda dalla citazione letterale della
+   * fonte. */
+  descrizioneRiformulata: boolean;
   /** URL firmato, non il percorso interno: il bucket delle copertine è
    * privato (PRD regola 6) e un percorso da solo non apre nulla. La firma
    * dura sette giorni ed è stabile tra le richieste, così il browser può
@@ -31,6 +57,9 @@ export type Libro = {
    * stata recuperata: in quel caso si ricade sul colore derivato dall'id
    * (`lib/spine-color.ts`). */
   copertinaColoreDominante: string | null;
+  /** Variante desaturata di `copertinaColoreDominante` per la stanza
+   * scura (design doc §3). Null esattamente quando lo è la prima. */
+  copertinaColoreDominanteScuro: string | null;
   /** `in_attesa` mentre il lavoro in secondo piano sta recuperando la
    * copertina: è ciò che permette allo scaffale di sapere che vale la
    * pena ricontrollare, invece di aspettare per sempre un'immagine che
@@ -83,14 +112,25 @@ type AutoreBody = {
   nome_canonico: string;
 };
 
+type GenereBody = {
+  id: string;
+  etichetta: string;
+};
+
 type LibroBody = {
   id: string;
   titolo_canonico: string;
   anno_prima_pubblicazione: number | null;
+  anno_dedotto: boolean;
   lingua_originale: string | null;
+  lingua_dedotta: boolean;
+  generi: GenereBody[];
+  descrizione: string | null;
+  descrizione_riformulata: boolean;
   copertina_miniatura_url: string | null;
   copertina_grande_url: string | null;
   copertina_colore_dominante: string | null;
+  copertina_colore_dominante_scuro: string | null;
   copertina_stato: StatoCopertina;
   autori: AutoreBody[];
 };
@@ -132,10 +172,16 @@ function toLibro(body: LibroBody): Libro {
     id: body.id,
     titoloCanonico: body.titolo_canonico,
     annoPrimaPubblicazione: body.anno_prima_pubblicazione,
+    annoDedotto: body.anno_dedotto,
     linguaOriginale: body.lingua_originale,
+    linguaDedotta: body.lingua_dedotta,
+    generi: body.generi.map((genere) => ({ id: genere.id, etichetta: genere.etichetta })),
+    descrizione: body.descrizione,
+    descrizioneRiformulata: body.descrizione_riformulata,
     copertinaMiniaturaUrl: body.copertina_miniatura_url,
     copertinaGrandeUrl: body.copertina_grande_url,
     copertinaColoreDominante: body.copertina_colore_dominante,
+    copertinaColoreDominanteScuro: body.copertina_colore_dominante_scuro,
     copertinaStato: body.copertina_stato,
     autori: body.autori.map((autore) => ({ id: autore.id, nomeCanonico: autore.nome_canonico })),
   };

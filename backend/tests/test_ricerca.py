@@ -32,6 +32,7 @@ _LOCALE: dict[str, Any] = {
     "anno_prima_pubblicazione": 1972,
     "copertina_url": None,
     "copertina_colore_dominante": None,
+    "copertina_colore_dominante_scuro": None,
     "copertina_stato": "assente",
     "voce": None,
 }

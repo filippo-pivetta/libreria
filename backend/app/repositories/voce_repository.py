@@ -19,11 +19,21 @@ _SELECT_BASE = (
     "aggiornato_at, voce_di_libreria_privata(nota_intenzione)"
 )
 
+_LINGUA_INTERFACCIA = "it"
+"""L'interfaccia bilingue è debito noto, non ancora implementata
+(AGENTS.md, lib/formato.ts): finché non lo è, generi e descrizione si
+mostrano sempre in italiano, come già fanno formattaData/formattaLingua
+lato frontend."""
+
 _SELECT_CON_LIBRO = (
     f"{_SELECT_BASE}, "
-    "libro:libro_id (id, titolo_canonico, anno_prima_pubblicazione, lingua_originale, "
+    "libro:libro_id (id, titolo_canonico, "
+    "anno_prima_pubblicazione, anno_dedotto, lingua_originale, lingua_dedotta, "
     "copertina_miniatura_path, copertina_grande_path, copertina_colore_dominante, "
-    "copertina_stato, libro_autore(ordine, autore:autore_id(id, nome_canonico)))"
+    "copertina_colore_dominante_scuro, "
+    "copertina_stato, libro_autore(ordine, autore:autore_id(id, nome_canonico)), "
+    "libro_genere(genere:genere_id(id, genere_etichetta(lingua, etichetta))), "
+    "libro_descrizione(lingua, testo, riformulata))"
 )
 
 # GET /voci: come sopra, più la pagina raggiunta nella Lettura aperta (se
@@ -58,6 +68,50 @@ def _appiattisci_autori(voce: dict[str, Any]) -> dict[str, Any]:
         libro["autori"] = [
             riga["autore"] for riga in libro.pop("libro_autore", []) if riga.get("autore")
         ]
+    return voce
+
+
+def _appiattisci_generi(voce: dict[str, Any]) -> dict[str, Any]:
+    """PostgREST restituisce i generi imbustati nella riga di giunzione
+    (`libro.libro_genere[].genere.genere_etichetta[]`), con l'etichetta di
+    ogni lingua annidata: qui si sceglie quella dell'interfaccia e si
+    scarta il resto. `genere_etichetta` copre ogni id dell'elenco chiuso
+    (migrazione 20260821120000), quindi un genere assegnato ha sempre
+    un'etichetta nella lingua dell'interfaccia."""
+    libro = voce.get("libro")
+    if libro is not None:
+        generi = []
+        for riga in libro.pop("libro_genere", []):
+            genere = riga.get("genere")
+            if not genere:
+                continue
+            etichetta = next(
+                (
+                    e["etichetta"]
+                    for e in genere.get("genere_etichetta", [])
+                    if e.get("lingua") == _LINGUA_INTERFACCIA
+                ),
+                None,
+            )
+            if etichetta:
+                generi.append({"id": genere["id"], "etichetta": etichetta})
+        libro["generi"] = generi
+    return voce
+
+
+def _appiattisci_descrizione(voce: dict[str, Any]) -> dict[str, Any]:
+    """Solo la descrizione nella lingua dell'interfaccia, mai un ripiego
+    su un'altra (design-frontend.md §9: "nessun ripiego su un'altra
+    lingua se manca in quella dell'interfaccia — a differenza del titolo,
+    una trama nella lingua sbagliata non assolve alla stessa funzione")."""
+    libro = voce.get("libro")
+    if libro is not None:
+        descrizioni = libro.pop("libro_descrizione", [])
+        riga = next(
+            (d for d in descrizioni if d.get("lingua") == _LINGUA_INTERFACCIA), None
+        )
+        libro["descrizione"] = riga["testo"] if riga else None
+        libro["descrizione_riformulata"] = bool(riga["riformulata"]) if riga else False
     return voce
 
 
@@ -146,7 +200,11 @@ def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
     )
     righe = cast("list[dict[str, Any]]", response.data)
     return [
-        _con_pagina_corrente(_appiattisci_nota_intenzione(_appiattisci_autori(riga)))
+        _con_pagina_corrente(
+            _appiattisci_nota_intenzione(
+                _appiattisci_descrizione(_appiattisci_generi(_appiattisci_autori(riga)))
+            )
+        )
         for riga in righe
     ]
 
@@ -169,7 +227,8 @@ def get_dettaglio(client: Client, voce_id: UUID) -> dict[str, Any] | None:
     )
     if response is None:
         return None
-    return _appiattisci_nota_intenzione(_appiattisci_autori(cast("dict[str, Any]", response.data)))
+    voce = _appiattisci_autori(cast("dict[str, Any]", response.data))
+    return _appiattisci_nota_intenzione(_appiattisci_descrizione(_appiattisci_generi(voce)))
 
 
 def update_pagine_adottate(

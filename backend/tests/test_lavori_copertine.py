@@ -136,6 +136,22 @@ def test_colore_dominante_resta_nella_fascia_leggibile() -> None:
         assert copertine._luminanza(rgb) <= copertine._LUMINANZA_MAX + 0.01
 
 
+def test_colore_dominante_scuro_e_desaturato_rispetto_al_chiaro() -> None:
+    """docs/design-frontend.md §3: "seconda versione calcolata, più
+    desaturata" per la stanza scura, stessa tonalità del colore chiaro."""
+    immagine = _copertina_finta()
+    chiaro = copertine.colore_dominante(immagine)
+    scuro = copertine.colore_dominante_scuro(immagine)
+    assert scuro.startswith("#") and len(scuro) == 7
+    int(scuro[1:], 16)
+
+    def croma(colore: str) -> int:
+        r, g, b = (int(colore[i : i + 2], 16) for i in (1, 3, 5))
+        return max(r, g, b) - min(r, g, b)
+
+    assert croma(scuro) < croma(chiaro)
+
+
 # --- il lavoro completo -----------------------------------------------------
 
 
@@ -224,7 +240,9 @@ def test_ripiego_su_open_library_quando_google_non_ha_la_copertina(
     monkeypatch.setattr(
         copertine.catalogo_repository,
         "aggiorna_copertina",
-        lambda conn, libro_id, mini, grande, colore: aggiornamenti.append((mini, grande, colore)),
+        lambda conn, libro_id, mini, grande, colore, colore_scuro: aggiornamenti.append(
+            (mini, grande, colore)
+        ),
     )
     monkeypatch.setattr(copertine.database, "apri_connessione", lambda: _ConnessioneContesto())
     _con_risposte(

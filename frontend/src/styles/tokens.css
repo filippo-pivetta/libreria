@@ -409,6 +409,13 @@
 .volume:hover, .volume:focus-visible { transform: translateY(-10px); }
 .volume:hover::after, .volume:focus-visible::after { opacity: 1; }
 
+/* Stanza scura: la variante desaturata di --cover-color (design doc §3),
+   scritta dal componente in --cover-color-notte. Ripiego su --cover-color
+   stesso se il Libro non ha ancora (o non avrà mai) la copertina
+   recuperata: --cover-color a quel punto è già il colore derivato
+   dall'id (lib/spine-color.ts), coerente in entrambe le stanze. */
+[data-light="notte"] .volume { --cover-color: var(--cover-color-notte, var(--cover-color)); }
+
 .volume__spine {
   flex: 0 0 auto;
   width: var(--spine-w, 12px);
@@ -469,18 +476,17 @@
 }
 .volume__placeholder span { font-family: var(--font-ui); font-size: 10px; color: rgb(255 255 255 / 0.68); }
 
-/* Voce senza pagine adottate: l'assenza di dato si dichiara, non si grida.
-   Prima era l'oggetto più luminoso dello scaffale. */
-.volume[data-no-pages] .volume__spine,
-.volume[data-no-pages] .volume__cover {
+/* Voce senza pagine adottate: l'assenza di dato si dichiara sullo
+   SPESSORE (che deriva dal conteggio pagine, lib/shelf-pack.ts), non
+   sull'intero volume. La copertina — foto vera o segnaposto colorato —
+   non dipende dalle pagine e resta quella normale: un libro senza
+   pagine ma con copertina la mostra comunque, un libro senza copertina
+   mostra comunque il suo colore. */
+.volume[data-no-pages] .volume__spine {
   background: transparent;
   border: 1px dashed var(--mtg-line-strong);
   box-shadow: none;
 }
-.volume[data-no-pages] .volume__spine { border-right: 0; }
-.volume[data-no-pages] .volume__cover { border-left: 0; }
-.volume[data-no-pages] .volume__placeholder b { color: var(--mtg-ink); }
-.volume[data-no-pages] .volume__placeholder span { color: var(--mtg-ink-soft); }
 
 /* Nastro di stato: esce dal lato di taglio, non dal centro, così non passa
    mai sopra alla copertina né sopra al titolo del segnaposto. */
@@ -542,7 +548,22 @@
 
 /* Copertina della scheda del libro: di notte una copertina bianca acceca.
    La velatura si toglie al passaggio del mouse. */
-.cover { position: relative; box-shadow: var(--shadow-2); border-radius: var(--radius-object); }
+.cover {
+  position: relative; overflow: hidden;
+  box-shadow: var(--shadow-2); border-radius: var(--radius-object);
+}
+/* Stesso crossfade foto/segnaposto dello scaffale (.volume__cover): il
+   riquadro esiste con dimensione fissa prima che l'immagine arrivi (o se
+   non arriva mai), il segnaposto tipografico è sempre nel markup e
+   sparisce solo a caricamento avvenuto. */
+.cover img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  opacity: 0; transition: opacity 320ms var(--ease-rise);
+}
+.cover img[data-loaded] { opacity: 1; }
+.cover__placeholder { position: absolute; inset: 0; opacity: 1; transition: opacity 320ms var(--ease-rise); }
+.cover:has(img[data-loaded]) .cover__placeholder { opacity: 0; }
 .cover::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: var(--mtg-surface-0);

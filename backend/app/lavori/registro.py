@@ -10,7 +10,14 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
-from app.lavori import copertine, descrizioni
+from app.lavori import (
+    arricchimento_bibliografico,
+    copertine,
+    deduplicazione,
+    descrizioni,
+    riconduzione_autori,
+    standardizzazione_descrizione,
+)
 
 
 @dataclass(frozen=True)
@@ -34,4 +41,12 @@ class Gestore:
 GESTORI: dict[str, Gestore] = {
     "copertina": Gestore(copertine.esegui, copertine.su_fallimento),
     "descrizione": Gestore(descrizioni.esegui, descrizioni.su_fallimento),
+    "arricchimento_bibliografico": Gestore(
+        arricchimento_bibliografico.esegui, arricchimento_bibliografico.su_fallimento
+    ),
+    "riconduzione_autore": Gestore(riconduzione_autori.esegui, riconduzione_autori.su_fallimento),
+    "deduplicazione_libro": Gestore(deduplicazione.esegui, deduplicazione.su_fallimento),
+    "standardizzazione_descrizione": Gestore(
+        standardizzazione_descrizione.esegui, standardizzazione_descrizione.su_fallimento
+    ),
 }

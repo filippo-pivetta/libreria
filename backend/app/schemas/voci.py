@@ -31,6 +31,16 @@ class AutoreEssenziale(BaseModel):
     nome_canonico: str
 
 
+class GenereEssenziale(BaseModel):
+    """Identità stabile del Genere (ADR 0005) più l'etichetta nella lingua
+    dell'interfaccia — oggi sempre italiano, l'interfaccia bilingue resta
+    debito noto (AGENTS.md). Dato condiviso, nessuna correzione da app
+    (regola 21/22 del PRD)."""
+
+    id: str
+    etichetta: str
+
+
 class LibroEssenziale(BaseModel):
     """Il sottoinsieme del Libro che serve allo scaffale/alla scheda:
     dato condiviso, sola lettura in questa issue. `autori` arriva già
@@ -40,7 +50,29 @@ class LibroEssenziale(BaseModel):
     id: UUID
     titolo_canonico: str
     anno_prima_pubblicazione: int | None
+    anno_dedotto: bool
+    """Vero quando il valore viene dal modello e non dal catalogo/Wikidata
+    (issue #20 punti 1+2). L'etichetta "dedotto" prevista da design §9 è
+    stata costruita e poi tolta dall'interfaccia (emendamento 22 agosto
+    2026): il campo resta esposto, non più mostrato in scheda."""
     lingua_originale: str | None
+    lingua_dedotta: bool
+    """Come `anno_dedotto`, per la lingua originale."""
+    generi: list[GenereEssenziale]
+    """Fino a tre (PRD), mai correggibili da app (regola 21/22): "nessun
+    affordance di modifica" è il messaggio, non solo l'assenza di un
+    comando (design §9)."""
+    descrizione: str | None
+    """Solo nella lingua dell'interfaccia, mai un ripiego su un'altra
+    (design §9): assente se quella lingua non ha una descrizione, anche
+    se un'altra ce l'ha."""
+    descrizione_riformulata: bool
+    """Vero quando il testo è stato riformulato dal modello (espanso se
+    troppo corto, accorciato se troppo lungo) a partire dalla descrizione
+    sorgente (design §24, emendamento 21 agosto 2026). L'etichetta di
+    trasparenza in scheda è stata costruita e poi tolta dall'interfaccia
+    (emendamento 22 agosto 2026): il campo resta esposto, non più
+    distinto in scheda dalla citazione letterale della fonte."""
     copertina_miniatura_url: str | None
     """URL firmato, non il percorso interno: il bucket è privato (PRD
     regola 6) e il percorso da solo non apre nulla. La firma dura sette
@@ -50,6 +82,9 @@ class LibroEssenziale(BaseModel):
     copertina_colore_dominante: str | None
     """Governa ombra e fondo del volume sullo scaffale (design §7).
     Assente finché la copertina non è stata recuperata."""
+    copertina_colore_dominante_scuro: str | None
+    """Variante desaturata di `copertina_colore_dominante` per la stanza
+    scura (design §3). Assente esattamente quando lo è la prima."""
     copertina_stato: str
     """`in_attesa` mentre il lavoro in secondo piano sta lavorando: è ciò
     che permette allo scaffale di sapere che vale la pena ricontrollare,

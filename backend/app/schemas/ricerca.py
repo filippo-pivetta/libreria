@@ -39,6 +39,7 @@ class RisultatoLocale(BaseModel):
     anno_prima_pubblicazione: int | None = None
     copertina_url: str | None = None
     copertina_colore_dominante: str | None = None
+    copertina_colore_dominante_scuro: str | None = None
     copertina_stato: str
     voce: VoceDelRisultato | None = None
 

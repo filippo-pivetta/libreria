@@ -104,8 +104,19 @@ export default function CompletaAccountPage() {
     setNomeUtenteError(null);
 
     if (!passwordGiaImpostata) {
-      if (password.length < 6) {
-        setError("La password deve avere almeno 6 caratteri.");
+      // Allineato a supabase/config.toml (minimum_password_length = 10,
+      // password_requirements = "lower_upper_letters_digits"): senza
+      // questo controllo il campo passava una password valida qui ma
+      // rifiutata da GoTrue con un errore che l'Utente non si aspetta.
+      if (
+        password.length < 10 ||
+        !/[a-z]/.test(password) ||
+        !/[A-Z]/.test(password) ||
+        !/[0-9]/.test(password)
+      ) {
+        setError(
+          "La password deve avere almeno 10 caratteri, con almeno una lettera minuscola, una maiuscola e una cifra.",
+        );
         return;
       }
       if (password !== confirmPassword) {
@@ -206,7 +217,7 @@ export default function CompletaAccountPage() {
                     type="password"
                     autoComplete="new-password"
                     required
-                    minLength={6}
+                    minLength={10}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                   />
@@ -219,7 +230,7 @@ export default function CompletaAccountPage() {
                     type="password"
                     autoComplete="new-password"
                     required
-                    minLength={6}
+                    minLength={10}
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                   />

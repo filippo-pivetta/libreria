@@ -32,6 +32,9 @@ export type RisultatoLocale = {
   annoPrimaPubblicazione: number | null;
   copertinaUrl: string | null;
   copertinaColoreDominante: string | null;
+  /** Variante desaturata di `copertinaColoreDominante` per la stanza
+   * scura (design doc §3). Null esattamente quando lo è la prima. */
+  copertinaColoreDominanteScuro: string | null;
   copertinaStato: string;
   voce: VoceDelRisultato | null;
 };
@@ -70,6 +73,7 @@ type LocaleBody = {
   anno_prima_pubblicazione: number | null;
   copertina_url: string | null;
   copertina_colore_dominante: string | null;
+  copertina_colore_dominante_scuro: string | null;
   copertina_stato: string;
   voce: VoceBody | null;
 };
@@ -108,6 +112,7 @@ function toLocale(body: LocaleBody): RisultatoLocale {
     annoPrimaPubblicazione: body.anno_prima_pubblicazione,
     copertinaUrl: body.copertina_url,
     copertinaColoreDominante: body.copertina_colore_dominante,
+    copertinaColoreDominanteScuro: body.copertina_colore_dominante_scuro,
     copertinaStato: body.copertina_stato,
     voce: toVoce(body.voce),
   };
