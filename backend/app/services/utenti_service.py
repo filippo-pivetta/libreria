@@ -9,7 +9,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.core.supabase import get_user_client
 from app.repositories import collegamento_repository, utente_repository, voce_repository
-from app.services import voci_service
+from app.services import metriche_service, voci_service
 
 
 class UtenteInesistenteError(Exception):
@@ -69,3 +69,28 @@ async def libreria_di(access_token: str, self_id: UUID, utente_id: UUID) -> dict
     voci = await run_in_threadpool(voce_repository.list_con_libro, client, utente_id)
     voci = await run_in_threadpool(voci_service.firma_copertine, voci)
     return {"utente": utente, "voci": voci}
+
+
+async def metriche_di(
+    access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+) -> dict[str, Any]:
+    """GET /utenti/{id}/metriche (issue #7): le metriche del collegato,
+    non le proprie — stesso controllo di accesso di `libreria_di`
+    (esistenza + collegamento attivo), poi il calcolo delega a
+    `metriche_service.metriche_di` con l'`utente_id` del collegato, mai
+    con `self_id`: è ciò che rende vera la regola 17 del PRD ("le
+    metriche di un Utente sono calcolate solo sui suoi dati") anche
+    quando a chiederle è un collegato in visione reciproca."""
+    client = get_user_client(access_token)
+
+    utente = await run_in_threadpool(utente_repository.get_utente, client, utente_id)
+    if utente is None:
+        raise UtenteInesistenteError
+
+    collegato = await run_in_threadpool(
+        collegamento_repository.is_collegato_attivo, client, utente_id
+    )
+    if not collegato:
+        raise NonCollegatoError
+
+    return await metriche_service.metriche_di(access_token, utente_id, anno)

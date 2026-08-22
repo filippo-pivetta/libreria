@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from app.core.security import get_current_user
 from app.main import app
 from app.schemas.auth import AuthenticatedUser
-from app.services import utenti_service
+from app.services import metriche_service, utenti_service
 
 _USER_ID = UUID("00000000-0000-0000-0000-000000000001")
 _ALTRO_ID = UUID("00000000-0000-0000-0000-000000000002")
@@ -154,5 +154,93 @@ def test_get_utente_voci_returns_403_when_non_collegato(
 
 def test_get_utente_voci_requires_authentication(client: TestClient) -> None:
     response = client.get(f"/utenti/{_ALTRO_ID}/voci")
+
+    assert response.status_code == 401
+
+
+# --- GET /utenti/{id}/metriche (issue #7) --------------------------------
+
+_METRICHE: dict[str, Any] = {
+    "anno": 2026,
+    "anno_minimo": 2024,
+    "anno_massimo": 2026,
+    "libri_finiti": 5,
+    "riletture": 0,
+    "pagine_lette": 1200,
+    "autori_piu_letti": [],
+    "generi_principali": [],
+    "libri_senza_genere": 0,
+    "ha_letture_a_cavallo_anno": False,
+}
+
+
+def test_get_utente_metriche_returns_payload(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_metriche_di(
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+    ) -> dict[str, Any]:
+        assert self_id == _USER_ID
+        assert utente_id == _ALTRO_ID
+        assert anno == 2025
+        return {**_METRICHE, "anno": 2025}
+
+    monkeypatch.setattr(utenti_service, "metriche_di", _fake_metriche_di)
+
+    response = authenticated.get(f"/utenti/{_ALTRO_ID}/metriche?anno=2025")
+
+    assert response.status_code == 200
+    assert response.json()["anno"] == 2025
+
+
+def test_get_utente_metriche_returns_404_when_utente_inesistente(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_metriche_di(
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+    ) -> dict[str, Any]:
+        raise utenti_service.UtenteInesistenteError
+
+    monkeypatch.setattr(utenti_service, "metriche_di", _fake_metriche_di)
+
+    response = authenticated.get(f"/utenti/{_ALTRO_ID}/metriche")
+
+    assert response.status_code == 404
+
+
+def test_get_utente_metriche_returns_403_when_non_collegato(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_metriche_di(
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+    ) -> dict[str, Any]:
+        raise utenti_service.NonCollegatoError
+
+    monkeypatch.setattr(utenti_service, "metriche_di", _fake_metriche_di)
+
+    response = authenticated.get(f"/utenti/{_ALTRO_ID}/metriche")
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["error_code"] == "non_collegato"
+
+
+def test_get_utente_metriche_returns_422_on_anno_futuro(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_metriche_di(
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+    ) -> dict[str, Any]:
+        raise metriche_service.AnnoFuturoError
+
+    monkeypatch.setattr(utenti_service, "metriche_di", _fake_metriche_di)
+
+    response = authenticated.get(f"/utenti/{_ALTRO_ID}/metriche?anno=2999")
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["error_code"] == "anno_futuro"
+
+
+def test_get_utente_metriche_requires_authentication(client: TestClient) -> None:
+    response = client.get(f"/utenti/{_ALTRO_ID}/metriche")
 
     assert response.status_code == 401

@@ -18,6 +18,13 @@ dependencies = [
     # Conversione delle copertine nei due formati richiesti dal PRD e
     # estrazione del colore dominante (app/lavori/copertine.py).
     "pillow>=10.4,<12.0",
+    # zoneinfo (stdlib) risolve "Europe/Rome" contro il database IANA
+    # installato sul sistema: l'immagine `python:3.12-slim` del
+    # Dockerfile non lo garantisce. tzdata lo fornisce come pacchetto,
+    # indipendente dall'OS (app/core/tempo.py, PRD: "il giorno, l'anno e
+    # il concetto di 'futuro' si valutano sul fuso orario dell'Europa
+    # centrale").
+    "tzdata>=2024.1",
 ]
 
 [project.optional-dependencies]

@@ -1,17 +1,39 @@
-import { EmptyState } from "@/components/states/empty-state";
+import { getMetriche } from "@/lib/api/metriche";
+import { createClient } from "@/lib/supabase/server";
+import { ErrorState } from "@/components/states/error-state";
+import { PaginaAnnali } from "@/components/annali/pagina-annali";
 
 /**
- * Placeholder (design doc §14 "Annali"/Annals): metrics per year. Lettura
- * and Avanzamento already exist on the backend (repositories, router,
- * schema); what's missing is the metrics/aggregation endpoint itself
- * (issue #7) — this route already exists in the right place, ready for
- * the real screen once that endpoint lands.
+ * Annali (design-frontend.md §14, issue #7): le proprie metriche di
+ * lettura, aggregato su anno solare — mai un dato conservato (ADR 0004),
+ * ricalcolato a ogni richiesta. Fetch iniziale lato server per l'anno
+ * corrente (il backend lo sceglie da sé quando `anno` è omesso, PRD:
+ * fuso Europa centrale), idratato in TanStack Query da `PaginaAnnali`
+ * per il cambio d'anno successivo.
  */
-export default function AnnalsPage() {
-  return (
-    <EmptyState
-      title="Annali"
-      description="Le metriche per anno arrivano con le prime letture registrate. Questa pagina è pronta ad accoglierle."
-    />
-  );
+export default async function AnnalsPage() {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+  }
+
+  const result = await getMetriche(session.access_token);
+
+  if (result.status !== "ok") {
+    return (
+      <ErrorState
+        message={
+          result.status === "error"
+            ? result.message
+            : "Non è stato possibile caricare le metriche."
+        }
+      />
+    );
+  }
+
+  return <PaginaAnnali metricheIniziali={result.data} />;
 }

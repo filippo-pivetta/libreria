@@ -1,19 +1,68 @@
-import { EmptyState } from "@/components/states/empty-state";
+import { getVoci } from "@/lib/api/voci";
+import { getLibreriaCollegato } from "@/lib/api/utenti";
+import { getMetriche, getMetricheCollegato } from "@/lib/api/metriche";
+import { createClient } from "@/lib/supabase/server";
+import { ErrorState } from "@/components/states/error-state";
+import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collegato";
 
 /**
- * Scheda "Annali" del contesto di un collegato (design doc §15,
- * emendamento 20 agosto 2026): visibile e raggiungibile — non nascosta,
- * che suggerirebbe che non è prevista — ma senza dati, perché Metriche
- * di lettura (issue #7) non esiste ancora, nemmeno per la propria
- * libreria. L'accesso è già verificato dal layout di questa cartella.
- * Specifica completa di cosa costruire qui quando #7 esiste:
- * docs/rimandato-annali-collegato.md.
+ * Scheda "Annali" del contesto di un collegato (design doc §15, issue
+ * #7): le sue metriche di lettura, calcolate sui suoi dati — la
+ * visibilità è già garantita dalla RLS di collegamento (nessuna riga di
+ * lettura è raggiungibile senza un collegamento attivo, issue #3), ma
+ * `GET /utenti/{id}/metriche` resta comunque protetta esplicitamente
+ * (403 `non_collegato` distinto da 404 utente inesistente), come
+ * `GET /utenti/{id}/voci`.
+ *
+ * Il layout di questa cartella ha già verificato l'accesso prima di
+ * renderizzare questa pagina (stesso schema di `../page.tsx`): quattro
+ * fetch in parallelo, non in cascata — le due librerie servono solo ai
+ * libri in comune (docs/rimandato-annali-collegato.md §4), le due
+ * metriche alla scheda e all'affiancamento (§1/§2).
  */
-export default function AnnaliCollegatoPage() {
+export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id]/annali">) {
+  const { id } = await props.params;
+
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+  }
+
+  const [propria, collegato, metrichePropria, metricheCollegato] = await Promise.all([
+    getVoci(session.access_token),
+    getLibreriaCollegato(session.access_token, id),
+    getMetriche(session.access_token),
+    getMetricheCollegato(session.access_token, id),
+  ]);
+
+  if (collegato.status !== "ok") {
+    // Corsa fra le richieste, non un errore di logica: il layout ha già
+    // verificato l'accesso (stesso trattamento di ../page.tsx).
+    return <ErrorState message="Questa libreria non è al momento raggiungibile." />;
+  }
+  if (metricheCollegato.status !== "ok") {
+    return (
+      <ErrorState
+        message={
+          metricheCollegato.status === "error"
+            ? metricheCollegato.message
+            : "Non è stato possibile caricare le sue metriche."
+        }
+      />
+    );
+  }
+
   return (
-    <EmptyState
-      title="Annali"
-      description="Le sue metriche di lettura arrivano con la prossima issue. Quando ci saranno: i suoi numeri dell'anno, il confronto con i tuoi, e i libri che avete letto entrambi."
+    <PaginaAnnaliCollegato
+      utenteId={id}
+      metricheCollegatoIniziali={metricheCollegato.data}
+      metrichePropriaIniziale={metrichePropria.status === "ok" ? metrichePropria.data : null}
+      vociProprie={propria.status === "ok" ? propria.data : []}
+      vociCollegato={collegato.voci}
     />
   );
 }

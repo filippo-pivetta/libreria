@@ -9,15 +9,18 @@ import { useToast } from "@/providers/toast-provider";
 
 const STELLE = [1, 2, 3, 4, 5] as const;
 
-function formattaVoto(voto: number): string {
+/** Esportata per la striscia "libri in comune" degli Annali del
+ * collegato (issue #7, docs/rimandato-annali-collegato.md §4): stesso
+ * formato di un voto ovunque compaia. */
+export function formattaVoto(voto: number): string {
   return Number.isInteger(voto) ? String(voto) : voto.toFixed(1).replace(".", ",");
 }
 
 /** Una stella, riempita da 0 a 1 (0.5 = mezza stella): un'aletta piena
  * ritagliata in percentuale sopra il contorno vuoto, non due glifi
  * scelti a scatti — l'unico modo per rendere una mezza stella con un
- * carattere di testo. */
-function Stella({ riempimento }: { riempimento: number }) {
+ * carattere di testo. Esportata per lo stesso motivo di `formattaVoto`. */
+export function Stella({ riempimento }: { riempimento: number }) {
   return (
     <span className="relative inline-block" aria-hidden>
       <span className="text-line-strong">☆</span>
