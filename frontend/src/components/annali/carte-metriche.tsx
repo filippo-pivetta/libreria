@@ -9,8 +9,7 @@ import { TortaGeneri } from "@/components/annali/torta-generi";
  * Le carte degli Annali (design-frontend.md §14): un blocco per
  * metrica, tutte sul piano 1, nessuna sollevata — "negli Annali non c'è
  * niente da afferrare". Riusata identica per le proprie metriche e per
- * quelle di un collegato (docs/rimandato-annali-collegato.md §1/§3):
- * non sa mai di chi sono i dati che riceve.
+ * quelle di un collegato: non sa mai di chi sono i dati che riceve.
  */
 export function CarteMetriche({
   metriche,

@@ -17,8 +17,7 @@ import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collega
  * Il layout di questa cartella ha già verificato l'accesso prima di
  * renderizzare questa pagina (stesso schema di `../page.tsx`): quattro
  * fetch in parallelo, non in cascata — le due librerie servono solo ai
- * libri in comune (docs/rimandato-annali-collegato.md §4), le due
- * metriche alla scheda e all'affiancamento (§1/§2).
+ * libri in comune, le due metriche alla scheda e all'affiancamento.
  */
 export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id]/annali">) {
   const { id } = await props.params;

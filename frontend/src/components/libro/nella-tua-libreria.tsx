@@ -16,9 +16,8 @@ const ETICHETTA_STATO: Record<string, string> = {
   abbandonato: "Abbandonato",
 };
 
-/** "una recensione, tre insight" (docs/rimandato-scaffale-scheda.md §2) —
- * un conteggio, non un'anteprima: nessun gating spoiler in gioco qui,
- * issue #5. */
+/** "una recensione, tre insight" — un conteggio, non un'anteprima:
+ * nessun gating spoiler in gioco qui. */
 function formattaContenuti(voce: Voce): string {
   const parti: string[] = [];
   if (voce.haRecensione) parti.push("una recensione");

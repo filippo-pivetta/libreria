@@ -10,8 +10,7 @@ import { useToast } from "@/providers/toast-provider";
 const STELLE = [1, 2, 3, 4, 5] as const;
 
 /** Esportata per la striscia "libri in comune" degli Annali del
- * collegato (issue #7, docs/rimandato-annali-collegato.md §4): stesso
- * formato di un voto ovunque compaia. */
+ * collegato: stesso formato di un voto ovunque compaia. */
 export function formattaVoto(voto: number): string {
   return Number.isInteger(voto) ? String(voto) : voto.toFixed(1).replace(".", ",");
 }

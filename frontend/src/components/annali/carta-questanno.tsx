@@ -5,9 +5,8 @@ import type { Metriche } from "@/lib/api/metriche";
  * riletture" quando serve) e pagine lette, ciascuno con il proprio
  * limite accanto in una riga piccola, sempre — non solo nei casi
  * anomali. Riusata identica per l'affiancamento "Tu, nello stesso anno"
- * sulla scheda Annali di un collegato (docs/rimandato-annali-
- * collegato.md §2): stesso componente, dati diversi, mai un confronto —
- * niente percentuali, niente "hai letto più o meno di".
+ * sulla scheda Annali di un collegato: stesso componente, dati diversi,
+ * mai un confronto — niente percentuali, niente "hai letto più o meno di".
  */
 export function CartaQuestAnno({
   titolo,

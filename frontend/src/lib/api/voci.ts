@@ -91,9 +91,8 @@ export type Voce = {
    * §7): altrove resta null per costruzione della query, non per assenza
    * di dato. */
   paginaCorrente: number | null;
-  /** Conteggi, non contenuto: per "Nella tua libreria"
-   * (docs/rimandato-scaffale-scheda.md §2, "una recensione, tre
-   * insight") — issue #5. */
+  /** Conteggi, non contenuto: per "Nella tua libreria" ("una recensione,
+   * tre insight"). */
   haRecensione: boolean;
   numeroInsight: number;
 };

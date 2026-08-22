@@ -30,8 +30,7 @@ function messaggioErrore(result: { status: string; message?: string }): string {
  * rispetto a guardare le proprie: l'affiancamento con le tue metriche
  * dello stesso anno e i libri letti in comune con i voti affiancati.
  * Nessun punteggio di affinità, nessuna classifica fra utenti — il PRD
- * esclude ogni interazione sociale oltre la visione reciproca
- * (rimandato-annali-collegato.md §5).
+ * esclude ogni interazione sociale oltre la visione reciproca.
  */
 export function PaginaAnnaliCollegato({
   utenteId,
@@ -60,9 +59,8 @@ export function PaginaAnnaliCollegato({
   });
 
   // Le proprie metriche dello stesso anno, solo per l'affiancamento: non
-  // esiste un endpoint dedicato per questo pezzo (rimandato-annali-
-  // collegato.md §2), e un fallimento qui non deve far sparire la
-  // scheda — la card semplicemente non compare. Chiave diversa da
+  // esiste un endpoint dedicato per questo pezzo, e un fallimento qui non
+  // deve far sparire la scheda — la card semplicemente non compare. Chiave diversa da
   // quella della pagina Annali propria (["metriche", anno]): stesso
   // dato ma un contratto d'errore diverso (qui l'errore diventa `null`,
   // là rilancia), tenerle distinte evita che TanStack Query confonda le

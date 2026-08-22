@@ -1,7 +1,6 @@
 """Contratti di `GET /metriche` e `GET /utenti/{id}/metriche` (issue #7,
 PRD entità "Metrica di lettura"). Stesso payload per le proprie metriche
-e per quelle di un collegato — solo la sorgente dei dati cambia
-(docs/rimandato-annali-collegato.md)."""
+e per quelle di un collegato — solo la sorgente dei dati cambia."""
 
 from pydantic import BaseModel
 

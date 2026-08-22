@@ -119,7 +119,7 @@ class VoceResponse(BaseModel):
     # ai fini della regola 10 del PRD, quindi nessun gating spoiler qui —
     # a differenza del testo vero e proprio di recensione/insight, esposto
     # solo da GET /voci/{id} con le sue regole di visibilità (issue #5).
-    # Per "Nella tua libreria" (docs/rimandato-scaffale-scheda.md §2).
+    # Per "Nella tua libreria".
     ha_recensione: bool = False
     numero_insight: int = 0
 

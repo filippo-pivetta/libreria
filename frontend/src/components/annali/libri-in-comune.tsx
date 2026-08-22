@@ -21,9 +21,8 @@ function VotoAffiancato({ etichetta, voto }: { etichetta: string; voto: number |
 }
 
 /**
- * "Libri letti in comune, con i voti affiancati" (docs/rimandato-annali-
- * collegato.md §4): una striscia orizzontale di copertine, non uno
- * scaffale — è un confronto fra due persone su un insieme di opere, non
+ * "Libri letti in comune, con i voti affiancati": una striscia orizzontale
+ * di copertine, non uno scaffale — è un confronto fra due persone su un insieme di opere, non
  * un ripiano di libri di uno solo. L'insieme è l'intersezione dei
  * `libro_id` fra le due librerie, la stessa già calcolata per "N in
  * comune" nell'intestazione (`app/(protected)/lettori/[id]/page.tsx`).

@@ -125,7 +125,7 @@ export type MetricheCollegatoResult =
   | { status: "error"; message: string };
 
 /** GET /utenti/{id}/metriche: le metriche di un collegato, stesso
- * payload delle proprie (docs/rimandato-annali-collegato.md). */
+ * payload delle proprie. */
 export async function getMetricheCollegato(
   accessToken: string,
   utenteId: string,

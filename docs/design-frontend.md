@@ -2,8 +2,6 @@
 
 Il come dell'interfaccia. Compagno del PRD, che porta il cosa.
 
-Revisione del 20 agosto 2026.
-
 ---
 
 ## 1. Direzione
@@ -235,9 +233,8 @@ condizione per entrare, quindi non è un avviso da scacciare, è una porta.
 
 ## 7. Libreria
 
-**Riscritta il 20 agosto 2026: vista unica.** Non esiste un selettore di vista e non esiste
-una vista a elenco. Non esiste più un dorso da solo: esiste uno **scaffale di copertine con
-la costa**. Ogni volume, da sinistra a destra:
+**Vista unica.** Non esiste un selettore di vista e non esiste una vista a elenco: esiste uno
+**scaffale di copertine con la costa**. Ogni volume, da sinistra a destra:
 
 - **La costa**, larga `clamp(6px, pagine / 22, 28px)`, nel colore dominante scurito. Lo
   spessore è il numero di pagine — è fisicamente vero — non l'altezza, che è il formato di
@@ -277,11 +274,11 @@ la costa**. Ogni volume, da sinistra a destra:
    scartata, perché costa dodici gesti per dodici libri, ma su due o tre funziona. **I libri
    in lettura stanno solo nella fascia**: due insiemi distinti, non due viste sugli stessi
    dati — vederli ripetuti identici due volte nella stessa pagina non aggiunge informazione.
-9. **Le voci senza pagine adottate** hanno la costa in contorno tratteggiato, senza riempimento
-   e senza ombra: l'assenza di dato va dichiarata, non gridata. **Emendamento del 22 agosto
-   2026**: il tratteggio tocca solo la costa (lo spessore, che deriva dal conteggio pagine), non
-   più la copertina — foto vera o segnaposto colorato che sia, la copertina non dipende dalle
-   pagine e resta quella normale anche quando le pagine sono ignote.
+9. **Le voci senza pagine adottate** hanno la costa (lo spessore, che deriva dal conteggio
+   pagine) in contorno tratteggiato, senza riempimento e senza ombra: l'assenza di dato va
+   dichiarata, non gridata. Il tratteggio tocca solo la costa, mai la copertina — foto vera o
+   segnaposto colorato che sia, la copertina non dipende dalle pagine e resta quella normale
+   anche quando le pagine sono ignote.
 10. **Il sollevamento** è `translateY(-10px)` più il passaggio all'ombra del piano 2, su uno
     pseudo-elemento a cui si anima `opacity`, mai su `box-shadow` (non compositabile). Dietro
     `prefers-reduced-motion` resta il salto di piano e sparisce il movimento. **Non allarga
@@ -293,7 +290,8 @@ la costa**. Ogni volume, da sinistra a destra:
 copertine.py`, backend) e salvato sul Libro — mai estratto nel browser con canvas. Il
 segnaposto client dall'id del Libro (`spine-color.ts`) resta il ripiego per le schede senza
 copertina, non più la regola. **Resta un solo valore, non due**: la tabella §3 chiede una
-seconda versione più desaturata per la stanza scura, non ancora costruita (issue #20).
+seconda versione più desaturata per la stanza scura, non ancora costruita (`docs/lavoro-
+rimandato.md`).
 
 **La mensola.** Una barra di 10px sotto la fila, **più scura del piano 0** in tutti e quattro
 gli ancoraggi (ancoraggio `shelf` in `src/lib/light.ts`, verificato da
@@ -315,7 +313,7 @@ dove il colore è un dato.
 
 **Ricerca semantica separata**, sui propri insight, dipendente dal consenso. **Non va fusa
 nel campo sopra**: revocare il consenso lascerebbe l'utente senza il modo di trovare un libro.
-**Costruita il 22 agosto 2026** (issue #6) come pagina a sé, §25: qui resta solo la porta, un
+Pagina a sé, §25: qui resta solo la porta, un
 collegamento discreto in fondo alla riga dei filtri ("Cerca nei tuoi insight", variante `ghost`
 accanto a "Aggiungi un libro"). Un collegamento e non un secondo campo — due campi di ricerca
 affiancati sulla stessa riga si sbagliano, e questo costa una chiamata al modello mentre quello
@@ -375,11 +373,9 @@ il contenuto personale sotto la piega dello schermo.
   pena che si veda come oggetto.
 - Titolo in Fraunces, nella variante della lingua dell'interfaccia; autori sotto in Inter
   Tight.
-- Anno e lingua originale. **Emendamento del 22 agosto 2026**: l'etichetta "dedotto" prevista
-  qui quando il valore viene dal modello e non dal catalogo è stata costruita e poi tolta su
-  richiesta esplicita — resta solo il valore, senza distinguere in interfaccia un anno/lingua
-  dedotti da uno di fonte. Il dato (`anno_dedotto`/`lingua_dedotta`) resta comunque in database
-  e nell'API, per un'eventuale reintroduzione futura.
+- Anno e lingua originale, senza distinguere in interfaccia un valore dedotto dal modello da
+  uno di fonte: resta solo il valore. Il dato (`anno_dedotto`/`lingua_dedotta`) esiste in
+  database e nell'API per un'eventuale reintroduzione futura, ma non compare oggi.
 - Generi come pastiglie **senza alcun affordance di modifica**: il PRD vieta la correzione a
   qualsiasi utente e non prevede nemmeno una segnalazione. L'assenza di comandi è il
   messaggio. Bordo 1px, nessun riempimento.
@@ -409,13 +405,11 @@ il contenuto personale sotto la piega dello schermo.
   secondo clic sul valore già scelto lo cancella) e
   **nota di intenzione** (carta più calda, mai visibile a un collegato, in nessuno stato del
   consenso), **recensione** (paragrafo Literata sotto le stelle) e **insight raggruppati per
-  lettura** sono costruiti (issue #5).
+  lettura** sono costruiti.
 - Se il libro è da leggere, **"me lo consigli?" prende il posto dei dati di lettura**. Vincoli
   del PRD: privata e mai condivisibile, sotto le ottanta parole, dichiarata come generata, e a
-  consenso revocato l'interfaccia dice che è spenta invece di far finta che non esista.
-  **Costruito il 22 agosto 2026** (issue **#6**, non #5 come diceva questa riga fino ad allora:
-  la preview è una delle cinque funzioni soggette al consenso, e apparteneva all'issue del
-  consenso). Tre cose decise in costruzione:
+  consenso revocato l'interfaccia dice che è spenta invece di far finta che non esista. Note di
+  design:
   - Il blocco esiste **anche negli altri stati**, in coda alla pagina della copia sotto la nota
     di intenzione, in tono piano. Il PRD non limita la funzione ai libri da leggere; su un libro
     già letto un parere ha comunque senso, semplicemente non è la cosa principale. In evidenza
@@ -435,7 +429,7 @@ il contenuto personale sotto la piega dello schermo.
 
 ### Sotto le due pagine
 
-Insight raggruppati per lettura (issue #5), poi lo storico delle letture in un pannello che si
+Insight raggruppati per lettura, poi lo storico delle letture in un pannello che si
 apre. Sui libri con una lettura sola già aperta, la maggioranza, non
 compare nulla — compare solo quando c'è più di una lettura, o quando l'unica lettura è già
 chiusa (rilettura in corso su un libro già finito una volta).
@@ -448,13 +442,10 @@ tocca lo storico di lettura.
 
 ### Su mobile
 
-Le due pagine si impilano. **Emendamento del 20 agosto 2026:** l'ordine non si inverte più —
-l'opera resta sopra, la copia sotto, lo stesso ordine di desktop (dove l'opera è a sinistra),
-deciso in corso d'opera al posto di "la tua copia sopra, l'opera sotto" scritto qui in
-origine. Cade con questo anche l'header compatto separato ("titolo, autore e copertina in
-cima in forma compatta sul piano 0"): con l'opera già in cima, che porta copertina/titolo/
-autore, un riassunto sopra sarebbe una ripetizione dello stesso contenuto. La piega diventa il
-vuoto fra due carte impilate, orizzontale invece che verticale come su desktop.
+Le due pagine si impilano nello stesso ordine di desktop: l'opera resta sopra, la copia sotto.
+Nessun header compatto separato: con l'opera già in cima, che porta copertina/titolo/autore,
+un riassunto sopra sarebbe una ripetizione dello stesso contenuto. La piega diventa il vuoto
+fra due carte impilate, orizzontale invece che verticale come su desktop.
 
 ### Rito di apertura
 
@@ -517,11 +508,9 @@ DOM. Quindi il server manda solo il fatto che esiste, il gesto di scoprire fa un
 Il taglio è una `clip-path` animata su una carta del piano 1, non una texture di carta
 strappata.
 
-**Solo sugli insight di un collegato**, non sui propri. La prima stesura di questa sezione
-diceva l'opposto — "vale identico anche sui propri, il taglio non è un permesso, è un avviso" —
-finché l'uso reale (issue #6) non ha mostrato che tagliava a chi ha scritto l'insight il proprio
-stesso testo, senza proteggere nessuno: la regola 10 difende da uno spoiler *altrui*, non da un
-proprio ricordo di ciò che si è già letto. Sulla propria scheda il testo compare sempre per
+**Solo sugli insight di un collegato**, non sui propri: la regola 10 difende da uno spoiler
+*altrui*, non da un proprio ricordo di ciò che si è già letto. Sulla propria scheda il testo
+compare sempre per
 intero, con un piccolo promemoria accanto alla data ("spoiler per i tuoi collegati") — non un
 avviso su cosa sta per leggere, che qui non serve, solo la memoria di cosa si è marcato per gli
 altri. Lo stesso vale nella ricerca semantica (§25): ogni risultato è già proprio, mai di un
@@ -584,9 +573,8 @@ sembra che l'app abbia inventato un dato.
 Un campo solo, placeholder "Titolo o autore". Il PRD è netto: non esistono altre vie d'ingresso,
 né codice digitato né scansione. Nessun selettore di modalità.
 
-**Emendamento del 22 agosto 2026:** il testo di supporto sotto il campo ("titolo o autore", in
-piccolo) è stato tolto — ripeteva il placeholder senza aggiungere informazione, solo rumore
-visivo sotto la linea del campo.
+Nessun testo di supporto sotto il campo: ripeterebbe il placeholder senza aggiungere
+informazione, solo rumore visivo.
 
 Risultati da schede esistenti e cataloghi esterni presentati insieme, senza distinzione, come
 impone il PRD. Ma i libri già in libreria cambiano verbo:
@@ -652,8 +640,8 @@ futuri non selezionabili; un anno intermedio senza letture mostra zeri, non un e
 
 Autori più letti: classifica a cinque voci con "mostra tutte", barre in `accent`, mai una
 scala di colori diversi per voce — sono la stessa grandezza misurata su soggetti diversi.
-Generi principali: stesso principio ma a ciambella (emendamento 22 agosto 2026, issue #7),
-perché il part-to-whole si legge meglio come porzione di un intero che come barre affiancate;
+Generi principali: stesso principio ma a ciambella, perché il part-to-whole si legge meglio
+come porzione di un intero che come barre affiancate;
 resta un solo accento, non una tavolozza — gli spicchi sono la stessa tinta a passi di
 opacità decrescenti (rampa sequenziale sul peso, non identità per colore), lo spicchio "non
 classificato" è neutro (`surface-2`, lo stesso dell'assente sullo scaffale), al più cinque
@@ -682,10 +670,9 @@ identico per la scheda del singolo libro di un collegato (§9): anche lì la bar
 sparisce, sostituita da "‹ [nome]" verso la sua libreria e il titolo del libro accanto alle
 sue iniziali — un livello alla volta, mai un salto diretto a Lettori da dentro un libro.
 
-**Scheda Annali del collegato (issue #7).** Le sue metriche di lettura, calcolate sui suoi
+**Scheda Annali del collegato.** Le sue metriche di lettura, calcolate sui suoi
 dati: stessa card della propria vista Annali (§14), più l'affiancamento con le tue metriche
-dello stesso anno e i libri letti in comune con i voti affiancati. Storico e dettagli in
-`docs/rimandato-annali-collegato.md`.
+dello stesso anno e i libri letti in comune con i voti affiancati.
 
 **Libri in comune.** L'intestazione della sua libreria porta anche il numero di opere che
 possiedi anche tu (stesso Libro in entrambe le librerie), calcolato dalle due liste già
@@ -773,9 +760,8 @@ L'interruttore nasce acceso. Spegnendolo va detto cosa succede subito e cosa no:
 funzioni si spengono e gli indici si cancellano, ma gli artefatti già generati restano come
 contenuti dell'utente.
 
-**Costruita il 22 agosto 2026** (issue #6); esportazione dei libri letti e cancellazione
-dell'account aggiunte lo stesso giorno (issue #8, ADR 0011 rivisto). Quattro cose decise in
-costruzione:
+Quattro decisioni di design (esportazione dei libri letti e cancellazione dell'account,
+ADR 0011):
 
 - **L'interruttore è l'unico dell'app.** Primitivo `@base-ui/react` come gli altri
   (`components/ui/switch.tsx`), traccia in `accent` quando è acceso — l'unico uso ammesso
@@ -940,9 +926,9 @@ pulito, l'app è splendida. Se lo scaffale è mediocre, nessun'altra animazione 
 1. **Il sistema di piani applicato con disciplina.** Non si nota mai e regge tutto. È anche la
    cosa più facile da sbagliare: basta una carta di troppo sul piano 2 per perdere la gerarchia.
 2. **Gli insight in Literata a due voci ottiche.** Cuore emotivo invece che identità visiva.
-3. ~~**Il segnalibro trascinabile.**~~ Costruito e poi rimosso il 20 agosto 2026 (§12): il
-   rischio di ambiguità del gesto su libri lunghi ha pesato più della soddisfazione del
-   trascinamento. Resta il campo numerico con la barra a due colori.
+3. ~~**Il segnalibro trascinabile.**~~ Provato e rimosso (§12): il rischio di ambiguità del
+   gesto su libri lunghi ha pesato più della soddisfazione del trascinamento. Resta il campo
+   numerico con la barra a due colori.
 4. **La luce continua.** Non si nota mai, ed è il suo pregio.
 5. **Il rito di apertura.** La ciliegina meno preziosa, perché con le View Transitions lo avranno
    tutti. Farlo bene senza spenderci settimane.
@@ -992,13 +978,6 @@ StoryGraph, Fable, Hardcover, Bookly).
 
 ### Dove Montaigne è peggio di tutta la categoria
 
-**L'esportazione degli insight.** Le altre app perdono note e date migrando; Montaigne esporta
-solo i libri letti (titolo, autori, generi, date, voto, recensione — issue #8, ADR 0011 rivisto),
-non gli insight né le note di intenzione, non ha backup sul piano gratuito, e la cancellazione è
-immediata. Il PRD lo dichiara come lacuna nota. Resta la dimensione in cui sei più indietro
-rispetto a tutta la categoria, e riguarda proprio gli anni di insight scritti a mano che
-l'esportazione non copre.
-
 **Il catalogo.** Edizione sbagliata o libro assente sono la lamentela più diffusa del settore, e
 tu hai l'aggravante che il libro non trovato non si può aggiungere affatto. Il design non risolve
 la deduplicazione, ma può distinguere sempre "non esiste" da "il catalogo non risponde", e
@@ -1033,19 +1012,17 @@ Sei punti che si risolvono provandoli con contenuti veri, non discutendone.
 
 ## 24. Descrizione dell'opera
 
-La lacuna era temporanea: il Libro ha una descrizione (§9), aggiunta durante l'analisi della
-ricerca e aggiunta libro, con emendamento al PRD (entità Descrizione). Fonte preferita
-Wikipedia — prosa scritta per spiegare di cosa parla un libro, non per venderlo — con ripiego
-su Google Books quando l'opera non è abbastanza notabile per avere una voce. Nessuna
-generazione da un modello: solo testo che una fonte ha già scritto, mai inventato.
+Il Libro ha una descrizione (§9, entità Descrizione nel PRD). Fonte preferita Wikipedia — prosa
+scritta per spiegare di cosa parla un libro, non per venderlo — con ripiego su Google Books
+quando l'opera non è abbastanza notabile per avere una voce. Nessuna generazione da un modello:
+solo testo che una fonte ha già scritto, mai inventato.
 
-**Emendamento del 21 agosto 2026, esteso il 22 agosto 2026: standardizzazione assistita delle
-descrizioni fuori standard.** Misurato dal vivo: alcune voci Wikipedia si riducono a una sola
-frase ("Le notti bianche è un racconto giovanile di Fëdor Dostoevskij."), sotto lo standard di
-prosa breve che questa sezione chiede; altre — soprattutto le trame di Google Books, scritte per
-vendere — lo superano abbondantemente. La regola "mai inventato" resta, ma si applica ai *fatti*,
-non alla *formulazione*: un lavoro in secondo piano (issue #20bis,
-`app/lavori/standardizzazione_descrizione.py`) riformula le sole descrizioni fuori dalla fascia
+**Standardizzazione assistita delle descrizioni fuori standard.** Alcune voci Wikipedia si
+riducono a una sola frase ("Le notti bianche è un racconto giovanile di Fëdor Dostoevskij."),
+sotto lo standard di prosa breve che questa sezione chiede; altre — soprattutto le trame di
+Google Books, scritte per vendere — lo superano abbondantemente. La regola "mai inventato"
+resta, ma si applica ai *fatti*, non alla *formulazione*: un lavoro in secondo piano
+(`app/lavori/standardizzazione_descrizione.py`) riformula le sole descrizioni fuori dalla fascia
 200-900 caratteri — espandendole o accorciandole secondo il caso — a **400-600 caratteri, 3-5
 frasi, registro enciclopedico** (lo stesso di un incipit Wikipedia: neutro, informativo, mai
 promozionale). Quelle già nella fascia restano quelle originali della fonte, senza passare dal
@@ -1069,18 +1046,16 @@ Tre vincoli che tengono ferma la regola originale:
   dubbio, il prompt istruisce a restare sopra i 600 caratteri piuttosto che perdere un fatto
   qualificante.
 - **Tracciato in database**: `libro_descrizione.riformulata` marca il testo come riformulato dal
-  modello (espanso o accorciato) — stesso trattamento di `anno_dedotto`/`lingua_dedotta`.
-  **Emendamento del 22 agosto 2026**: l'etichetta di trasparenza in scheda che segnalava questo
-  stato è stata costruita e poi tolta su richiesta esplicita, insieme a quella per "dedotto"
-  (§9) — il campo resta nell'API per un'eventuale reintroduzione, ma oggi il testo riformulato
-  si mostra senza distinguerlo dalla citazione letterale della fonte.
+  modello (espanso o accorciato) — stesso trattamento di `anno_dedotto`/`lingua_dedotta`. Il
+  campo resta nell'API per un'eventuale reintroduzione in scheda, ma oggi il testo riformulato
+  si mostra senza distinguerlo dalla citazione letterale della fonte (stessa scelta di "dedotto",
+  §9).
 
-Non richiede consenso dell'Utente (funzione bibliografica su dato condiviso, come le altre tre
-dell'issue #20 — ADR 0008): lavora solo su titolo/autori/anno/generi/descrizione di catalogo,
-mai su contenuto personale.
+Non richiede consenso dell'Utente (funzione bibliografica su dato condiviso, come classificazione
+dei generi, deduplicazione e riconduzione degli autori — ADR 0008): lavora solo su
+titolo/autori/anno/generi/descrizione di catalogo, mai su contenuto personale.
 
-**Emendamento del 22 agosto 2026: traduzione assistita delle descrizioni mancanti (issue #24,
-sotto-issue rimanente di #20, punto 6 — bassa priorità).** Il meccanismo sopra recupera testo
+**Traduzione assistita delle descrizioni mancanti.** Il meccanismo sopra recupera testo
 reale per lingua ma non traduce mai: dove nessuna fonte ha il testo in una delle due lingue
 dell'interfaccia, il blocco descrizione semplicemente non compare. Quando un'opera ha una
 descrizione reale in una lingua ma non nell'altra — tipicamente: testo inglese da Wikipedia,
@@ -1100,11 +1075,10 @@ resta dovuta anche su un derivato tradotto. Un testo tradotto fuori dalla fascia
 caratteri viene accodato per la stessa standardizzazione già descritta sopra, invece di
 duplicare la logica di lunghezza nel prompt di traduzione.
 
-**Trattamento di trasparenza, decisione presa in questa issue**: nessun campo dedicato — si
-riusa `libro_descrizione.riformulata`, il cui significato si allarga da "riformulato" a "il
-testo di questa riga non è la citazione letterale della fonte in questa lingua" (migrazione
-20260822173331). Stessa sorte dell'etichetta in scheda: non reintrodotta, il campo resta solo
-nell'API.
+**Trattamento di trasparenza**: nessun campo dedicato — si riusa
+`libro_descrizione.riformulata`, il cui significato si allarga da "riformulato" a "il testo di
+questa riga non è la citazione letterale della fonte in questa lingua". Stessa sorte
+dell'etichetta in scheda: non introdotta, il campo resta solo nell'API.
 
 **Scope**: solo le due lingue dell'interfaccia (`it`/`en`). Se l'unica descrizione disponibile è
 in una terza lingua (un volume Google Books in una lingua diversa da queste due), resta fuori
@@ -1113,10 +1087,6 @@ scope — la scheda si comporta come oggi, nessun blocco descrizione.
 ---
 
 ## 25. Ricerca semantica
-
-Scritta il 22 agosto 2026 con l'issue #6. È l'unica schermata del prodotto nata dopo la stesura
-del documento invece che prima: fino ad allora la ricerca semantica compariva solo come divieto
-in §7 ("non va fusa nel campo sopra") e come promessa in §10, senza una forma propria.
 
 **Una pagina a sé, `/cerca`.** Non un secondo campo sullo scaffale, per la ragione già scritta
 in §7: revocare il consenso lascerebbe l'utente senza il modo di trovare un libro, e i due campi
@@ -1144,10 +1114,7 @@ un'eccezione alla regola, è la sua applicazione corretta: la regola protegge da
 (la ricerca non attraversa mai i contenuti condivisi, §7). Nascondere a qualcuno un proprio
 testo non protegge nessuno. Il contrassegno resta comunque leggibile accanto a data e tipo
 ("· spoiler per i tuoi collegati"), come promemoria di ciò che si è marcato per gli altri — non
-come avviso su ciò che si sta per leggere, che qui non serve. **Costruito così solo dopo un
-primo giro d'uso** (22 agosto 2026): la prima stesura applicava lo stesso taglio della scheda
-del libro, prima di accorgersi che non proteggeva nulla e impediva solo di ritrovare i propri
-insight.
+come avviso su ciò che si sta per leggere, che qui non serve.
 
 **I risultati passano un filtro di pertinenza minima**, non solo un limite di quantità:
 `cerca_semantico` scarta chi è oltre una certa distanza dalla domanda, invece di riempire sempre
@@ -1180,11 +1147,6 @@ messaggio dell'app (§19).
 ---
 
 ## 26. Suggerimenti di lettura
-
-Scritta il 22 agosto 2026 con l'issue #27, **riscritta lo stesso giorno** dopo un primo giro
-d'uso in cui un titolo mai esistito ("Odio e amore" di "amor di narrazione") è arrivato
-all'Utente per un istante prima che la ricerca lato client lo scartasse. La pagina resta la
-stessa; il criterio dietro non più.
 
 **Una pagina a sé, `/suggerimenti`.** Stessa ragione di `/cerca`: dipende dal consenso, e la
 navigazione (§5) resta a quattro voci. Ci si arriva da un collegamento in fondo alla riga dei
@@ -1244,11 +1206,8 @@ nessuna lettura conclusa, nessun deluso).
 
 ## 27. Sintesi tematica
 
-Scritta il 22 agosto 2026 con l'issue #27, **riscritta lo stesso giorno** dopo un primo giro
-d'uso: la prima versione, un unico paragrafo generato (duecento parole, stessa disciplina della
-regola 20 della preview), si è rivelata poco utile — non verificabile, senza un posto dove
-andare, e senza ragione di essere riletta se non si è scritto altro. La versione qui sotto è un
-elenco di temi, ciascuno con le prove attaccate.
+Un elenco di temi, ciascuno con le prove attaccate — non un paragrafo unico: un tema verificabile
+e collegato ai libri da cui viene serve, un riassunto in prosa della libreria no.
 
 **Una pagina a sé, `/sintesi`.** Stessa ragione di §25/§26: dipende dal consenso, quattro voci
 di navigazione restano quattro, si arriva da un collegamento nella riga dei filtri della
