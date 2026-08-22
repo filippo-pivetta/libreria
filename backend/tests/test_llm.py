@@ -1,11 +1,10 @@
-"""Client del fornitore di modelli (app/cataloghi/llm.py). Nessuna rete:
-le risposte passano da `httpx.MockTransport`, stesso pattern di
-test_cataloghi.py e test_lavori_copertine.py.
+"""Le funzioni bibliografiche del fornitore di modelli
+(app/cataloghi/llm.py). Nessuna rete: il trasporto è finto
+(tests/openai_finto.py), stesso pattern di test_cataloghi.py e
+test_lavori_copertine.py.
 """
 
 import asyncio
-import json
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -13,43 +12,9 @@ import pytest
 
 from app.cataloghi import llm
 from app.cataloghi.errori import FonteNonRaggiungibileError
-
-
-@dataclass
-class _SettingsFinte:
-    openai_api_key: str | None = "sk-test"
-
-
-def _con_chiave(monkeypatch: pytest.MonkeyPatch, chiave: str | None = "sk-test") -> None:
-    monkeypatch.setattr(llm, "get_settings", lambda: _SettingsFinte(openai_api_key=chiave))
-
-
-def _con_risposta(monkeypatch: pytest.MonkeyPatch, risposta: httpx.Response) -> list[httpx.Request]:
-    """Sostituisce il trasporto, non la funzione: esercita davvero la
-    costruzione della richiesta. Ritorna la lista delle richieste inviate,
-    per verificare che una chiave assente non generi traffico di rete."""
-    inviate: list[httpx.Request] = []
-
-    def _gestisci(richiesta: httpx.Request) -> httpx.Response:
-        inviate.append(richiesta)
-        return risposta
-
-    originale = httpx.AsyncClient
-
-    def _client(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
-        kwargs["transport"] = httpx.MockTransport(_gestisci)
-        return originale(*args, **kwargs)
-
-    monkeypatch.setattr(llm.httpx, "AsyncClient", _client)
-    return inviate
-
-
-def _risposta_openai(contenuto: dict[str, Any]) -> httpx.Response:
-    return httpx.Response(
-        200,
-        json={"choices": [{"message": {"content": json.dumps(contenuto)}}]},
-    )
-
+from tests.openai_finto import con_chiave as _con_chiave
+from tests.openai_finto import con_risposta as _con_risposta
+from tests.openai_finto import risposta_chat as _risposta_openai
 
 # --- classifica_e_deduci -----------------------------------------------------
 

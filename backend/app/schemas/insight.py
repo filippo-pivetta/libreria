@@ -1,11 +1,12 @@
 """Contratti di `/voci/{id}/insight` e `/insight/{id}` (issue #5).
 
 `InsightEssenziale` (in `app/schemas/voci.py`, non qui) è la forma annidata
-in `GET /voci/{id}`: il suo `testo` è `None` quando `spoiler` è vero,
-incondizionatamente (PRD regola 10, design-frontend.md §11: "non è un
-permesso, è un avviso"). Gli schemi qui sotto sono l'eco di una propria
-scrittura — `testo` è sempre quello appena inviato dal chiamante, mai un
-elenco o un'anteprima: la regola 10 non si applica.
+in `GET /voci/{id}`: il suo `testo` è `None` quando `spoiler` è vero **e chi
+guarda non è il proprietario** (PRD regola 10, design-frontend.md §11: la
+regola protegge da uno spoiler altrui, non da un proprio testo — il
+proprietario lo vede sempre per intero). Gli schemi qui sotto sono l'eco di
+una propria scrittura — `testo` è sempre quello appena inviato dal
+chiamante, mai un elenco o un'anteprima: la regola 10 non si applica.
 """
 
 from datetime import date, datetime

@@ -50,7 +50,12 @@ async def patch_insight(
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
 ) -> dict[str, Any]:
     insight = await insight_service.correggi(
-        current_user.access_token, insight_id, body.testo, body.spoiler, body.visibilita
+        current_user.access_token,
+        current_user.id,
+        insight_id,
+        body.testo,
+        body.spoiler,
+        body.visibilita,
     )
     if insight is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Insight non trovato.")

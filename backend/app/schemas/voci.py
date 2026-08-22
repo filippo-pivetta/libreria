@@ -145,10 +145,12 @@ class AvanzamentoEssenziale(BaseModel):
 class InsightEssenziale(BaseModel):
     """Annidato in `GET /voci/{id}` (`letture[].insight` e
     `insight_senza_lettura`, issue #5). `testo` è `None` se e solo se
-    `spoiler` è vero, incondizionatamente — vale anche sui propri insight
-    (design-frontend.md §11: "il taglio non è un permesso, è un avviso").
-    Il testo pieno si ottiene solo con `GET /insight/{id}/testo`, dietro un
-    gesto esplicito di chi guarda."""
+    `spoiler` è vero **e chi guarda non è il proprietario** — un collegato
+    in visione reciproca lo vede tagliato, il proprietario vede sempre il
+    testo pieno (design-frontend.md §11, rivisto nell'issue #6: la regola
+    10 protegge da uno spoiler altrui, non da un proprio testo). Per il
+    collegato, il testo pieno si ottiene solo con `GET /insight/{id}/testo`,
+    dietro un gesto esplicito."""
 
     id: UUID
     testo: str | None

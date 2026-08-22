@@ -22,9 +22,9 @@ const ATTESA_INTERRUZIONE_MS = 6000;
 /**
  * Sezione collegamenti della Torre (design doc §17): richieste ricevute
  * (accetta/rifiuta), inviate (ritira), collegamenti attivi (interrompi).
- * La sezione impostazioni (avviso di visibilità, consenso IA,
- * cancellazione account — issue #6/#8) non è ancora costruita, resta
- * fuori da questo componente.
+ * La sezione impostazioni vive accanto, in `sezione-impostazioni.tsx`
+ * (issue #6); della cancellazione dell'account (issue #8) resta là una
+ * nota.
  */
 export function SezioneCollegamenti({
   collegamentiIniziali,

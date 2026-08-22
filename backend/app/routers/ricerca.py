@@ -17,7 +17,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.cataloghi.errori import FonteNonRaggiungibileError
-from app.core.rate_limit import LIMITE_CATALOGHI_ESTERNI, limiter
+from app.core.rate_limit import (
+    LIMITE_CATALOGHI_ESTERNI,
+    LIMITE_FUNZIONI_ASSISTITE,
+    limiter,
+)
 from app.core.security import get_current_user
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.ricerca import (
@@ -26,7 +30,9 @@ from app.schemas.ricerca import (
     RisultatoEsterno,
     RisultatoLocale,
 )
-from app.services import ricerca_service
+from app.schemas.ricerca_semantica import RicercaSemanticaResponse
+from app.services import consenso as consenso_service
+from app.services import ricerca_semantica_service, ricerca_service
 
 router = APIRouter(tags=["ricerca"])
 
@@ -122,3 +128,56 @@ async def post_libri(
         voce_id=UUID(str(voce["id"])),
         gia_in_libreria=gia_esisteva,
     )
+
+
+@router.get("/ricerca/semantica", response_model=RicercaSemanticaResponse)
+@limiter.limit(LIMITE_FUNZIONI_ASSISTITE)
+async def get_ricerca_semantica(
+    request: Request,  # noqa: ARG001  # slowapi lo richiede in firma per il limite per-route
+    q: str = Query(min_length=1, max_length=500),
+    current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+) -> dict[str, Any]:
+    """La ricerca dentro i propri insight e le proprie recensioni.
+
+    Terzo endpoint di ricerca, e il più diverso dagli altri due: quelli
+    cercano libri, questo cerca dentro testi propri, dipende dal consenso
+    ed è l'unico che può rispondere "sono spenta". Il design doc vieta
+    esplicitamente di fonderlo con il filtro dello scaffale (§7): a
+    consenso revocato l'Utente resterebbe senza il modo di trovare un
+    libro.
+
+    409 e non lista vuota a consenso revocato — il PRD è esplicito:
+    "l'interfaccia dichiara che la funzione è disattivata, invece di
+    restituire zero risultati come se non ci fosse nulla da trovare".
+    """
+    domanda = q.strip()
+    if len(domanda) < _LUNGHEZZA_MINIMA:
+        return {"risultati": [], "indici_incompleti": False}
+    try:
+        return await ricerca_semantica_service.cerca(
+            current_user.access_token, current_user.id, domanda
+        )
+    except consenso_service.ConsensoRevocatoError as errore:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            {
+                "error_code": "consenso_revocato",
+                "message": (
+                    "L'elaborazione assistita è disattivata. Puoi riattivarla dalle "
+                    "impostazioni nella Torre."
+                ),
+            },
+        ) from errore
+    except consenso_service.ProfiloAssenteError as errore:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "Il tuo account non è ancora stato completato."
+        ) from errore
+    except FonteNonRaggiungibileError as errore:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            {
+                "error_code": "fonte_irraggiungibile",
+                "message": "La ricerca semantica non è disponibile in questo momento.",
+                "fonte": errore.fonte,
+            },
+        ) from errore

@@ -5,6 +5,7 @@ Il client passato in ingresso opera sempre con l'identità dell'utente
 vive la regola "chi vede cosa". Nessuna regola di dominio qui.
 """
 
+from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import UUID
 
@@ -42,7 +43,10 @@ def list_altri(client: Client, self_id: UUID) -> list[dict[str, Any]]:
 def get_utente_privato(client: Client, utente_id: UUID) -> dict[str, Any] | None:
     response = (
         client.table("utente_privato")
-        .select("consenso_elaborazione_assistita, consenso_aggiornato_at, informativa_accettata_at")
+        .select(
+            "consenso_elaborazione_assistita, consenso_aggiornato_at, "
+            "informativa_accettata_at, indici_stato"
+        )
         .eq("utente_id", str(utente_id))
         .maybe_single()
         .execute()
@@ -62,3 +66,31 @@ def complete_registration(client: Client, nome_utente: str) -> dict[str, Any]:
     response = client.rpc("completa_registrazione", {"p_nome_utente": nome_utente}).execute()
     rows = cast("list[dict[str, Any]]", response.data)
     return rows[0]
+
+
+def aggiorna_consenso(
+    client: Client, utente_id: UUID, consenso: bool, indici_stato: str
+) -> dict[str, Any] | None:
+    """Scrive insieme il flag, la sua data e lo stato degli indici.
+
+    `consenso_aggiornato_at` è scritto a mano e non da un trigger: nello
+    schema non ne esiste alcuno, e la colonna esiste proprio per dire
+    quando l'Utente ha cambiato idea. Le tre colonne sono anche le sole
+    che il grant per colonna della migrazione 20260822090000 concede al
+    client — `informativa_accettata_at` resta fuori portata, perché è la
+    prova di un consenso informato e non si riscrive.
+    """
+    response = (
+        client.table("utente_privato")
+        .update(
+            {
+                "consenso_elaborazione_assistita": consenso,
+                "consenso_aggiornato_at": datetime.now(UTC).isoformat(),
+                "indici_stato": indici_stato,
+            }
+        )
+        .eq("utente_id", str(utente_id))
+        .execute()
+    )
+    righe = cast("list[dict[str, Any]]", response.data)
+    return righe[0] if righe else None

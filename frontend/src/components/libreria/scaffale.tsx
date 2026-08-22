@@ -36,10 +36,12 @@ const STATI: { valore: StatoVoce; etichetta: string }[] = [
  * scaffale di copertine con la costa, mensole che si riempiono sulla
  * larghezza reale, fascia delle letture in corso in cima. Filtro testuale
  * su titolo/autore e filtro per stato, entrambi "gratuiti", nessuna
- * chiamata esterna. La ricerca semantica sui propri insight, che il
- * design doc vuole separata da questo campo, non esiste ancora (dipende
- * dal consenso IA, issue #6). L'indice a lettere è la tacca fra un volume
- * e l'altro (lib/shelf-pack.ts), non un elemento separato sul bordo.
+ * chiamata esterna. La ricerca semantica sui propri insight vive su una
+ * pagina a sé (/cerca, issue #6), raggiunta dal collegamento qui
+ * accanto: il design doc §7 vieta di fonderla in questo campo, perché
+ * revocare il consenso lascerebbe l'Utente senza il modo di trovare un
+ * libro. L'indice a lettere è la tacca fra un volume e l'altro
+ * (lib/shelf-pack.ts), non un elemento separato sul bordo.
  */
 export function Scaffale({
   vociIniziali,
@@ -208,12 +210,25 @@ export function Scaffale({
             confonderebbe entrambi. Da qui si va alla ricerca vera.
             Nascosto sulla libreria di un collegato: lì non si aggiunge. */}
         {!utenteCollegatoId && (
-          <Link
-            href="/aggiungi"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Aggiungi un libro
-          </Link>
+          <>
+            {/* La ricerca semantica è un terzo mestiere ancora: cerca
+                dentro ciò che hai scritto, non fra i titoli. Un
+                collegamento e non un secondo campo, per la ragione
+                scritta sopra. Anche questo nascosto sulla libreria di un
+                collegato: si cerca solo nei propri testi. */}
+            <Link
+              href="/cerca"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Cerca nei tuoi insight
+            </Link>
+            <Link
+              href="/aggiungi"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Aggiungi un libro
+            </Link>
+          </>
         )}
       </div>
 

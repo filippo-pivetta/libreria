@@ -20,3 +20,14 @@ campo di ricerca chiama a ogni pausa nella digitazione: senza un limite
 proprio, una manciata di ricerche insistenti brucerebbe la quota di tutti.
 Trenta al minuto sta largo per una persona che digita e stretto per un
 ciclo impazzito."""
+
+LIMITE_FUNZIONI_ASSISTITE = "10/minute"
+"""Sulle funzioni assistite personali (ricerca semantica, preview): ogni
+richiesta è una chiamata al fornitore di modelli, che il PRD dichiara
+essere "l'unica voce di costo variabile" del sistema e lascia
+esplicitamente senza tetto di spesa ("il controllo è manuale, fuori dal
+prodotto"). Questo non è un tetto di spesa — non conta né token né euro,
+e non contraddice quella scelta: è la stessa rete di sicurezza contro il
+ciclo impazzito che LIMITE_CATALOGHI_ESTERNI mette sulla quota di Google,
+tarata più stretta perché una preview costa più di una ricerca e nessuno
+la invoca dieci volte al minuto scrivendo."""

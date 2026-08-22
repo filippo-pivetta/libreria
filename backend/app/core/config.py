@@ -47,8 +47,16 @@ class Settings(BaseSettings):
     l'interfaccia deve saper dichiarare ("fonte irraggiungibile",
     docs/design-frontend.md §13), non un errore di avvio."""
 
-    # --- Funzioni assistite (non ancora implementate, vedi docs/prd.md) ---
+    # --- Fornitore di modelli (docs/adr/0017, docs/adr/0018) ---
     openai_api_key: str | None = None
+    """Unica chiave del fornitore, condivisa da tutte le funzioni
+    assistite: le bibliografiche (`app/cataloghi/llm.py`, sempre
+    attive) e le personali (`app/cataloghi/llm_personale.py` e gli
+    embedding, subordinate al consenso dell'Utente). Opzionale come
+    google_books_api_key, e per lo stesso motivo: la sua assenza è uno
+    stato che l'interfaccia deve saper dichiarare — il PRD vuole che
+    "la funzione assistita fallisca senza bloccare il flusso" — non un
+    errore di avvio."""
 
     # --- Lavori in secondo piano (docs/adr/0016) ---
     worker_abilitato: bool = True

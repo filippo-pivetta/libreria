@@ -21,6 +21,7 @@ _PROFILE = {
     "consenso_elaborazione_assistita": True,
     "consenso_aggiornato_at": "2026-08-18T00:00:00Z",
     "informativa_accettata_at": "2026-08-18T00:00:00Z",
+    "indici_stato": "pronti",
 }
 
 
