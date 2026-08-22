@@ -313,10 +313,13 @@ bordo, fondo `ink` al 9%, testo in `ink`. Non pastiglie piene colorate — erano
 satura della schermata e rubavano l'attenzione ai libri, che sono l'unico posto dell'app
 dove il colore è un dato.
 
-**Ricerca semantica separata**, sui propri insight, dipendente dal consenso (fuori dal
-perimetro di questa vista, dipende dall'issue #6). Il PRD impone che a consenso revocato
-l'interfaccia dichiari che è spenta. **Non va fusa nel campo sopra**: revocare il consenso
-lascerebbe l'utente senza il modo di trovare un libro.
+**Ricerca semantica separata**, sui propri insight, dipendente dal consenso. **Non va fusa
+nel campo sopra**: revocare il consenso lascerebbe l'utente senza il modo di trovare un libro.
+**Costruita il 22 agosto 2026** (issue #6) come pagina a sé, §25: qui resta solo la porta, un
+collegamento discreto in fondo alla riga dei filtri ("Cerca nei tuoi insight", variante `ghost`
+accanto a "Aggiungi un libro"). Un collegamento e non un secondo campo — due campi di ricerca
+affiancati sulla stessa riga si sbagliano, e questo costa una chiamata al modello mentre quello
+accanto non costa nulla. Nascosto sulla libreria di un collegato: si cerca solo nei propri testi.
 
 ### Accessibilità
 
@@ -410,7 +413,25 @@ il contenuto personale sotto la piega dello schermo.
 - Se il libro è da leggere, **"me lo consigli?" prende il posto dei dati di lettura**. Vincoli
   del PRD: privata e mai condivisibile, sotto le ottanta parole, dichiarata come generata, e a
   consenso revocato l'interfaccia dice che è spenta invece di far finta che non esista.
-  **Non ancora costruito**, stessa issue #5.
+  **Costruito il 22 agosto 2026** (issue **#6**, non #5 come diceva questa riga fino ad allora:
+  la preview è una delle cinque funzioni soggette al consenso, e apparteneva all'issue del
+  consenso). Tre cose decise in costruzione:
+  - Il blocco esiste **anche negli altri stati**, in coda alla pagina della copia sotto la nota
+    di intenzione, in tono piano. Il PRD non limita la funzione ai libri da leggere; su un libro
+    già letto un parere ha comunque senso, semplicemente non è la cosa principale. In evidenza
+    resta solo su "da leggere".
+  - L'indicazione "Sintesi generata" è una riga in `t-meta` sopra il testo, che arriva dal server
+    come campo obbligatorio della risposta. Non è una frase che il modello scrive: affidargliela
+    avrebbe significato perderla la prima volta che si distrae, e avrebbe consumato parte delle
+    ottanta parole.
+  - **Nessun comando di condivisione, in nessuna forma** — non un interruttore spento, non una
+    voce assente da un menù. La regola 23 si garantisce facendo in modo che l'operazione non
+    esista, e non esiste nemmeno nel database (niente colonna di visibilità su
+    `artefatto_generato`, niente privilegio di UPDATE).
+  - Il parere sta su una carta del **piano 2**: è un oggetto sollevato dentro la pagina della
+    copia, non un secondo paragrafo della pagina stessa. Rigenerarne uno crea una riga nuova e
+    sostituisce quella mostrata; "Cancella" resta accanto, senza attrito aggiuntivo — un
+    artefatto rigenerabile non merita i tre livelli della cancellazione di una lettura.
 
 ### Sotto le due pagine
 
@@ -494,8 +515,17 @@ DOM. Quindi il server manda solo il fatto che esiste, il gesto di scoprire fa un
 **l'animazione copre la latenza**.
 
 Il taglio è una `clip-path` animata su una carta del piano 1, non una texture di carta
-strappata. Vale identico sugli insight di un collegato: il taglio non è un permesso, è un
-avviso.
+strappata.
+
+**Solo sugli insight di un collegato**, non sui propri. La prima stesura di questa sezione
+diceva l'opposto — "vale identico anche sui propri, il taglio non è un permesso, è un avviso" —
+finché l'uso reale (issue #6) non ha mostrato che tagliava a chi ha scritto l'insight il proprio
+stesso testo, senza proteggere nessuno: la regola 10 difende da uno spoiler *altrui*, non da un
+proprio ricordo di ciò che si è già letto. Sulla propria scheda il testo compare sempre per
+intero, con un piccolo promemoria accanto alla data ("spoiler per i tuoi collegati") — non un
+avviso su cosa sta per leggere, che qui non serve, solo la memoria di cosa si è marcato per gli
+altri. Lo stesso vale nella ricerca semantica (§25): ogni risultato è già proprio, mai di un
+collegato.
 
 ---
 
@@ -736,6 +766,33 @@ consenso. È l'informazione più rassicurante della schermata.
 L'interruttore nasce acceso. Spegnendolo va detto cosa succede subito e cosa no: le cinque
 funzioni si spengono e gli indici si cancellano, ma gli artefatti già generati restano come
 contenuti dell'utente.
+
+**Costruita il 22 agosto 2026** (issue #6), tranne la cancellazione dell'account che resta una
+nota (issue #8). Quattro cose decise in costruzione:
+
+- **L'interruttore è l'unico dell'app.** Primitivo `@base-ui/react` come gli altri
+  (`components/ui/switch.tsx`), traccia in `accent` quando è acceso — l'unico uso ammesso
+  dell'accento, il riempimento — e `surface-2` quando è spento, che è il piano di un oggetto
+  sollevato e non un colore in più. Nessun rosso: `alert` ha un uso solo in tutta l'app, e non è
+  questo.
+- **Nessuna finestra di annullamento**, a differenza dell'interruzione di un collegamento, che
+  ne ha una di sei secondi. La differenza non è la gravità ma la reversibilità: interrompere non
+  è simmetricamente reversibile (per tornare indietro serve che l'altro accetti una nuova
+  richiesta), spegnere il consenso lo è del tutto — riaccendendolo gli indici si ricostruiscono
+  da soli. Un "annulla" su un gesto reversibile è rumore, non prudenza.
+- **La riga sotto l'interruttore cambia con lo stato**, e dice sempre la cosa che si sta per
+  fare, non quella appena fatta: acceso, spiega cosa succede spegnendo (funzioni spente, indici
+  cancellati, artefatti intatti); spento, spiega cosa succede riaccendendo (ricostruzione, e la
+  ricerca semantica che si dichiara incompleta finché non finisce).
+- **Il comando è ottimistico**, come ogni altro dell'app: l'interruttore si muove subito e torna
+  indietro da solo se la scrittura non riesce, con l'errore in testo sotto — mai un riquadro
+  rosso.
+- **Una riga di stato reale, non solo generica**, aggiunta dopo un primo giro d'uso: il testo
+  sopra spiega cosa *farà* l'interruttore, ma non diceva se una ricostruzione precedente fosse
+  davvero finita — la Torre leggeva `/me` ma lo schema di risposta non portava ancora
+  `indici_stato`, quindi non c'era alcun segnale. Sotto il testo generico, quando il consenso è
+  acceso, una seconda riga dice lo stato vero ("Gli indici sono pronti." / "Gli indici si stanno
+  ricostruendo..."), aggiornata a ogni cambio dell'interruttore.
 
 ### Cancellazione dell'account
 
@@ -999,3 +1056,70 @@ Tre vincoli che tengono ferma la regola originale:
 Non richiede consenso dell'Utente (funzione bibliografica su dato condiviso, come le altre tre
 dell'issue #20 — ADR 0008): lavora solo su titolo/autori/anno/generi/descrizione di catalogo,
 mai su contenuto personale.
+
+---
+
+## 25. Ricerca semantica
+
+Scritta il 22 agosto 2026 con l'issue #6. È l'unica schermata del prodotto nata dopo la stesura
+del documento invece che prima: fino ad allora la ricerca semantica compariva solo come divieto
+in §7 ("non va fusa nel campo sopra") e come promessa in §10, senza una forma propria.
+
+**Una pagina a sé, `/cerca`.** Non un secondo campo sullo scaffale, per la ragione già scritta
+in §7: revocare il consenso lascerebbe l'utente senza il modo di trovare un libro, e i due campi
+farebbero un mestiere diverso con lo stesso aspetto. Ci si arriva da un collegamento in fondo
+alla riga dei filtri della Libreria — dove nasce il bisogno — e **non da una voce di menu**: la
+navigazione ha quattro voci (§5) e restano quattro. Una quinta voce per una funzione che dipende
+da un interruttore sarebbe la sola dell'elenco a poter essere spenta.
+
+**Non cerca mentre si digita**, a differenza del filtro dello scaffale e della ricerca sui
+cataloghi (§13, "risultati che compaiono mentre si digita"). Due ragioni che vanno nella stessa
+direzione: ogni interrogazione costa una chiamata al fornitore, e una domanda in linguaggio
+naturale si finisce di scrivere prima di volerla porre — "che cosa ho scritto sul tempo" a metà
+è una domanda diversa, non una versione incompleta della stessa. Campo con la sola riga
+inferiore come ogni altro campo dell'app, `aria-label` esplicita, e un pulsante "Cerca" accanto.
+
+**Un risultato è l'insight, con accanto il libro da cui viene**, come stabilisce §10: prima il
+titolo e l'autore in `t-meta` come collegamento alla scheda, poi il testo nel suo trattamento
+tipografico normale (sentenza o appunto secondo la lunghezza, stessa soglia di §10), poi la
+data e il tipo. Non una riga di libro con l'insight sotto: la pagina risponde a "cosa ho scritto
+al riguardo", non a "quali libri parlano di".
+
+**Uno spoiler compare in chiaro qui**, a differenza di ogni altro elenco (regola 10) — e non è
+un'eccezione alla regola, è la sua applicazione corretta: la regola protegge da uno spoiler
+*altrui*, e in questa pagina ogni risultato è già garantito del richiedente, mai di un collegato
+(la ricerca non attraversa mai i contenuti condivisi, §7). Nascondere a qualcuno un proprio
+testo non protegge nessuno. Il contrassegno resta comunque leggibile accanto a data e tipo
+("· spoiler per i tuoi collegati"), come promemoria di ciò che si è marcato per gli altri — non
+come avviso su ciò che si sta per leggere, che qui non serve. **Costruito così solo dopo un
+primo giro d'uso** (22 agosto 2026): la prima stesura applicava lo stesso taglio della scheda
+del libro, prima di accorgersi che non proteggeva nulla e impediva solo di ritrovare i propri
+insight.
+
+**I risultati passano un filtro di pertinenza minima**, non solo un limite di quantità:
+`cerca_semantico` scarta chi è oltre una certa distanza dalla domanda, invece di riempire sempre
+fino a un tetto fisso. Senza quel filtro, una libreria piccola (poche decine di contenuti)
+restituirebbe sempre tutto ciò che ha, semplicemente riordinato — non perché pertinente, ma
+perché non c'è nient'altro da escludere. La soglia è tarata sui dati, non a occhio, e resta un
+primo tentativo: se in uso reale nasconde risultati veri o ne lascia passare troppi, si rivede
+in un punto solo (commento sulla RPC, `supabase/migrations/`).
+
+### I tre stati che non vanno confusi
+
+È il punto della schermata, e il PRD lo impone due volte.
+
+| Stato | Cosa si mostra |
+|---|---|
+| Nessuna corrispondenza | "Non hai ancora scritto nulla che somigli a questa domanda." |
+| Consenso revocato | Uno stato vuoto che dice che la funzione è spenta e rimanda alla Torre |
+| Indici in ricostruzione | I risultati che ci sono, **più** una riga che dichiara che sono incompleti |
+
+Il secondo caso è dettato alla lettera: "l'interfaccia dichiara che la funzione è disattivata,
+invece di restituire zero risultati come se non ci fosse nulla da trovare". Un elenco vuoto
+direbbe la cosa falsa più credibile che esista — che non hai scritto nulla al riguardo. Il terzo
+pure: "finché non sono pronti la ricerca semantica è incompleta e lo dichiara". La riga sta
+sopra i risultati, non sotto: chi legge un elenco corto deve sapere perché è corto prima di
+concludere che è tutto.
+
+Nessuno dei tre è un errore, e nessuno dei tre è un riquadro rosso: sono testo, come ogni altro
+messaggio dell'app (§19).

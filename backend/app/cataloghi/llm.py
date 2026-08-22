@@ -15,39 +15,21 @@ esplicitamente cosa invia, verificabile a colpo d'occhio per la regola 19
 ("nessun contenuto di un altro Utente inviato a un fornitore esterno di
 modelli") — tutte lavorano solo su dato bibliografico condiviso (titolo,
 autori, soggetti, generi, descrizioni di `libro_descrizione`), mai su
-`voce_di_libreria`/`lettura`/`insight`/`recensione`.
+`voce_di_libreria`/`lettura`/`insight`/`recensione`. Sono le tre funzioni
+che il PRD tiene fuori dal consenso: restano attive anche a consenso
+revocato (regola 31).
 
-Un JSON malformato o che non rispetta lo schema atteso è trattato come
-`FonteNonRaggiungibileError`, esattamente come una fonte irraggiungibile:
-se il modello non risponde nella forma richiesta è come se non avesse
-risposto affatto, mai un tentativo di "salvare" un output non valido.
+**Le funzioni personali stanno altrove**, in `llm_personale.py`: dall'issue
+#6 esistono chiamate che inviano contenuti dell'Utente, e tenerle in questo
+stesso file avrebbe cancellato la proprietà che rende la regola 19
+verificabile senza leggere il codice — che qui dentro non c'è nulla di
+personale. Il trasporto condiviso dai due moduli sta in `openai_client.py`
+(docs/adr/0017 per il come, docs/adr/0018 per la separazione).
 """
 
-import json
-import logging
 from dataclasses import dataclass
-from typing import Any
 
-import httpx
-
-from app.cataloghi.errori import FonteNonRaggiungibileError
-from app.core.config import get_settings
-
-logger = logging.getLogger("app.cataloghi.llm")
-
-_URL = "https://api.openai.com/v1/chat/completions"
-_FONTE = "openai"
-_MODELLO = "gpt-4o-mini"
-"""Economico e capace di structured output: le quattro chiamate di questo
-modulo sono classificazioni/confronti su testo breve, non generazione
-lunga. Nessun tetto di spesa nel sistema (PRD, "il controllo è manuale"),
-motivo in più per non pagare un modello più caro qui."""
-
-# 20s e non gli 8-15s delle fonti bibliografiche: generare una risposta
-# strutturata prende sistematicamente più tempo di un lookup. Nessun retry
-# qui dentro: vive già nel worker (30s/120s/600s, MAX_TENTATIVI=3).
-_TIMEOUT = httpx.Timeout(20.0)
-_INTESTAZIONI = {"User-Agent": "Montaigne/0.1 (applicazione privata di tracciamento letture)"}
+from app.cataloghi.openai_client import chiama_json
 
 
 @dataclass(frozen=True)
@@ -86,48 +68,6 @@ class OperaPerConfronto:
 class DecisioneDuplicato:
     libro_id_candidato: str
     motivo: str
-
-
-async def _chiama(messaggi: list[dict[str, str]], schema: dict[str, Any], nome_schema: str) -> Any:
-    settings = get_settings()
-    if not settings.openai_api_key:
-        raise FonteNonRaggiungibileError(_FONTE, "OPENAI_API_KEY non configurata.")
-
-    corpo = {
-        "model": _MODELLO,
-        "messages": messaggi,
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {"name": nome_schema, "strict": True, "schema": schema},
-        },
-    }
-    try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_INTESTAZIONI) as client:
-            risposta = await client.post(
-                _URL,
-                headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-                json=corpo,
-            )
-    except httpx.HTTPError as errore:
-        raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
-
-    if risposta.status_code == 429 or risposta.status_code >= 500:
-        raise FonteNonRaggiungibileError(_FONTE, f"HTTP {risposta.status_code}")
-    if risposta.status_code >= 400:
-        # 4xx diverso da 429 (chiave rifiutata, richiesta malformata): non
-        # tecnicamente diverso da "la fonte non risponde" per chi chiama,
-        # ma vale un log a livello più alto per accorgersene.
-        logger.warning("OpenAI ha risposto %s: %s", risposta.status_code, risposta.text[:500])
-        raise FonteNonRaggiungibileError(_FONTE, f"HTTP {risposta.status_code}")
-
-    try:
-        corpo_risposta = risposta.json()
-        contenuto = corpo_risposta["choices"][0]["message"]["content"]
-        return json.loads(contenuto)
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as errore:
-        raise FonteNonRaggiungibileError(
-            _FONTE, f"risposta non nel formato atteso: {errore}"
-        ) from errore
 
 
 _SCHEMA_ARRICCHIMENTO = {
@@ -197,7 +137,7 @@ async def classifica_e_deduci(
             ),
         },
     ]
-    dati = await _chiama(messaggi, _SCHEMA_ARRICCHIMENTO, "arricchimento_bibliografico")
+    dati = await chiama_json(messaggi, _SCHEMA_ARRICCHIMENTO, "arricchimento_bibliografico")
     return RispostaArricchimento(
         generi=[str(g) for g in dati.get("generi") or []],
         anno_prima_pubblicazione=dati.get("anno_prima_pubblicazione"),
@@ -251,7 +191,7 @@ async def confronta_autori(
             ),
         },
     ]
-    dati = await _chiama(messaggi, _SCHEMA_CONFRONTO_AUTORI, "confronto_autori")
+    dati = await chiama_json(messaggi, _SCHEMA_CONFRONTO_AUTORI, "confronto_autori")
     id_canonico = dati.get("autore_id_canonico")
     if not id_canonico:
         return None
@@ -315,7 +255,7 @@ async def valuta_duplicati(
             ),
         },
     ]
-    dati = await _chiama(messaggi, _SCHEMA_CONFRONTO_DUPLICATI, "confronto_duplicati")
+    dati = await chiama_json(messaggi, _SCHEMA_CONFRONTO_DUPLICATI, "confronto_duplicati")
     id_candidato = dati.get("libro_id_candidato")
     if not id_candidato:
         return None
@@ -407,7 +347,7 @@ async def espandi_descrizione(
             ),
         },
     ]
-    dati = await _chiama(messaggi, _SCHEMA_DESCRIZIONE_RIFORMULATA, "descrizione_riformulata")
+    dati = await chiama_json(messaggi, _SCHEMA_DESCRIZIONE_RIFORMULATA, "descrizione_riformulata")
     return str(dati.get("testo") or testo_originale)
 
 
@@ -461,5 +401,5 @@ async def accorcia_descrizione(
             ),
         },
     ]
-    dati = await _chiama(messaggi, _SCHEMA_DESCRIZIONE_RIFORMULATA, "descrizione_riformulata")
+    dati = await chiama_json(messaggi, _SCHEMA_DESCRIZIONE_RIFORMULATA, "descrizione_riformulata")
     return str(dati.get("testo") or testo_originale)

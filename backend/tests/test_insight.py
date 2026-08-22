@@ -165,6 +165,7 @@ def test_patch_insight_returns_updated_insight(
 ) -> None:
     async def _fake_correggi(
         access_token: str,
+        utente_id: UUID,
         insight_id: UUID,
         testo: str | None,
         spoiler: bool | None,
@@ -194,6 +195,7 @@ def test_patch_insight_effetto_immediato_sulla_visibilita(
 
     async def _fake_correggi(
         access_token: str,
+        utente_id: UUID,
         insight_id: UUID,
         testo: str | None,
         spoiler: bool | None,
@@ -222,6 +224,7 @@ def test_patch_insight_toggle_rapido_converge_sull_ultimo_valore(
 
     async def _fake_correggi(
         access_token: str,
+        utente_id: UUID,
         insight_id: UUID,
         testo: str | None,
         spoiler: bool | None,
@@ -244,6 +247,7 @@ def test_patch_insight_returns_404_when_missing(
 ) -> None:
     async def _fake_correggi(
         access_token: str,
+        utente_id: UUID,
         insight_id: UUID,
         testo: str | None,
         spoiler: bool | None,
@@ -355,7 +359,7 @@ def _run(coro: Any) -> Any:
     return asyncio.run(coro)
 
 
-def test_raggruppati_per_lettura_azzera_il_testo_degli_spoiler(
+def test_raggruppati_per_lettura_azzera_il_testo_degli_spoiler_per_un_collegato(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -368,7 +372,9 @@ def test_raggruppati_per_lettura_azzera_il_testo_degli_spoiler(
     )
 
     per_lettura, senza_lettura = _run(
-        insight_service.raggruppati_per_lettura("test-token", _VOCE_ID, {_LETTURA_APERTA_ID})
+        insight_service.raggruppati_per_lettura(
+            "test-token", _VOCE_ID, {_LETTURA_APERTA_ID}, is_owner=False
+        )
     )
 
     assert senza_lettura == []
@@ -377,6 +383,27 @@ def test_raggruppati_per_lettura_azzera_il_testo_degli_spoiler(
     non_spoiler = next(r for r in righe if not r["spoiler"])
     assert spoiler["testo"] is None
     assert non_spoiler["testo"] == "Uno stile secco, quasi giornalistico."
+
+
+def test_raggruppati_per_lettura_lascia_il_testo_al_proprietario(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """La regola 10 protegge da uno spoiler altrui, non da un proprio
+    testo (issue #6): con `is_owner=True` nessuna riga viene tagliata,
+    nemmeno quella marcata spoiler."""
+    monkeypatch.setattr(
+        insight_repository,
+        "list_by_voce",
+        lambda client, voce_id: [{**_INSIGHT, "spoiler": True, "testo": "segreto"}],
+    )
+
+    per_lettura, _ = _run(
+        insight_service.raggruppati_per_lettura(
+            "test-token", _VOCE_ID, {_LETTURA_APERTA_ID}, is_owner=True
+        )
+    )
+
+    assert per_lettura[_LETTURA_APERTA_ID][0]["testo"] == "segreto"
 
 
 def test_raggruppati_per_lettura_mette_gli_orfani_senza_lettura(
@@ -393,7 +420,9 @@ def test_raggruppati_per_lettura_mette_gli_orfani_senza_lettura(
     )
 
     per_lettura, senza_lettura = _run(
-        insight_service.raggruppati_per_lettura("test-token", _VOCE_ID, {_LETTURA_APERTA_ID})
+        insight_service.raggruppati_per_lettura(
+            "test-token", _VOCE_ID, {_LETTURA_APERTA_ID}, is_owner=False
+        )
     )
 
     assert per_lettura == {}

@@ -112,22 +112,32 @@ async def elenco_libreria(access_token: str, utente_id: UUID) -> list[dict[str, 
     return await run_in_threadpool(firma_copertine, voci)
 
 
-async def dettaglio(access_token: str, voce_id: UUID) -> dict[str, Any] | None:
+async def dettaglio(
+    access_token: str, voce_id: UUID, richiedente_id: UUID
+) -> dict[str, Any] | None:
     """Oltre a Libro e storico delle Letture, compone recensione e insight
     (issue #5) con due query mirate invece di un embed PostgREST a più
     livelli — scomodo da esprimere (il bucket "senza lettura" richiederebbe
     un filtro `lettura_id is null` dentro l'embed) e da far convivere con
     il gating spoiler, che deve girare su una lista piatta prima di essere
     ridistribuita per Lettura (stesso schema "due query, non N+1" di
-    `utenti_service.elenco_membri`)."""
+    `utenti_service.elenco_membri`).
+
+    `richiedente_id` serve solo a distinguere le due viste che questa
+    rotta serve (proprietario o collegato in visione reciproca, issue #3)
+    per decidere se gli insight spoiler vanno tagliati — vedi
+    `insight_service.raggruppati_per_lettura`. Il confronto è un dettaglio
+    di presentazione, non di accesso: chi non è né proprietario né
+    collegato attivo non arriva fin qui, la RLS lo ferma prima."""
     client = get_user_client(access_token)
     voce = await run_in_threadpool(voce_repository.get_dettaglio, client, voce_id)
     if voce is None:
         return None
     voce["recensione"] = await run_in_threadpool(recensione_repository.get_by_voce, client, voce_id)
     id_letture = {UUID(lettura["id"]) for lettura in voce["letture"]}
+    is_owner = str(richiedente_id) == str(voce["utente_id"])
     per_lettura, senza_lettura = await insight_service.raggruppati_per_lettura(
-        access_token, voce_id, id_letture
+        access_token, voce_id, id_letture, is_owner
     )
     for lettura in voce["letture"]:
         lettura["insight"] = per_lettura.get(UUID(lettura["id"]), [])

@@ -17,6 +17,7 @@ import { StoricoLetture } from "@/components/libro/storico-letture";
 import { VotoStelle } from "@/components/libro/voto-stelle";
 import { NotaIntenzione } from "@/components/libro/nota-intenzione";
 import { Recensione } from "@/components/libro/recensione";
+import { PreviewPersonalizzata } from "@/components/libro/preview-personalizzata";
 import { InsightLista } from "@/components/libro/insight-lista";
 
 const ETICHETTA_STATO: Record<string, string> = {
@@ -188,6 +189,14 @@ export function Scheda({
 
           <p className="t-label mb-4">{ETICHETTA_STATO[data.stato]}</p>
 
+          {/* Su un libro da leggere "me lo consigli?" prende il posto dei
+              dati di lettura (design doc §9): non c'è nulla da
+              registrare, e la domanda è quella. Solo sulla propria copia:
+              una preview è privata per costruzione (regola 23). */}
+          {isOwner && data.stato === "da_leggere" && (
+            <PreviewPersonalizzata voceId={data.id} inEvidenza />
+          )}
+
           {isOwner && data.stato === "in_lettura" ? (
             letturaAperta && (
               <SegnalibroAvanzamento
@@ -223,6 +232,12 @@ export function Scheda({
           <Recensione voceId={data.id} recensione={data.recensione} isOwner={isOwner} />
 
           {isOwner && <NotaIntenzione voceId={data.id} notaIntenzione={data.notaIntenzione} />}
+
+          {/* Negli altri stati il parere resta disponibile, ma in coda:
+              su un libro già cominciato non è più la cosa principale. */}
+          {isOwner && data.stato !== "da_leggere" && (
+            <PreviewPersonalizzata voceId={data.id} inEvidenza={false} />
+          )}
         </section>
       </div>
 

@@ -10,10 +10,13 @@ import type { Visibilita } from "@/lib/api/recensioni";
 export type { Visibilita };
 
 /** Forma annidata in `GET /voci/{id}` (`letture[].insight` e
- * `insightSenzaLettura`): `testo` è `null` se e solo se `spoiler` è vero,
- * incondizionatamente — vale anche sui propri insight (design doc §11: "il
- * taglio non è un permesso, è un avviso"). Il testo pieno si ottiene solo
- * con `rivelaInsightTesto`, dietro un gesto esplicito. */
+ * `insightSenzaLettura`): `testo` è `null` se e solo se `spoiler` è vero
+ * **e chi guarda non è il proprietario** — un collegato in visione
+ * reciproca lo vede tagliato, il proprietario vede sempre il testo pieno
+ * (design doc §11, rivisto nell'issue #6: la regola 10 protegge da uno
+ * spoiler altrui, non da un proprio testo). Per il collegato, il testo
+ * pieno si ottiene solo con `rivelaInsightTesto`, dietro un gesto
+ * esplicito. */
 export type InsightEssenziale = {
   id: string;
   testo: string | null;

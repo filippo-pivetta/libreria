@@ -41,6 +41,7 @@ def test_me_returns_profile_when_provisioned(
             "consenso_elaborazione_assistita": True,
             "consenso_aggiornato_at": "2026-08-18T00:00:00Z",
             "informativa_accettata_at": None,
+            "indici_stato": "pronti",
         }
 
     monkeypatch.setattr(me_service, "get_me", _fake_get_me)
@@ -88,6 +89,7 @@ def test_complete_account_returns_created_profile(
             "consenso_elaborazione_assistita": True,
             "consenso_aggiornato_at": "2026-08-19T00:00:00Z",
             "informativa_accettata_at": "2026-08-19T00:00:00Z",
+            "indici_stato": "pronti",
         }
 
     monkeypatch.setattr(me_service, "complete_account", _fake_complete_account)
@@ -136,3 +138,109 @@ def test_complete_account_requires_authentication(client: TestClient) -> None:
     response = client.post("/me", json={"nome_utente": "prova"})
 
     assert response.status_code == 401
+
+
+# --- PATCH /me/consenso (issue #6) -------------------------------------------
+
+
+def test_patch_consenso_spegne_e_restituisce_il_profilo(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake(access_token: str, utente_id: UUID, consenso: bool) -> dict[str, Any]:
+        assert access_token == "test-token"
+        assert utente_id == _USER_ID
+        assert consenso is False
+        return {
+            "id": str(utente_id),
+            "nome_utente": "prova",
+            "consenso_elaborazione_assistita": False,
+            "consenso_aggiornato_at": "2026-08-22T09:00:00Z",
+            "informativa_accettata_at": "2026-08-18T00:00:00Z",
+            "indici_stato": "pronti",
+        }
+
+    monkeypatch.setattr(me_service, "aggiorna_consenso", _fake)
+
+    response = authenticated.patch("/me/consenso", json={"consenso": False})
+
+    assert response.status_code == 200
+    assert response.json()["consenso_elaborazione_assistita"] is False
+
+
+def test_patch_consenso_non_accetta_altri_campi(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`informativa_accettata_at` è la prova di un consenso informato: il
+    corpo non deve avere alcun modo di riscriverla, nemmeno provandoci.
+    Il database la difende comunque con il grant per colonna della
+    migrazione 20260822090000; qui si verifica che il valore inviato non
+    arrivi nemmeno al service."""
+    visti: list[bool] = []
+
+    async def _fake(access_token: str, utente_id: UUID, consenso: bool) -> dict[str, Any]:
+        visti.append(consenso)
+        return {
+            "id": str(utente_id),
+            "nome_utente": "prova",
+            "consenso_elaborazione_assistita": consenso,
+            "consenso_aggiornato_at": "2026-08-22T09:00:00Z",
+            "informativa_accettata_at": "2026-08-18T00:00:00Z",
+            "indici_stato": "pronti",
+        }
+
+    monkeypatch.setattr(me_service, "aggiorna_consenso", _fake)
+
+    response = authenticated.patch(
+        "/me/consenso",
+        json={"consenso": True, "informativa_accettata_at": "1999-01-01T00:00:00Z"},
+    )
+
+    assert response.status_code == 200
+    assert visti == [True]
+    assert response.json()["informativa_accettata_at"] == "2026-08-18T00:00:00Z"
+
+
+def test_patch_consenso_rifiuta_un_corpo_senza_booleano(authenticated: TestClient) -> None:
+    assert authenticated.patch("/me/consenso", json={}).status_code == 422
+    assert authenticated.patch("/me/consenso", json={"consenso": "forse"}).status_code == 422
+
+
+def test_patch_consenso_404_se_account_non_completato(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake(access_token: str, utente_id: UUID, consenso: bool) -> None:
+        return None
+
+    monkeypatch.setattr(me_service, "aggiorna_consenso", _fake)
+
+    assert authenticated.patch("/me/consenso", json={"consenso": False}).status_code == 404
+
+
+def test_patch_consenso_richiede_autenticazione(client: TestClient) -> None:
+    """Senza override: che la dependency reale sia agganciata alla route."""
+    assert client.patch("/me/consenso", json={"consenso": False}).status_code == 401
+
+
+def test_me_espone_indici_stato(authenticated: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regressione: `indici_stato` esisteva già nel database e nel
+    repository, ma senza un campo dichiarato in `MeResponse` il
+    `response_model` di FastAPI lo scartava in silenzio prima che
+    arrivasse al frontend, lasciando la Torre senza alcun segnale reale
+    sullo stato degli indici (segnalato dall'uso: issue #6)."""
+
+    async def _fake_get_me(access_token: str, utente_id: UUID) -> dict[str, Any]:
+        return {
+            "id": str(utente_id),
+            "nome_utente": "prova",
+            "consenso_elaborazione_assistita": True,
+            "consenso_aggiornato_at": "2026-08-18T00:00:00Z",
+            "informativa_accettata_at": None,
+            "indici_stato": "in_ricostruzione",
+        }
+
+    monkeypatch.setattr(me_service, "get_me", _fake_get_me)
+
+    response = authenticated.get("/me")
+
+    assert response.status_code == 200
+    assert response.json()["indici_stato"] == "in_ricostruzione"

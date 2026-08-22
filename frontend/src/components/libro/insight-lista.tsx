@@ -71,10 +71,13 @@ function UnSoloInsight({
 
   // Tagliata finché lo spoiler è acceso e nessuno ha ancora chiesto di
   // scoprirlo in questa sessione (design doc §11: "il server manda solo
-  // il fatto che esiste, il gesto di scoprire fa una richiesta"). Vale
-  // identico sui propri insight quanto su quelli di un collegato — non è
-  // un permesso, è un avviso.
-  const tagliata = insight.spoiler && testoRivelato === null;
+  // il fatto che esiste, il gesto di scoprire fa una richiesta") — ma
+  // solo per un collegato: la regola 10 protegge da uno spoiler altrui,
+  // non da un proprio testo, quindi il proprietario lo vede sempre per
+  // intero (`insight.testo` non è mai `null` per lui, il backend non lo
+  // taglia). `tagliata` resta comunque falsa anche per un `isOwner` con
+  // `insight.testo === null`, che a questo punto non può capitare.
+  const tagliata = !isOwner && insight.spoiler && testoRivelato === null;
   const testo = testoRivelato ?? insight.testo ?? "";
   const isAppunto = testo.length > SOGLIA_SENTENZA;
 
@@ -103,7 +106,10 @@ function UnSoloInsight({
               Mostra tutto
             </button>
           )}
-          <p className="t-meta mt-2">{formattaData(insight.data)}</p>
+          <p className="t-meta mt-2">
+            {formattaData(insight.data)}
+            {isOwner && insight.spoiler ? " · spoiler per i tuoi collegati" : ""}
+          </p>
         </>
       )}
       {isOwner && (

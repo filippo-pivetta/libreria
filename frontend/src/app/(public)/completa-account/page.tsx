@@ -12,14 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
-
-// Testi del PRD, parola per parola: il design doc vieta di riscriverli
-// in forma più breve o più simpatica (docs/design-frontend.md §17) —
-// sono la base di un consenso informato.
-const AVVISO_VISIBILITA =
-  "I tuoi collegati vedono la tua libreria, gli stati di lettura, gli avanzamenti, i voti, le metriche e, salvo che tu li renda privati, le tue recensioni e i tuoi insight. Le note restano sempre e solo tue.";
-const TESTO_CONSENSO =
-  "Consenti l'elaborazione assistita. I testi che scrivi, insight e recensioni compresi, e le foto che carichi vengono inviati a OpenAI per generare consigli, sintesi e ricerche. Non vengono usati per addestrare modelli e restano nei loro sistemi fino a trenta giorni. Disattivando, queste funzioni si spengono e gli indici di ricerca costruiti sui tuoi testi vengono cancellati.";
+// Testi del PRD, parola per parola (docs/design-frontend.md §17):
+// dall'issue #6 servono anche nelle impostazioni della Torre.
+import { AVVISO_VISIBILITA, TESTO_CONSENSO } from "@/lib/testi-consenso";
 
 type Phase = "checking" | "no_session" | "form" | "submitting";
 

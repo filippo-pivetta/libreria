@@ -62,7 +62,7 @@ async def get_voce(
     voce_id: UUID,
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
 ) -> dict[str, Any]:
-    voce = await voci_service.dettaglio(current_user.access_token, voce_id)
+    voce = await voci_service.dettaglio(current_user.access_token, voce_id, current_user.id)
     if voce is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")
     return voce

@@ -161,7 +161,9 @@ def test_post_voci_requires_authentication(client: TestClient) -> None:
 def test_get_voce_returns_detail(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def _fake_dettaglio(access_token: str, voce_id: UUID) -> dict[str, Any] | None:
+    async def _fake_dettaglio(
+        access_token: str, voce_id: UUID, richiedente_id: UUID
+    ) -> dict[str, Any] | None:
         assert voce_id == _VOCE_ID
         return {
             **_VOCE,
@@ -201,7 +203,9 @@ def test_get_voce_returns_detail(
 def test_get_voce_returns_404_when_missing(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def _fake_dettaglio(access_token: str, voce_id: UUID) -> dict[str, Any] | None:
+    async def _fake_dettaglio(
+        access_token: str, voce_id: UUID, richiedente_id: UUID
+    ) -> dict[str, Any] | None:
         return None
 
     monkeypatch.setattr(voci_service, "dettaglio", _fake_dettaglio)
@@ -228,51 +232,79 @@ _LETTURA_APERTA_ID = UUID("00000000-0000-0000-0000-0000000000c1")
 _LETTURA_CANCELLATA_ID = UUID("00000000-0000-0000-0000-0000000000c9")
 
 
-def test_get_voce_dettaglio_nasconde_testo_spoiler_anche_al_proprietario(
-    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Il test cardine della regola 10 (PRD): un insight contrassegnato
-    spoiler non è mai restituito in chiaro in un elenco, nemmeno al
-    proprietario che guarda la propria scheda (design-frontend.md §11:
-    "non è un permesso, è un avviso"). `authenticated` impersona proprio il
-    proprietario (`_USER_ID` = `_VOCE.utente_id`), non un terzo: se il
-    gating dipendesse per errore da chi guarda, questo test lo scoprirebbe."""
-    monkeypatch.setattr(
-        voce_repository,
-        "get_dettaglio",
-        lambda client, voce_id: {
-            **_VOCE,
-            "libro": _LIBRO,
-            "letture": [
-                {
-                    "id": str(_LETTURA_APERTA_ID),
-                    "data_inizio": "2026-08-15",
-                    "data_fine": None,
-                    "esito": None,
-                    "avanzamenti": [],
-                }
-            ],
-        },
-    )
-    monkeypatch.setattr(recensione_repository, "get_by_voce", lambda client, voce_id: None)
-    monkeypatch.setattr(
-        insight_repository,
-        "list_by_voce",
-        lambda client, voce_id: [
+def _get_dettaglio_con_insight_spoiler(client: Any, voce_id: UUID) -> dict[str, Any]:
+    return {
+        **_VOCE,
+        "libro": _LIBRO,
+        "letture": [
             {
-                "id": "00000000-0000-0000-0000-0000000000f1",
-                "voce_id": str(_VOCE_ID),
-                "lettura_id": str(_LETTURA_APERTA_ID),
-                "testo": "Il finale mi ha sorpreso.",
-                "spoiler": True,
-                "visibilita": "condiviso",
-                "data": "2026-08-16",
-                "creato_at": "2026-08-16T00:00:00Z",
+                "id": str(_LETTURA_APERTA_ID),
+                "data_inizio": "2026-08-15",
+                "data_fine": None,
+                "esito": None,
+                "avanzamenti": [],
             }
         ],
-    )
+    }
+
+
+def _list_by_voce_con_insight_spoiler(client: Any, voce_id: UUID) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "00000000-0000-0000-0000-0000000000f1",
+            "voce_id": str(_VOCE_ID),
+            "lettura_id": str(_LETTURA_APERTA_ID),
+            "testo": "Il finale mi ha sorpreso.",
+            "spoiler": True,
+            "visibilita": "condiviso",
+            "data": "2026-08-16",
+            "creato_at": "2026-08-16T00:00:00Z",
+        }
+    ]
+
+
+def test_get_voce_dettaglio_mostra_lo_spoiler_al_proprietario(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """La regola 10 (PRD) protegge da uno spoiler *altrui*, non da un
+    proprio testo (design-frontend.md §11, rivisto nell'issue #6):
+    `authenticated` impersona proprio il proprietario (`_USER_ID` =
+    `_VOCE.utente_id`), e deve vedere il testo pieno senza alcun taglio.
+    Fino all'issue #6 questo stesso scenario era il test cardine della
+    regola opposta — la storia di questo file è la controprova che il
+    gating non protegge il proprietario da se stesso."""
+    monkeypatch.setattr(voce_repository, "get_dettaglio", _get_dettaglio_con_insight_spoiler)
+    monkeypatch.setattr(recensione_repository, "get_by_voce", lambda client, voce_id: None)
+    monkeypatch.setattr(insight_repository, "list_by_voce", _list_by_voce_con_insight_spoiler)
 
     response = authenticated.get(f"/voci/{_VOCE_ID}")
+
+    assert response.status_code == 200
+    insight_nella_lettura = response.json()["letture"][0]["insight"]
+    assert len(insight_nella_lettura) == 1
+    assert insight_nella_lettura[0]["spoiler"] is True
+    assert insight_nella_lettura[0]["testo"] == "Il finale mi ha sorpreso."
+
+
+def test_get_voce_dettaglio_nasconde_lo_spoiler_a_un_collegato(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """La stessa Voce, vista da un id diverso da quello del proprietario
+    (visione reciproca, issue #3): qui il gating resta quello di sempre —
+    il testo non è mai restituito in chiaro. La RLS garantisce che solo un
+    collegato attivo arrivi fin qui; questo test verifica solo il
+    comportamento di presentazione, non l'accesso alla riga."""
+    _COLLEGATO_ID = UUID("00000000-0000-0000-0000-000000000002")
+    monkeypatch.setattr(voce_repository, "get_dettaglio", _get_dettaglio_con_insight_spoiler)
+    monkeypatch.setattr(recensione_repository, "get_by_voce", lambda client, voce_id: None)
+    monkeypatch.setattr(insight_repository, "list_by_voce", _list_by_voce_con_insight_spoiler)
+    app.dependency_overrides[get_current_user] = lambda: AuthenticatedUser(
+        id=_COLLEGATO_ID, email="ignorata@example.com", access_token="test-token"
+    )
+    try:
+        response = client.get(f"/voci/{_VOCE_ID}")
+    finally:
+        del app.dependency_overrides[get_current_user]
 
     assert response.status_code == 200
     insight_nella_lettura = response.json()["letture"][0]["insight"]

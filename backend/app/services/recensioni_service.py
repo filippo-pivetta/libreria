@@ -9,6 +9,7 @@ from postgrest.exceptions import APIError
 
 from app.core.supabase import get_user_client
 from app.repositories import recensione_repository
+from app.services import indicizzazione
 
 
 async def scrivi(
@@ -21,13 +22,15 @@ async def scrivi(
     `voci_service.correggi_nota_intenzione`."""
     client = get_user_client(access_token)
     try:
-        return await run_in_threadpool(
+        scritta = await run_in_threadpool(
             recensione_repository.upsert, client, voce_id, utente_id, testo, visibilita
         )
     except APIError as error:
         if error.code == "23503":
             return None
         raise
+    await indicizzazione.accoda(access_token, utente_id, "recensione", UUID(str(scritta["id"])))
+    return scritta
 
 
 async def cancella(access_token: str, voce_id: UUID) -> bool:

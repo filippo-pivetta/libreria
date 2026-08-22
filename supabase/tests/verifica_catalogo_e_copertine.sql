@@ -129,7 +129,13 @@ begin
      set copertina_stato = 'presente',
          copertina_miniatura_path = 'copertine/e1/miniatura.webp',
          copertina_grande_path = 'copertine/e1/grande.webp',
-         copertina_colore_dominante = '#3a2f28'
+         copertina_colore_dominante = '#3a2f28',
+         -- Aggiunto il 22 agosto 2026 (issue #6): la migrazione
+         -- 20260821180000 ha introdotto
+         -- chk_libro_copertina_colore_scuro_coerente, che lega i due
+         -- colori (o entrambi nulli o entrambi valorizzati), e questo
+         -- script non era stato aggiornato — falliva su main da allora.
+         copertina_colore_dominante_scuro = '#221c18'
    where id = '00000000-0000-0000-0000-0000000000e1';
   select copertina_stato into v_stato from public.libro where id = '00000000-0000-0000-0000-0000000000e1';
   if v_stato <> 'presente' then
