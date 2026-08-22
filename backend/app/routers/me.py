@@ -1,9 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.core.security import get_current_user
+from app.core.tempo import oggi_europa_centrale
 from app.schemas.auth import AuthenticatedUser
-from app.schemas.me import CompleteAccountRequest, ConsensoUpdateRequest, MeResponse
-from app.services import me_service
+from app.schemas.me import (
+    CompleteAccountRequest,
+    ConsensoUpdateRequest,
+    EliminaAccountRequest,
+    MeResponse,
+)
+from app.services import export_service, me_service
 
 router = APIRouter(tags=["me"])
 
@@ -72,3 +78,47 @@ async def patch_consenso(
             "Il tuo account non è ancora stato completato.",
         )
     return MeResponse(**result)
+
+
+@router.get("/me/export/libri-letti")
+async def esporta_libri_letti(
+    current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+) -> Response:
+    """CSV dei libri con stato "letto" dell'utente (issue #8, ADR 0011
+    rivisto, PRD comportamento 14bis). Nessuna conferma: non è un'azione
+    distruttiva."""
+    contenuto = await export_service.libri_letti_csv(current_user.access_token, current_user.id)
+    nome_file = f"libri-letti-{oggi_europa_centrale().isoformat()}.csv"
+    return Response(
+        content=contenuto,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{nome_file}"'},
+    )
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def elimina_account(
+    body: EliminaAccountRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+) -> None:
+    """Cancellazione self-service dell'account (issue #8, PRD regole
+    26-29): la conferma è digitare il proprio nome utente, verificata
+    server-side in `me_service.elimina_account` (mai fidarsi solo del
+    pulsante disabilitato lato client, AGENTS.md)."""
+    try:
+        await me_service.elimina_account(
+            current_user.access_token, current_user.id, body.conferma_nome_utente
+        )
+    except me_service.ContoNonTrovatoError as error:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Il tuo account non è ancora stato completato.",
+        ) from error
+    except me_service.ConfermaNonCorrispondenteError as error:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            {
+                "error_code": "conferma_non_corrispondente",
+                "message": "Il nome utente digitato non corrisponde.",
+            },
+        ) from error

@@ -8,8 +8,8 @@ import { SezioneImpostazioni } from "@/components/torre/sezione-impostazioni";
 /**
  * Torre (design doc §17): una superficie sola, due sezioni. Sopra i
  * collegamenti, sotto le impostazioni — avviso di visibilità, consenso
- * all'elaborazione assistita (issue #6), cancellazione dell'account
- * (issue #8, ancora una nota).
+ * all'elaborazione assistita (issue #6), esportazione dei libri letti e
+ * cancellazione dell'account (issue #8, ADR 0011 rivisto).
  */
 export default async function TowerPage() {
   const supabase = await createClient();
@@ -47,6 +47,7 @@ export default async function TowerPage() {
 
       <div className="border-t border-line pt-8">
         <SezioneImpostazioni
+          nomeUtente={me.data.nomeUtente}
           consensoIniziale={me.data.consensoElaborazioneAssistita}
           indiciStatoIniziale={me.data.indiciStato}
         />

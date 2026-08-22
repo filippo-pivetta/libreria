@@ -89,6 +89,11 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Senza, il browser non lascia leggere Content-Disposition da una
+        # risposta cross-origin (frontend su Vercel, backend altrove):
+        # GET /me/export/libri-letti lo usa per il nome del file scaricato
+        # (issue #8).
+        expose_headers=["Content-Disposition"],
     )
 
     # Rete di sicurezza per tutto ciò che sfugge alle HTTPException

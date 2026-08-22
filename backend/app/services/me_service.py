@@ -1,16 +1,17 @@
 """Orchestrazione di `/me`: composizione di `utente` + `utente_privato`,
 caso "non ancora provisionato", completamento dell'account dopo l'invito
-del Manutentore (docs/adr/0013) e cambio del consenso all'elaborazione
-assistita (issue #6).
+del Manutentore (docs/adr/0013), cambio del consenso all'elaborazione
+assistita (issue #6) e cancellazione dell'account (issue #8).
 """
 
+import logging
 from typing import Any
 from uuid import UUID
 
 from fastapi.concurrency import run_in_threadpool
 from postgrest.exceptions import APIError
 
-from app.core.supabase import get_user_client
+from app.core.supabase import get_service_client, get_user_client
 from app.repositories import (
     database,
     indice_semantico_repository,
@@ -18,6 +19,8 @@ from app.repositories import (
     utente_repository,
 )
 from app.services import consenso as consenso_service
+
+logger = logging.getLogger(__name__)
 
 
 class NomeUtenteInUsoError(Exception):
@@ -28,6 +31,19 @@ class NomeUtenteInUsoError(Exception):
 class AccountGiaCompletatoError(Exception):
     """Questo utente ha già una riga `public.utente` (vincolo
     `utente_pkey`): probabile doppio invio dello stesso completamento."""
+
+
+class ContoNonTrovatoError(Exception):
+    """Nessuna riga `public.utente` per questo id: l'account non è mai
+    stato completato (docs/adr/0013), quindi non c'è nulla da cancellare
+    da questo canale."""
+
+
+class ConfermaNonCorrispondenteError(Exception):
+    """La stringa digitata non coincide con `nome_utente` (PRD regola 28):
+    la cancellazione non deve procedere. Non è un errore di autorizzazione
+    — l'utente sta cancellando il proprio account, non quello di
+    qualcun altro — per questo il router la mappa su 400, non su 403."""
 
 
 async def get_me(access_token: str, utente_id: UUID) -> dict[str, Any] | None:
@@ -131,4 +147,51 @@ def _accoda_ricostruzione(utente_id: UUID) -> None:
     with database.apri_connessione() as connessione:
         lavoro_repository.accoda(
             connessione, "ricostruzione_indici", str(utente_id), {"utente_id": str(utente_id)}
+        )
+
+
+async def elimina_account(access_token: str, utente_id: UUID, conferma_nome_utente: str) -> None:
+    """Cancellazione self-service dell'account (issue #8, PRD regole 26-29).
+
+    Due passi, in quest'ordine deliberato:
+
+    1. Cancella `public.utente` con l'identità dell'utente (RLS
+       `utente_delete_owner`, docs/adr/0001, come ogni altra scrittura che
+       nasce da un'azione sua). La cascata dello schema
+       (migrazione 20260818115830) travolge da sola libreria, letture,
+       avanzamenti, voti, recensioni, insight, note, artefatti generati e
+       indici semantici: nessuna di queste tabelle va toccata qui.
+    2. Solo dopo, rimuove la riga `auth.users` con l'Auth Admin API e la
+       chiave di servizio (`get_service_client`, docs/adr/0001 — nessun
+       ruolo `authenticated` ha privilegi su quello schema). L'ordine
+       inverso lascerebbe una finestra in cui l'utente non può più
+       autenticarsi ma i suoi dati applicativi sono ancora leggibili da
+       un collegato, l'esatto opposto della regola 26.
+
+    Se il passo 2 fallisce, l'eccezione è loggata e **non rilanciata**: i
+    dati applicativi sono già spariti al passo 1, che è ciò che le regole
+    26/27 richiedono, e non c'è nulla da far tornare indietro (il passo 1
+    non è annullabile). Resta un residuo in `auth.users` senza alcun
+    retry automatico — gotcha documentato in AGENTS.md, pulizia manuale
+    del Manutentore (ADR 0007), scelta di semplicità per una scala di
+    poche persone.
+    """
+    client = get_user_client(access_token)
+    utente = await run_in_threadpool(utente_repository.get_utente, client, utente_id)
+    if utente is None:
+        raise ContoNonTrovatoError
+
+    if conferma_nome_utente != utente["nome_utente"]:
+        raise ConfermaNonCorrispondenteError
+
+    await run_in_threadpool(utente_repository.delete_utente, client, utente_id)
+
+    try:
+        await run_in_threadpool(get_service_client().auth.admin.delete_user, str(utente_id))
+    except Exception:
+        logger.error(
+            "Cancellazione di auth.users fallita dopo la cascata su public.utente "
+            "(utente_id=%s): residuo da rimuovere a mano, vedi AGENTS.md.",
+            utente_id,
+            exc_info=True,
         )

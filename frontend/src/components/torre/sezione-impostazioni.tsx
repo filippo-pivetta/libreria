@@ -1,11 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 
-import { aggiornaConsenso, type IndiciStato } from "@/lib/api/me";
+import {
+  aggiornaConsenso,
+  eliminaAccount,
+  esportaLibriLetti,
+  type IndiciStato,
+} from "@/lib/api/me";
 import { getAccessToken } from "@/lib/api/access-token";
+import { createClient } from "@/lib/supabase/client";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AVVISO_VISIBILITA,
   EFFETTO_REVOCA,
@@ -14,14 +23,11 @@ import {
   TESTO_CONSENSO,
 } from "@/lib/testi-consenso";
 
-const NOTA_CANCELLAZIONE =
-  "La cancellazione dell'account arriva con la prossima issue.";
-
 /**
  * Sezione impostazioni della Torre (design doc §17): l'avviso di
- * visibilità, il consenso all'elaborazione assistita, la cancellazione
- * dell'account — tre cose e basta, in quest'ordine. La terza dipende
- * dall'issue #8 e resta una nota.
+ * visibilità, il consenso all'elaborazione assistita, l'esportazione dei
+ * libri letti, la cancellazione dell'account — quattro cose e basta, in
+ * quest'ordine (issue #6, issue #8, ADR 0011 rivisto).
  *
  * **Nessuna finestra di annullamento** come quella dei collegamenti,
  * benché spegnere il consenso cancelli davvero gli indici: interrompere
@@ -35,18 +41,28 @@ const NOTA_CANCELLAZIONE =
  * breve o più simpatica.
  */
 export function SezioneImpostazioni({
+  nomeUtente,
   consensoIniziale,
   indiciStatoIniziale,
 }: {
+  /** Serve solo a verificare lato client che la conferma digitata nella
+   * cancellazione coincida: il confronto che conta è comunque rifatto
+   * server-side (`DELETE /me`), questo è solo ciò che tiene il pulsante
+   * disabilitato. */
+  nomeUtente: string;
   consensoIniziale: boolean;
   /** Stato reale letto da `/me`: senza questo la sezione poteva solo
    * indovinare "in ricostruzione" dal booleano del consenso, senza mai
    * sapere se una ricostruzione precedente fosse davvero finita. */
   indiciStatoIniziale: IndiciStato;
 }) {
+  const router = useRouter();
   const [consenso, setConsenso] = useState(consensoIniziale);
   const [indiciStato, setIndiciStato] = useState(indiciStatoIniziale);
   const [errore, setErrore] = useState<string | null>(null);
+  const [erroreExport, setErroreExport] = useState<string | null>(null);
+  const [confermaNomeUtente, setConfermaNomeUtente] = useState("");
+  const [erroreCancellazione, setErroreCancellazione] = useState<string | null>(null);
 
   const mutazione = useMutation({
     mutationFn: async (valore: boolean) => {
@@ -75,6 +91,68 @@ export function SezioneImpostazioni({
       setConsenso(!valore);
       setErrore(
         err instanceof Error ? err.message : "Non è stato possibile cambiare il consenso.",
+      );
+    },
+  });
+
+  const mutazioneExport = useMutation({
+    mutationFn: async () => {
+      const token = await getAccessToken();
+      const result = await esportaLibriLetti(token);
+      if (result.status !== "ok") {
+        throw new Error(result.message);
+      }
+      return result;
+    },
+    onMutate: () => setErroreExport(null),
+    onSuccess: ({ blob, filename }) => {
+      // Nessun link scaricabile dal server: si costruisce qui, si clicca
+      // da soli, si libera subito dopo — lo stesso pattern usato per
+      // qualunque download avviato da fetch autenticata.
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    onError: (err: unknown) => {
+      setErroreExport(
+        err instanceof Error ? err.message : "Non è stato possibile scaricare il file.",
+      );
+    },
+  });
+
+  const mutazioneCancellazione = useMutation({
+    mutationFn: async () => {
+      const token = await getAccessToken();
+      const result = await eliminaAccount(token, confermaNomeUtente);
+      if (result.status !== "ok") {
+        throw new Error(
+          result.status === "conferma_non_corrispondente"
+            ? "Il nome utente digitato non corrisponde."
+            : result.status === "not_provisioned"
+              ? "Il tuo account non risulta completato."
+              : result.message,
+        );
+      }
+    },
+    onMutate: () => setErroreCancellazione(null),
+    onSuccess: async () => {
+      // La sessione locale va comunque ripulita anche se il backend, a
+      // questo punto, non ha più una riga auth.users da cui farla
+      // scadere: signOut() non deve poter far fallire una cancellazione
+      // già avvenuta (me_service.elimina_account l'ha già eseguita).
+      try {
+        await createClient().auth.signOut();
+      } catch {
+        // ignorato deliberatamente
+      }
+      router.push("/account-eliminato");
+    },
+    onError: (err: unknown) => {
+      setErroreCancellazione(
+        err instanceof Error ? err.message : "Non è stato possibile cancellare l'account.",
       );
     },
   });
@@ -114,8 +192,46 @@ export function SezioneImpostazioni({
       </section>
 
       <section className="flex flex-col gap-2">
+        <p className="t-label">Esporta i libri letti</p>
+        <p className="t-meta max-w-prose">
+          Scarica un CSV con i libri che hai segnato come letti: titolo, autori, generi, date di
+          lettura, voto e recensione. Non include i tuoi insight né la nota di intenzione.
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="self-start"
+          onClick={() => mutazioneExport.mutate()}
+          disabled={mutazioneExport.isPending}
+        >
+          Scarica CSV
+        </Button>
+        {erroreExport && <p className="t-meta text-xs">{erroreExport}</p>}
+      </section>
+
+      <section className="flex flex-col gap-2">
         <p className="t-label">Cancellazione dell&apos;account</p>
-        <p className="t-meta max-w-prose">{NOTA_CANCELLAZIONE}</p>
+        <p className="t-meta max-w-prose">
+          Scrivi il tuo nome utente («{nomeUtente}») per confermare. La cancellazione è immediata
+          e definitiva.
+        </p>
+        <div className="flex max-w-sm items-center gap-2">
+          <Input
+            value={confermaNomeUtente}
+            onChange={(event) => setConfermaNomeUtente(event.target.value)}
+            placeholder={nomeUtente}
+            aria-label="Nome utente di conferma"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => mutazioneCancellazione.mutate()}
+            disabled={confermaNomeUtente !== nomeUtente || mutazioneCancellazione.isPending}
+          >
+            Elimina l&apos;account
+          </Button>
+        </div>
+        {erroreCancellazione && <p className="t-meta text-xs">{erroreCancellazione}</p>}
       </section>
     </div>
   );

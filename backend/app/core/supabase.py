@@ -5,9 +5,20 @@ che originano da un utente vanno eseguite con la sua identità, cosi che le
 regole di riga (RLS) restino sempre valutate.
 
 La chiave di servizio bypassa la RLS per definizione della piattaforma, e in
-questo backend ha un solo uso ammesso: lo spazio file delle copertine. Non
-tocca mai una riga — nemmeno una riga di catalogo, che pure non appartiene a
-un Utente. Il confine e le sue ragioni stanno in docs/adr/0016.
+questo backend ha due soli usi ammessi:
+
+    1. lo spazio file delle copertine (app/core/storage.py). Non tocca mai
+       una riga — nemmeno una riga di catalogo, che pure non appartiene a un
+       Utente. Il confine e le sue ragioni stanno in docs/adr/0016.
+    2. la cancellazione dell'account (app/services/me_service.py,
+       `elimina_account`, issue #8): `auth.admin.delete_user`, l'unico modo
+       di rimuovere una riga in `auth.users`, schema su cui un ruolo
+       `authenticated` non ha alcun privilegio. Arriva sempre *dopo* che la
+       riga `public.utente` è già stata cancellata con l'identità
+       dell'utente (RLS, `utente_delete_owner`): la chiave di servizio non
+       decide mai da sola se un account va cancellato, si limita a
+       completare fuori dallo schema `public` una cancellazione già
+       avvenuta lì.
 """
 
 from functools import lru_cache
@@ -27,8 +38,9 @@ def get_user_client(access_token: str) -> Client:
 
 @lru_cache
 def get_service_client() -> Client:
-    """Client con la chiave di servizio, ammesso **solo** per lo spazio file
-    delle copertine (app/core/storage.py).
+    """Client con la chiave di servizio, ammesso solo per lo spazio file
+    delle copertine (app/core/storage.py) e per la cancellazione
+    dell'account (app/services/me_service.py::elimina_account, issue #8).
 
     Non è la via per scrivere il catalogo, benché il catalogo sia dato
     condiviso senza proprietario: quelle scritture passano da
