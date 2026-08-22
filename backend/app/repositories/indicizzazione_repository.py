@@ -38,6 +38,29 @@ _SQL_TESTI = {
     """,
 }
 
+# Stessa selezione di sopra ristretta a un solo id, ma scritta per intero
+# invece di concatenare `_SQL_TESTI[tipo] + " and id = ..."` a runtime:
+# Semgrep marca ogni `cursor.execute(stringa + stringa, ...)` come
+# possibile SQL injection a prescindere da cosa contengano le stringhe
+# (`python.sqlalchemy.security.sqlalchemy-execute-raw-query`), e qui
+# entrambe sono letterali fissi — il valore vero passa parametrizzato.
+# Riscritta come letterale invece che silenziata: il pattern che la
+# regola blocca sparisce, non solo l'avviso.
+_SQL_TESTO_SINGOLO = {
+    "insight": """
+        select i.id, i.testo
+          from public.insight i
+         where i.utente_id = %(utente_id)s
+           and i.id = %(contenuto_id)s
+    """,
+    "recensione": """
+        select r.id, r.testo
+          from public.recensione r
+         where r.utente_id = %(utente_id)s
+           and r.id = %(contenuto_id)s
+    """,
+}
+
 
 def consenso_attivo(connection: psycopg.Connection[Any], utente_id: UUID) -> bool | None:
     """`None` quando la riga non esiste più: l'account è stato cancellato
@@ -59,11 +82,11 @@ def testo_contenuto(
 ) -> str | None:
     """Il testo di un solo insight o di una sola recensione, **del solo
     Utente indicato**. `None` se la riga non esiste più o non è sua."""
-    if tipo not in _SQL_TESTI:
+    if tipo not in _SQL_TESTO_SINGOLO:
         raise ValueError(f"tipo di contenuto sconosciuto: {tipo}")
     with connection.cursor() as cursor:
         cursor.execute(
-            _SQL_TESTI[tipo] + " and id = %(contenuto_id)s",
+            _SQL_TESTO_SINGOLO[tipo],
             {"utente_id": str(utente_id), "contenuto_id": str(contenuto_id)},
         )
         riga = cursor.fetchone()
