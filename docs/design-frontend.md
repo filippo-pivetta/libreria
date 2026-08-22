@@ -1079,6 +1079,37 @@ Non richiede consenso dell'Utente (funzione bibliografica su dato condiviso, com
 dell'issue #20 — ADR 0008): lavora solo su titolo/autori/anno/generi/descrizione di catalogo,
 mai su contenuto personale.
 
+**Emendamento del 22 agosto 2026: traduzione assistita delle descrizioni mancanti (issue #24,
+sotto-issue rimanente di #20, punto 6 — bassa priorità).** Il meccanismo sopra recupera testo
+reale per lingua ma non traduce mai: dove nessuna fonte ha il testo in una delle due lingue
+dell'interfaccia, il blocco descrizione semplicemente non compare. Quando un'opera ha una
+descrizione reale in una lingua ma non nell'altra — tipicamente: testo inglese da Wikipedia,
+nessuna voce italiana — un lavoro in secondo piano (`app/lavori/traduzione_descrizione.py`)
+traduce il testo esistente verso la lingua mancante, mai lo genera da zero: stessa regola "mai
+inventato", applicata qui alla lingua invece che alla lunghezza. Accodato sia alla nascita della
+scheda (`catalogo_repository.crea_scheda`, quando Google Books ha scritto una sola lingua) sia
+dopo il tentativo Wikipedia (`app/lavori/descrizioni.py`, l'ultimo scrittore della pipeline
+quando Wikidata ha sitelink), perché solo lì si conosce lo stato definitivo delle due lingue.
+
+Scritture difensive, stesso principio delle altre funzioni di questa sezione: se un testo reale
+arriva per quella lingua fra l'accodamento e l'esecuzione (Wikipedia batte la traduzione), la
+scrittura della traduzione è un `insert ... on conflict do nothing` — non sovrascrive mai un
+testo reale con uno tradotto. Fonte e attribuzione (`fonte`, `url_fonte`) sono ereditate dalla
+riga sorgente: il testo cambia lingua, non provenienza — e l'attribuzione CC BY-SA di Wikipedia
+resta dovuta anche su un derivato tradotto. Un testo tradotto fuori dalla fascia 200-900
+caratteri viene accodato per la stessa standardizzazione già descritta sopra, invece di
+duplicare la logica di lunghezza nel prompt di traduzione.
+
+**Trattamento di trasparenza, decisione presa in questa issue**: nessun campo dedicato — si
+riusa `libro_descrizione.riformulata`, il cui significato si allarga da "riformulato" a "il
+testo di questa riga non è la citazione letterale della fonte in questa lingua" (migrazione
+20260822173331). Stessa sorte dell'etichetta in scheda: non reintrodotta, il campo resta solo
+nell'API.
+
+**Scope**: solo le due lingue dell'interfaccia (`it`/`en`). Se l'unica descrizione disponibile è
+in una terza lingua (un volume Google Books in una lingua diversa da queste due), resta fuori
+scope — la scheda si comporta come oggi, nessun blocco descrizione.
+
 ---
 
 ## 25. Ricerca semantica

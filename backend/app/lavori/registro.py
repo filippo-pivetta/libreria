@@ -19,6 +19,7 @@ from app.lavori import (
     riconduzione_autori,
     ricostruzione_indici,
     standardizzazione_descrizione,
+    traduzione_descrizione,
 )
 
 
@@ -50,6 +51,9 @@ GESTORI: dict[str, Gestore] = {
     "deduplicazione_libro": Gestore(deduplicazione.esegui, deduplicazione.su_fallimento),
     "standardizzazione_descrizione": Gestore(
         standardizzazione_descrizione.esegui, standardizzazione_descrizione.su_fallimento
+    ),
+    "traduzione_descrizione": Gestore(
+        traduzione_descrizione.esegui, traduzione_descrizione.su_fallimento
     ),
     "indicizzazione_semantica": Gestore(
         indicizzazione_semantica.esegui, indicizzazione_semantica.su_fallimento

@@ -41,6 +41,18 @@ scheda vuole. Tolleranza ampia apposta: solo ciò che è chiaramente fuori
 standard paga una chiamata al modello, non ogni descrizione più lunga del
 target."""
 
+_LINGUE_INTERFACCIA = ("it", "en")
+"""Le due lingue dell'interfaccia (PRD: bilingue dal primo giorno), per la
+traduzione assistita delle descrizioni (issue #24). Stessa coppia di
+`app/lavori/descrizioni.py::LINGUE`, duplicata qui e non importata: questo
+modulo sta sotto `app/lavori` nello strato dei repository, la dipendenza
+non può andare nell'altro verso (stessa duplicazione già accettata per
+`voce_repository._LINGUA_INTERFACCIA`)."""
+
+
+def _altra_lingua_interfaccia(lingua: str) -> str:
+    return _LINGUE_INTERFACCIA[1] if lingua == _LINGUE_INTERFACCIA[0] else _LINGUE_INTERFACCIA[0]
+
 
 def aggiorna_copertina(
     connection: psycopg.Connection[Any],
@@ -331,6 +343,33 @@ def crea_scheda(
                     "standardizzazione_descrizione",
                     f"{libro_id}:{lingua}",
                     {"libro_id": str(libro_id), "lingua": lingua},
+                )
+
+        # Issue #24 (sotto-issue rimanente di #20, punto 6): se una delle
+        # due lingue dell'interfaccia ha una descrizione reale (Google
+        # Books, appena scritta sopra) e l'altra no, il modello traduce.
+        # Accodato anche se la lingua mancante ha un titolo Wikipedia in
+        # attesa (sopra): `scrivi_descrizioni` sovrascrive sempre una
+        # traduzione con l'arrivo di un testo reale, quindi non c'è corsa
+        # da vincere qui — solo `app/lavori/descrizioni.py::esegui` fa lo
+        # stesso controllo a fresco dopo il tentativo Wikipedia, per la
+        # lingua che questo blocco non può ancora chiudere perché Google
+        # Books non l'ha fornita.
+        testi_per_lingua = {
+            lingua: testo for lingua, testo, _, _ in descrizioni if lingua in _LINGUE_INTERFACCIA
+        }
+        for lingua in _LINGUE_INTERFACCIA:
+            altra = _altra_lingua_interfaccia(lingua)
+            if testi_per_lingua.get(lingua) and not testi_per_lingua.get(altra):
+                lavoro_repository.accoda(
+                    connection,
+                    "traduzione_descrizione",
+                    f"{libro_id}:{altra}",
+                    {
+                        "libro_id": str(libro_id),
+                        "lingua_mancante": altra,
+                        "lingua_sorgente": lingua,
+                    },
                 )
 
         # Punti 1+2 dell'issue #20, accorpati in un solo lavoro: si accoda
@@ -803,3 +842,85 @@ def scrivi_descrizione_riformulata(
                 "massima": SOGLIA_MASSIMA_DESCRIZIONE,
             },
         )
+
+
+# ============================================================================
+# Traduzione assistita delle descrizioni mancanti (issue #24, sotto-issue
+# rimanente di #20 punto 6)
+# ============================================================================
+
+
+def leggi_descrizione_con_fonte(
+    connection: psycopg.Connection[Any], libro_id: str, lingua: str
+) -> tuple[str, str, str | None] | None:
+    """(testo, fonte, url_fonte) per (libro, lingua), letti freschi
+    all'esecuzione del lavoro di traduzione: la fonte e l'url servono ad
+    attribuire anche il testo tradotto alla fonte originale (i testi
+    Wikipedia sono CC BY-SA, l'attribuzione resta dovuta su un
+    derivato/traduzione)."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "select testo, fonte, url_fonte from public.libro_descrizione "
+            "where libro_id = %(libro)s and lingua = %(lingua)s",
+            {"libro": libro_id, "lingua": lingua},
+        )
+        riga = cursor.fetchone()
+        if riga is None:
+            return None
+        return str(riga[0]), str(riga[1]), (str(riga[2]) if riga[2] is not None else None)
+
+
+def leggi_descrizioni(
+    connection: psycopg.Connection[Any], libro_id: str, lingue: tuple[str, ...]
+) -> dict[str, str]:
+    """Il testo corrente per ciascuna delle `lingue` che ne ha uno, letto
+    fresco: usato dopo la scrittura Wikipedia (`app/lavori/descrizioni.py`)
+    per verificare se resta un'asimmetria fra le due lingue
+    dell'interfaccia da accodare per la traduzione."""
+    with connection.cursor(row_factory=dict_row) as cursor:
+        cursor.execute(
+            "select lingua, testo from public.libro_descrizione "
+            "where libro_id = %(libro)s and lingua = any(%(lingue)s)",
+            {"libro": libro_id, "lingue": list(lingue)},
+        )
+        return {str(r["lingua"]): str(r["testo"]) for r in cursor.fetchall()}
+
+
+def scrivi_descrizione_tradotta(
+    connection: psycopg.Connection[Any],
+    libro_id: str,
+    lingua: str,
+    testo: str,
+    fonte: str,
+    url_fonte: str | None,
+) -> bool:
+    """Inserisce la traduzione, marcata `riformulata` (decisione presa
+    nell'issue #24: nessun campo dedicato, stesso trattamento di
+    trasparenza della riformulazione — il campo copre ora entrambe le
+    trasformazioni). `fonte`/`url_fonte` ereditati dalla riga sorgente:
+    la fonte resta quella editoriale/enciclopedica originale, solo il
+    testo è diverso.
+
+    Mai un `update`: `on conflict do nothing` — se fra l'accodamento e
+    l'esecuzione è arrivato un testo reale per questa lingua (tipicamente
+    Wikipedia, dopo che `app/lavori/descrizioni.py` ha trovato la voce),
+    quella riga vince e la traduzione non ha più senso di esistere.
+    Ritorna se la riga è stata scritta, così il chiamante sa se vale la
+    pena controllare la lunghezza per l'eventuale standardizzazione."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            insert into public.libro_descrizione
+              (libro_id, lingua, testo, fonte, url_fonte, riformulata)
+            values (%(libro)s, %(lingua)s, %(testo)s, %(fonte)s, %(url)s, true)
+            on conflict (libro_id, lingua) do nothing
+            """,
+            {
+                "libro": libro_id,
+                "lingua": lingua,
+                "testo": testo,
+                "fonte": fonte,
+                "url": url_fonte,
+            },
+        )
+        return cursor.rowcount > 0

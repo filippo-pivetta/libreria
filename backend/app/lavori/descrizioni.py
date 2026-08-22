@@ -74,6 +74,29 @@ async def esegui(payload: dict[str, Any]) -> None:
                         {"libro_id": libro_id, "lingua": lingua},
                     )
 
+            # Issue #24: questo lavoro è l'ultimo scrittore della pipeline
+            # quando Wikidata aveva sitelink per il libro — un'asimmetria
+            # fra le due lingue dell'interfaccia che `crea_scheda` non ha
+            # potuto chiudere (perché questa lingua era ancora in attesa
+            # di un tentativo Wikipedia) va richiusa qui una volta che il
+            # tentativo è avvenuto, trovato o no. Rilettura a fresco e non
+            # `trovate`: la lingua mancante può essere quella che Google
+            # Books aveva già scritto alla nascita della scheda.
+            presenti = catalogo_repository.leggi_descrizioni(connessione, libro_id, LINGUE)
+            for lingua in LINGUE:
+                altra = LINGUE[1] if lingua == LINGUE[0] else LINGUE[0]
+                if presenti.get(lingua) and not presenti.get(altra):
+                    lavoro_repository.accoda(
+                        connessione,
+                        "traduzione_descrizione",
+                        f"{libro_id}:{altra}",
+                        {
+                            "libro_id": libro_id,
+                            "lingua_mancante": altra,
+                            "lingua_sorgente": lingua,
+                        },
+                    )
+
     await run_in_threadpool(_scrivi)
 
 

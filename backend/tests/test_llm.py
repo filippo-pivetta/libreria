@@ -284,6 +284,70 @@ def test_accorcia_descrizione_json_malformato_e_irraggiungibile(
         )
 
 
+# --- traduci_descrizione --------------------------------------------------------
+
+
+def test_traduci_descrizione_analizza_una_risposta_valida(monkeypatch: pytest.MonkeyPatch) -> None:
+    _con_chiave(monkeypatch)
+    _con_risposta(
+        monkeypatch,
+        _risposta_openai(
+            {"testo": "Le notti bianche è un racconto giovanile di Fëdor Dostoevskij."}
+        ),
+    )
+
+    testo = _run(
+        llm.traduci_descrizione(
+            titolo="Le notti bianche",
+            autori=["Fëdor Dostoevskij"],
+            testo_sorgente="White Nights is an early short story by Fyodor Dostoevsky.",
+            lingua_sorgente="en",
+            lingua_target="it",
+        )
+    )
+    assert testo == "Le notti bianche è un racconto giovanile di Fëdor Dostoevskij."
+
+
+def test_traduci_descrizione_json_malformato_e_irraggiungibile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _con_chiave(monkeypatch)
+    _con_risposta(
+        monkeypatch,
+        httpx.Response(200, json={"choices": [{"message": {"content": "non è json"}}]}),
+    )
+
+    with pytest.raises(FonteNonRaggiungibileError):
+        _run(
+            llm.traduci_descrizione(
+                titolo="Prova",
+                autori=[],
+                testo_sorgente="Some source text.",
+                lingua_sorgente="en",
+                lingua_target="it",
+            )
+        )
+
+
+def test_traduci_descrizione_chiave_assente_non_genera_traffico_di_rete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _con_chiave(monkeypatch, chiave=None)
+    inviate = _con_risposta(monkeypatch, _risposta_openai({"testo": "non dovrebbe arrivare"}))
+
+    with pytest.raises(FonteNonRaggiungibileError):
+        _run(
+            llm.traduci_descrizione(
+                titolo="Prova",
+                autori=[],
+                testo_sorgente="Some source text.",
+                lingua_sorgente="en",
+                lingua_target="it",
+            )
+        )
+    assert inviate == []
+
+
 def _run(coro: Any) -> Any:
     """`asyncio.run` con un nome che non confligge col discovery di
     pytest — stesso motivo per cui test_lavori_worker.py lo usa al posto
