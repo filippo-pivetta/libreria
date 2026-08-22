@@ -56,6 +56,23 @@ class CompleteAccountRequest(BaseModel):
         return stripped
 
 
+class EliminaAccountRequest(BaseModel):
+    """Corpo di `DELETE /me` (issue #8, PRD regola 28): conferma la
+    cancellazione digitando il proprio nome utente. Il confronto vero,
+    contro il nome utente reale dell'account, avviene nel service — qui si
+    rifiuta solo la stringa vuota, non essendo questo il punto in cui la
+    conferma va giudicata corretta."""
+
+    conferma_nome_utente: str
+
+    @field_validator("conferma_nome_utente")
+    @classmethod
+    def _non_vuota(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("La conferma non può essere vuota.")
+        return value
+
+
 class ConsensoUpdateRequest(BaseModel):
     """Corpo di `PATCH /me/consenso`: l'interruttore del profilo (PRD,
     "Consenso all'elaborazione assistita").

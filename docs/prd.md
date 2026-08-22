@@ -172,7 +172,8 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 12. L'Utente consulta le metriche scegliendo un anno tra il primo in cui ha dati e quello corrente, estremi inclusi; gli anni futuri non sono selezionabili, e un anno intermedio senza letture mostra zeri, non un errore.
 13. L'Utente apre la libreria di un collegato e ne vede libri, stati, avanzamenti, voti, metriche e contenuti condivisi.
 14. Per rileggere, riporta la Voce a "in lettura": nasce una seconda Lettura e lo storico resta. Voto e recensione restano quelli della lettura precedente finché l'Utente non li cambia.
-15. In qualsiasi momento l'Utente può cancellare il proprio account dalle impostazioni. La conferma consiste nel digitare il proprio nome utente; la cancellazione è immediata, definitiva, senza periodo di grazia e senza esportazione offerta. Travolge in cascata libreria, letture, avanzamenti, voti, recensioni, insight, note, preview personalizzate, indici semantici derivati e collegamenti.
+14bis. In qualsiasi momento l'Utente può esportare in CSV, dalle impostazioni, i libri con stato "letto": titolo, autori, generi, anno di prima pubblicazione, lingua originale, pagine adottate, date di inizio e fine dell'ultima lettura conclusa, voto, recensione. Non include insight né nota di intenzione, e non richiede alcuna conferma: è un'azione non distruttiva, disponibile indipendentemente da qualunque altra (modifica del 22 agosto 2026, ADR 0011).
+15. In qualsiasi momento l'Utente può cancellare il proprio account dalle impostazioni. La conferma consiste nel digitare il proprio nome utente; la cancellazione è immediata, definitiva, senza periodo di grazia. L'esportazione dei libri letti (14bis) resta un'azione separata: non è proposta in questo passaggio, ed è comunque disponibile prima come dopo (modifica del 22 agosto 2026). Travolge in cascata libreria, letture, avanzamenti, voti, recensioni, insight, note, preview personalizzate, indici semantici derivati e collegamenti.
 
 **Post MVP**
 - Registrazione aperta, senza invito del Manutentore: l'istanza resta chiusa per questa versione (ADR 0013).
@@ -247,6 +248,10 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
  *Test:* revocare il consenso, aggiungere un libro, ispezionare il contenuto inviato: soli dati bibliografici.
 32. La revoca del consenso non cancella né altera contenuti già presenti nella libreria dell'Utente, artefatti generati inclusi.
  *Test:* generare una preview personalizzata e una sintesi tematica, revocare il consenso, verificare che siano ancora leggibili dal proprietario e che non se ne possano creare di nuove.
+33. L'esportazione dei libri letti restituisce solo le Voci dell'Utente richiedente con stato "letto", mai quelle di un altro utente, anche collegato.
+ *Test:* A e B collegati, A ha libri letti; B esporta i propri; il file di B non contiene alcun libro di A.
+34. L'esportazione dei libri letti non include mai insight né nota di intenzione.
+ *Test:* esportare una Voce con insight e nota di intenzione; nessuno dei due testi compare nel file, in nessuna colonna.
 
 ## Casi limite
 
@@ -283,7 +288,7 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 - Utente collegato che tenta una scrittura su contenuti altrui: rifiuto senza modifica.
 - Utente rimosso fuori banda: libreria, letture, contenuti e metriche sono cancellati, senza esportazione preventiva. Le schede dei Libri e le correzioni di genere restano, perché sono dato condiviso e non gli appartengono.
 - Rimozione per errore o ripensamento: nessun recupero possibile. Non esiste periodo di grazia.
-- Cancellazione autonoma dell'account: stessa cascata della rimozione fuori banda. L'Utente perde tutto, insight compresi, senza esportazione. È il comportamento voluto.
+- Cancellazione autonoma dell'account: stessa cascata della rimozione fuori banda. L'Utente perde tutto, insight compresi; l'unico modo per portarsi via qualcosa prima è l'esportazione dei libri letti (14bis), che il sistema non offre né ricorda in questo passaggio. È il comportamento voluto.
 - Cancellazione mentre un collegato sta guardando la libreria: le viste in corso smettono di restituire dati alla richiesta successiva. L'app non dichiara che l'account è stato cancellato, ma non pretende di nascondere l'evento: la scomparsa dall'elenco membri lo rende evidente.
 - Cancellazione dell'account personale di chi mantiene l'istanza: rimuove solo la sua libreria, non la sua capacità di manutenzione, che vive fuori dall'app. Nessun privilegio applicativo va perduto.
 - Cancellazione con operazioni assistite in corso: le richieste pendenti al fornitore di modelli non devono poter scrivere dati su un account che non esiste più.
@@ -337,8 +342,8 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 - Le chiamate ai cataloghi partono dal back end ospitato con indirizzo di uscita stabile in Europa. Un ambiente serverless con indirizzi variabili renderebbe i risultati di Google Books dipendenti dal paese del nodo, e siccome la scheda si crea una volta e vale per tutti, congelerebbe nella libreria di tutti ciò che ha risposto a quel particolare nodo.
 - Ogni interrogazione dei cataloghi avviene dal lato server, per entrambe le fonti: una parte delle chiamate fatta dal client renderebbe le schede condivise dipendenti dalla geografia di chi le ha create.
 - La cancellazione a cascata deve raggiungere anche ciò che non vive nel database, cioè copertine, immagini e indici, e vale anche quando un utente viene rimosso direttamente sulla piattaforma dati senza passare dal prodotto.
-- Infrastruttura: solo piani gratuiti finché sono sufficienti. Gli indici semantici non hanno un costo proprio, perché la ricerca vettoriale è inclusa nel database; consumano spazio, che sul piano gratuito è limitato. Due limiti pesano più dello spazio: i progetti gratuiti vengono sospesi dopo una settimana di scarsa attività, e non prevedono backup. Quest'ultimo si somma alla scelta di non offrire esportazione e di rendere la cancellazione immediata: sotto i dati non c'è alcuna rete. Le chiamate ai modelli restano l'unica voce di costo variabile e non hanno tetto: è la sola spesa che può crescere senza preavviso.
-- Dati personali di terzi su territorio UE: chi mantiene l'istanza è titolare del trattamento. La cancellazione è coperta da una funzione del prodotto. La portabilità non ha alcuna via, né in prodotto né come procedura manuale: è una lacuna nota e accettata per questa versione, non una svista.
+- Infrastruttura: solo piani gratuiti finché sono sufficienti. Gli indici semantici non hanno un costo proprio, perché la ricerca vettoriale è inclusa nel database; consumano spazio, che sul piano gratuito è limitato. Due limiti pesano più dello spazio: i progetti gratuiti vengono sospesi dopo una settimana di scarsa attività, e non prevedono backup. Quest'ultimo si somma alla scelta di offrire solo un'esportazione limitata (i libri letti, modifica del 22 agosto 2026) e di rendere la cancellazione immediata: sotto il resto dei dati, insight in testa, non c'è alcuna rete. Le chiamate ai modelli restano l'unica voce di costo variabile e non hanno tetto: è la sola spesa che può crescere senza preavviso.
+- Dati personali di terzi su territorio UE: chi mantiene l'istanza è titolare del trattamento. La cancellazione è coperta da una funzione del prodotto. La portabilità è coperta solo in parte (modifica del 22 agosto 2026, ADR 0011): l'Utente può esportare in CSV i libri con stato "letto" dalle impostazioni. Insight, nota di intenzione e ogni contenuto non bibliografico restano senza alcuna via, né in prodotto né come procedura manuale: è una lacuna nota e accettata per questa versione, non una svista.
 - Nessuna scadenza di rilascio.
 
 ## Fuori scope
@@ -354,7 +359,7 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 - Nessuna funzione amministrativa nel prodotto: niente gestione utenti, niente correzione generi, niente segnalazioni.
 - Nessuna creazione manuale di schede da parte degli Utenti, nessun inserimento per ISBN digitato, nessuna scansione del codice a barre: l'unica via d'ingresso è la ricerca per titolo o autore.
 - Nessuna scelta dell'edizione: il numero di pagine è precompilato e correggibile, non selezionato da un elenco.
-- Nessuna esportazione dei dati nell'MVP. La cancellazione autonoma dell'account invece c'è.
+- Nessuna esportazione completa dell'account nell'MVP (modifica del 22 agosto 2026, ADR 0011: la versione precedente escludeva ogni esportazione). L'unica esportazione è quella dei libri con stato "letto", in CSV, dalle impostazioni — vedi comportamento 14bis; insight e nota di intenzione restano fuori. La cancellazione autonoma dell'account c'è.
 - Nessun avanzamento retrodatato oltre il precedente, né datato nel futuro.
 - Nessuna gestione di edizioni, formati, audiolibri, ebook.
 - Nessuna struttura sugli insight: niente numero di pagina, niente citazione separata, niente tag personali.

@@ -753,9 +753,9 @@ niente carte vuote fra le due.
 Una superficie sola, due sezioni. Sopra i collegamenti (richieste ricevute, inviate, attivi con
 interruzione), sotto le impostazioni.
 
-Le impostazioni contengono tre cose e basta: l'avviso di visibilità, il consenso
-all'elaborazione assistita, la cancellazione dell'account. Nessun comando sulla luce, che non è
-una preferenza ma una conseguenza dell'ora.
+Le impostazioni contengono quattro cose e basta: l'avviso di visibilità, il consenso
+all'elaborazione assistita, l'esportazione dei libri letti, la cancellazione dell'account. Nessun
+comando sulla luce, che non è una preferenza ma una conseguenza dell'ora.
 
 **Interrompere un collegamento: azione immediata, senza dialogo di conferma, con un annulla che
 resta per qualche secondo.** Interrompere non è simmetricamente reversibile: tu interrompi da
@@ -773,8 +773,9 @@ L'interruttore nasce acceso. Spegnendolo va detto cosa succede subito e cosa no:
 funzioni si spengono e gli indici si cancellano, ma gli artefatti già generati restano come
 contenuti dell'utente.
 
-**Costruita il 22 agosto 2026** (issue #6), tranne la cancellazione dell'account che resta una
-nota (issue #8). Quattro cose decise in costruzione:
+**Costruita il 22 agosto 2026** (issue #6); esportazione dei libri letti e cancellazione
+dell'account aggiunte lo stesso giorno (issue #8, ADR 0011 rivisto). Quattro cose decise in
+costruzione:
 
 - **L'interruttore è l'unico dell'app.** Primitivo `@base-ui/react` come gli altri
   (`components/ui/switch.tsx`), traccia in `accent` quando è acceso — l'unico uso ammesso
@@ -799,6 +800,18 @@ nota (issue #8). Quattro cose decise in costruzione:
   `indici_stato`, quindi non c'era alcun segnale. Sotto il testo generico, quando il consenso è
   acceso, una seconda riga dice lo stato vero ("Gli indici sono pronti." / "Gli indici si stanno
   ricostruendo..."), aggiornata a ogni cambio dell'interruttore.
+
+### Esportazione dei libri letti
+
+Un pulsante piano, tra il consenso e la cancellazione: nessuna conferma, perché non è
+un'azione distruttiva. Scarica un CSV con i libri che l'Utente ha segnato come letti — titolo,
+autori, generi, date di lettura, voto e recensione — mai insight né nota di intenzione (ADR
+0011). Una riga di didascalia lo dice, così chi si aspetta di ritrovarci anche i propri insight
+non se lo scopre solo aprendo il file.
+
+Non è collegata alla cancellazione dell'account che segue subito sotto: non la propone, non la
+richiede, non la ricorda. È semplicemente lì, sempre disponibile, per chi la vuole usare prima di
+qualunque altra cosa.
 
 ### Cancellazione dell'account
 
@@ -979,9 +992,12 @@ StoryGraph, Fable, Hardcover, Bookly).
 
 ### Dove Montaigne è peggio di tutta la categoria
 
-**L'esportazione.** Le altre app perdono note e date migrando; Montaigne non ha esportazione, non
-ha backup sul piano gratuito, e la cancellazione è immediata. Il PRD lo dichiara come lacuna
-nota. È l'unica dimensione in cui sei sotto a tutti, e riguarda anni di insight scritti a mano.
+**L'esportazione degli insight.** Le altre app perdono note e date migrando; Montaigne esporta
+solo i libri letti (titolo, autori, generi, date, voto, recensione — issue #8, ADR 0011 rivisto),
+non gli insight né le note di intenzione, non ha backup sul piano gratuito, e la cancellazione è
+immediata. Il PRD lo dichiara come lacuna nota. Resta la dimensione in cui sei più indietro
+rispetto a tutta la categoria, e riguarda proprio gli anni di insight scritti a mano che
+l'esportazione non copre.
 
 **Il catalogo.** Edizione sbagliata o libro assente sono la lamentela più diffusa del settore, e
 tu hai l'aggravante che il libro non trovato non si può aggiungere affatto. Il design non risolve

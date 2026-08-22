@@ -185,3 +185,104 @@ export async function aggiornaConsenso(
 
   return { status: "ok", data: toMe((await response.json()) as MeResponseBody) };
 }
+
+export type EliminaAccountResult =
+  | { status: "ok" }
+  | { status: "conferma_non_corrispondente" }
+  | { status: "not_provisioned" }
+  | { status: "error"; message: string };
+
+/**
+ * Cancellazione self-service dell'account (`DELETE /me`, issue #8, PRD
+ * regole 26-29). La conferma (il nome utente digitato) è verificata
+ * server-side: questa funzione si limita a trasmetterla, non decide se è
+ * corretta.
+ */
+export async function eliminaAccount(
+  accessToken: string,
+  confermaNomeUtente: string,
+): Promise<EliminaAccountResult> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!baseUrl) {
+    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/me`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ conferma_nome_utente: confermaNomeUtente }),
+      cache: "no-store",
+    });
+  } catch {
+    return { status: "error", message: "Il backend non è raggiungibile." };
+  }
+
+  if (response.status === 204) {
+    return { status: "ok" };
+  }
+
+  if (response.status === 404) {
+    return { status: "not_provisioned" };
+  }
+
+  if (response.status === 400) {
+    const body = (await response.json()) as ErrorBody;
+    const errorCode = typeof body.detail === "object" ? body.detail.error_code : undefined;
+    if (errorCode === "conferma_non_corrispondente") {
+      return { status: "conferma_non_corrispondente" };
+    }
+  }
+
+  return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+}
+
+export type EsportaLibriLettiResult =
+  | { status: "ok"; blob: Blob; filename: string }
+  | { status: "error"; message: string };
+
+const _NOME_FILE_RIPIEGO = "libri-letti.csv";
+
+function _nomeFileDaHeader(header: string | null): string {
+  if (!header) {
+    return _NOME_FILE_RIPIEGO;
+  }
+  const match = /filename="?([^";]+)"?/.exec(header);
+  return match ? match[1] : _NOME_FILE_RIPIEGO;
+}
+
+/**
+ * Esportazione dei libri letti (`GET /me/export/libri-letti`, issue #8,
+ * ADR 0011 rivisto): un CSV, nessuna conferma richiesta — non è
+ * un'azione distruttiva. Il nome del file arriva da
+ * `Content-Disposition` (esposto lato backend via CORS, app/main.py);
+ * senza, si ripiega su un nome generico invece di far fallire il
+ * download per un dettaglio cosmetico.
+ */
+export async function esportaLibriLetti(accessToken: string): Promise<EsportaLibriLettiResult> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!baseUrl) {
+    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/me/export/libri-letti`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+  } catch {
+    return { status: "error", message: "Il backend non è raggiungibile." };
+  }
+
+  if (!response.ok) {
+    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+  }
+
+  const blob = await response.blob();
+  return { status: "ok", blob, filename: _nomeFileDaHeader(response.headers.get("content-disposition")) };
+}

@@ -56,6 +56,18 @@ def get_utente_privato(client: Client, utente_id: UUID) -> dict[str, Any] | None
     return cast("dict[str, Any]", response.data)
 
 
+def delete_utente(client: Client, utente_id: UUID) -> bool:
+    """Cancella la riga `utente` del chiamante (policy `utente_delete_owner`,
+    migrazione 20260818115830): innesca la cascata dello schema su tutti i
+    dati applicativi (issue #8, PRD regole 26/27). Non tocca `auth.users`,
+    fuori dalla portata di un client con l'identità dell'utente — quel
+    passo vive in `me_service.elimina_account` con la chiave di servizio.
+    `True` se una riga è stata cancellata davvero, non un no-op su un id
+    già assente."""
+    response = client.table("utente").delete().eq("id", str(utente_id)).execute()
+    return len(cast("list[dict[str, Any]]", response.data)) > 0
+
+
 def complete_registration(client: Client, nome_utente: str) -> dict[str, Any]:
     """Crea insieme `utente`+`utente_privato` per l'utente del `client`
     (`public.completa_registrazione`, docs/adr/0013): una singola
