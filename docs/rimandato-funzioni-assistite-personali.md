@@ -2,8 +2,9 @@
 
 Il PRD subordina al consenso **cinque** funzioni personali. L'issue #6 ne ha costruite due —
 ricerca semantica e preview personalizzata "me lo consigli?" — insieme a tutta l'infrastruttura
-del consenso. Le altre tre restano qui. Non è un'issue GitHub: è la lista da ridarmi quando si
-apre il lavoro corrispondente.
+del consenso. Le altre tre restano qui, ora tracciate in **issue #27**: questo file resta il
+riferimento tecnico dettagliato (cosa riusare, cosa decidere), l'issue il punto d'ingresso per
+aprire il lavoro.
 
 Cosa esiste già e non va rifatto:
 
