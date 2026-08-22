@@ -33,6 +33,24 @@ def ultimo_per_voce(client: Client, voce_id: UUID, tipo: str) -> dict[str, Any] 
     return righe[0] if righe else None
 
 
+def ultimo_per_utente_e_tipo(client: Client, utente_id: UUID, tipo: str) -> dict[str, Any] | None:
+    """Come `ultimo_per_voce`, per artefatti senza Voce (issue #27, sintesi
+    tematica): `voce_id is null` per costruzione (`chk_artefatto_generato_voce_coerente`),
+    quindi qui si cerca per `utente_id` invece che per `voce_id`."""
+    response = (
+        client.table("artefatto_generato")
+        .select(_SELECT)
+        .eq("utente_id", str(utente_id))
+        .eq("tipo", tipo)
+        .is_("voce_id", "null")
+        .order("creato_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    righe = cast("list[dict[str, Any]]", response.data)
+    return righe[0] if righe else None
+
+
 def create(
     client: Client, utente_id: UUID, tipo: str, voce_id: UUID | None, testo: str
 ) -> dict[str, Any]:
