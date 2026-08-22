@@ -1176,3 +1176,114 @@ concludere che è tutto.
 
 Nessuno dei tre è un errore, e nessuno dei tre è un riquadro rosso: sono testo, come ogni altro
 messaggio dell'app (§19).
+
+---
+
+## 26. Suggerimenti di lettura
+
+Scritta il 22 agosto 2026 con l'issue #27, **riscritta lo stesso giorno** dopo un primo giro
+d'uso in cui un titolo mai esistito ("Odio e amore" di "amor di narrazione") è arrivato
+all'Utente per un istante prima che la ricerca lato client lo scartasse. La pagina resta la
+stessa; il criterio dietro non più.
+
+**Una pagina a sé, `/suggerimenti`.** Stessa ragione di `/cerca`: dipende dal consenso, e la
+navigazione (§5) resta a quattro voci. Ci si arriva da un collegamento in fondo alla riga dei
+filtri della Libreria, accanto a "Cerca nei tuoi insight" — non da una voce di menu.
+
+**Effimeri.** A differenza della preview e della sintesi tematica, un suggerimento non è un
+`artefatto_generato`: il PRD non lo elenca fra gli artefatti, e ogni pressione del pulsante
+"Suggeriscimi qualcosa" (poi "Suggeriscimi altro") ne genera di nuovi senza conservare i
+precedenti. Non c'è una vista "i tuoi suggerimenti passati".
+
+**Ogni titolo che arriva alla pagina è già verificato**, non più sperato: il backend chiede fino
+a otto candidati e scarta quelli che nessun catalogo conosce prima di rispondere
+(`suggerimenti_service._verifica_e_diversifica`) — la ricerca lato client, con lo stesso
+procedimento di `/aggiungi` (§13, locale poi esterno), non decide più *se* mostrare un comando
+"Aggiungi" ma lo trova quasi sempre. Il ramo di solo testo — titolo, autori, motivazione, senza
+copertina né comando — resta come margine di sicurezza per un risultato esterno scaduto dalla
+cache fra le due ricerche, non come esito atteso.
+
+**La motivazione è sempre concreta**, mai una lode generica: il prompt lega ogni suggerimento a
+un elemento reale del profilo di chi chiede — un titolo amato, un autore delle letture recenti,
+un tema che torna negli insight — sullo stesso registro della preview (§9). Tre o quattro frasi,
+non una sola: abbastanza per spiegare davvero, mai un trattino lungo o medio (sostituito con una
+virgola se il modello lo scrive lo stesso). Sopra `t-meta`, ha il trattamento tipografico di un
+insight vero (`t-sentenza`/`t-appunto`, §10) con lo stesso troncamento a otto righe e "Mostra
+tutto" degli insight nella scheda del libro — non è più metadato, è un testo da leggere.
+
+**Una preferenza per questa sola richiesta**, facoltativa e sempre visibile — mai dietro un
+"più opzioni" — un campo a riga sola sopra il pulsante, stesso trattamento del campo di ricerca
+semantica (§25): "Un libro breve, qualcosa di leggero, niente crime stavolta…". Non salvata, non
+un artefatto, non un insight: vive nel corpo della singola richiesta e sparisce con lei. Il
+backend la tratta come una preferenza da considerare insieme al profilo, mai come un'istruzione
+che sostituisce le regole di generazione — una nota che assomiglia a un tentativo di cambiare
+argomento (rivelare le istruzioni del modello, farlo comportare diversamente) viene ignorata in
+silenzio, senza errore per l'Utente: i suggerimenti arrivano lo stesso, semplicemente senza
+tenerne conto.
+
+**Il profilo, non più uno storico piatto.** Il backend distingue tre gruppi con ruoli diversi
+invece di un solo elenco di libri finiti: i libri amati (voto alto, di qualsiasi età — il gusto
+che dura), le letture più recenti (qualsiasi voto — dove sei ora), i libri non piaciuti o
+abbandonati (per capire cosa evitare, mai per proporre "altri libri così"). Un libro già in
+libreria, in **qualunque stato** — anche "da leggere" — non viene mai riproposto.
+
+**Un'etichetta silenziosa per la scoperta.** Ogni proposta è "affine" (vicina a ciò che ami o
+leggi ora) o "scoperta" (stesso territorio, un passo di lato). Solo "scoperta" si mostra in
+pagina, in `t-meta`, accanto alla motivazione — "affine" è l'esito atteso e dirlo su ogni riga
+sarebbe rumore ripetuto, non informazione.
+
+**Nessun badge "sintesi generata"**: a differenza della preview e della sintesi tematica, qui
+non c'è un singolo testo in prosa la cui origine vada dichiarata — la pagina stessa, con il suo
+titolo e la sua introduzione, dice già che si tratta di proposte del modello.
+
+Due stati vuoti, entrambi testo e non un riquadro rosso: consenso revocato ("L'elaborazione
+assistita è spenta", con rimando alla Torre) e profilo insufficiente (nessun libro amato,
+nessuna lettura conclusa, nessun deluso).
+
+---
+
+## 27. Sintesi tematica
+
+Scritta il 22 agosto 2026 con l'issue #27, **riscritta lo stesso giorno** dopo un primo giro
+d'uso: la prima versione, un unico paragrafo generato (duecento parole, stessa disciplina della
+regola 20 della preview), si è rivelata poco utile — non verificabile, senza un posto dove
+andare, e senza ragione di essere riletta se non si è scritto altro. La versione qui sotto è un
+elenco di temi, ciascuno con le prove attaccate.
+
+**Una pagina a sé, `/sintesi`.** Stessa ragione di §25/§26: dipende dal consenso, quattro voci
+di navigazione restano quattro, si arriva da un collegamento nella riga dei filtri della
+Libreria.
+
+**Un tema è una carta**, su piano 1 con grana, non una riga di elenco: nome del tema in
+`t-label` (stesso trattamento delle intestazioni di gruppo negli insight, §10 — un'etichetta, non
+il contenuto), poi la frase che lo descrive in `t-sentenza`/`t-appunto` a seconda della
+lunghezza — la stessa soglia e lo stesso carattere di un insight vero, perché lo è nella
+sostanza: un'osservazione breve, non una didascalia generata. Sotto, i libri distinti da cui
+viene il tema, ciascuno un collegamento alla propria scheda — mai un nome senza un posto dove
+andare. Un comando testuale, "Mostra gli insight", apre l'elenco degli insight e delle recensioni
+veri che hanno prodotto il tema, con lo stesso trattamento della ricerca semantica (§25): titolo
+del libro come collegamento, testo, poi tipo e data.
+
+**Nessun tema debole.** "Trasversale ... tra libri diversi" (PRD) si prende alla lettera: un tema
+sostenuto da un solo libro non è trasversale, e non compare — non attenuato, non segnalato come
+incerto, proprio assente. Se dopo il filtro non resta alcun tema, la sintesi non si genera né
+sostituisce quella esistente: **meglio nessuna carta che una carta vuota o un pattern inventato
+su un libro solo**. Due modi distinti in cui questo succede, con un testo diverso per ciascuno:
+non hai ancora scritto nulla ("Scrivi qualche insight o recensione prima di chiedere una
+sintesi"), oppure hai scritto ma nulla si collega ancora fra libri diversi ("Non emerge ancora un
+tema che attraversi libri diversi. Continua a scrivere e a leggere, poi riprova").
+
+**Sostituisce, non si accumula** — a differenza della preview (§9), che accumula apposta perché
+un parere per ogni rilettura ha senso. Esiste al più una sintesi tematica per utente: generarne
+una nuova cancella la precedente, mai prima di avere quella nuova pronta (un tentativo che non
+supera i filtri sopra non deve lasciare l'Utente senza alcuna sintesi). Il pulsante lo dice:
+"Genera una sintesi" la prima volta, "Genera di nuovo" quando ce n'è già una, mai "Aggiungi" o
+un'icona che lascerebbe intendere un accumulo.
+
+**Lo stesso avviso della preview**: badge "Sintesi generata", campo della risposta e non frase
+dentro un testo, sopra l'elenco dei temi — vale per l'intero risultato, non ripetuto su ogni
+carta.
+
+**Regola 32, come per la preview**: a consenso revocato la sintesi già generata resta leggibile
+e cancellabile dal proprietario, temi ed insight collegati compresi; solo il pulsante "Genera di
+nuovo" sparisce, sostituito da un rimando alla Torre.

@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { RigaRisultato } from "@/components/ricerca/riga-risultato";
@@ -8,7 +8,6 @@ import { VicoloCieco } from "@/components/ricerca/vicolo-cieco";
 import { ErrorState } from "@/components/states/error-state";
 import { getAccessToken } from "@/lib/api/access-token";
 import {
-  aggiungiDaCatalogo,
   cercaNeiCataloghi,
   cercaNelCatalogo,
   type Risultato,
@@ -16,7 +15,7 @@ import {
   type RisultatoLocale,
   type VoceDelRisultato,
 } from "@/lib/api/ricerca";
-import { aggiungiVoce } from "@/lib/api/voci";
+import { useAggiungiRisultato } from "@/lib/hooks/use-aggiungi-risultato";
 import { useDebounced } from "@/lib/use-debounce";
 
 const LUNGHEZZA_MINIMA = 2;
@@ -89,6 +88,16 @@ export function RicercaLibri() {
    * di fila senza perdere i risultati". Lo scaffale invece si invalida,
    * perché lì il libro nuovo deve comparire.
    */
+  /**
+   * Sostituisce sul posto la riga appena aggiunta, in ENTRAMBE le liste.
+   *
+   * Non si invalidano le query di ricerca: rifare `ricerca-cataloghi`
+   * costerebbe una chiamata a Google e potrebbe restituire un ordine
+   * diverso, mentre il design chiede l'opposto — "chi popola la libreria
+   * ne aggiunge cinque di fila senza perdere i risultati". L'hook
+   * condiviso invalida già `["voci"]`, perché lo scaffale deve mostrare
+   * il libro nuovo.
+   */
   function rattoppa(chiave: string, voce: VoceDelRisultato, libroId: string) {
     queryClient.setQueryData<RisultatoLocale[]>([CHIAVE_LOCALE, cercato], (precedenti) =>
       precedenti?.map((r) => (r.chiave === chiave ? { ...r, voce } : r)),
@@ -103,66 +112,17 @@ export function RicercaLibri() {
         };
       },
     );
-    void queryClient.invalidateQueries({ queryKey: ["voci"] });
   }
 
-  const aggiunta = useMutation({
-    mutationFn: async (risultato: Risultato) => {
-      const token = await getAccessToken();
-
-      // Un risultato già nel catalogo riusa `POST /voci`, che esiste già:
-      // nessun endpoint duplicato per fare la stessa cosa.
-      if (risultato.origine === "locale" || risultato.libroId !== null) {
-        const libroId =
-          risultato.origine === "locale" ? risultato.libroId : risultato.libroId!;
-        const esito = await aggiungiVoce(token, libroId);
-        if (esito.status === "not_found") throw new Error("Questo libro non esiste più.");
-        if (esito.status !== "ok") throw new Error(esito.message);
-        return {
-          chiave: risultato.chiave,
-          libroId,
-          voce: {
-            id: esito.data.id,
-            stato: esito.data.stato,
-            voto: esito.data.voto,
-            paginaCorrente: null,
-            annoUltimaLettura: null,
-          } satisfies VoceDelRisultato,
-        };
-      }
-
-      const esito = await aggiungiDaCatalogo(
-        token,
-        risultato.volumeId,
-        risultato.volumiAlternativi,
-      );
-      if (esito.status === "fonte_irraggiungibile") {
-        throw new Error("I cataloghi non rispondono. Riprova tra poco.");
-      }
-      if (esito.status !== "ok") throw new Error(esito.message);
-      return {
-        chiave: risultato.chiave,
-        libroId: esito.libroId,
-        voce: {
-          id: esito.voceId,
-          stato: "da_leggere",
-          voto: null,
-          paginaCorrente: null,
-          annoUltimaLettura: null,
-        } satisfies VoceDelRisultato,
-      };
-    },
+  const aggiunta = useAggiungiRisultato({
     onSuccess: ({ chiave, voce, libroId }) => {
       setErrorePerRiga(null);
       rattoppa(chiave, voce, libroId);
     },
-    onError: (errore: unknown, risultato) => {
+    onError: (errore, risultato) => {
       // Errore per riga e non un toast: in una lista un toast non dice a
       // quale riga si riferisce (stesso presidio di `elenco-lettori.tsx`).
-      setErrorePerRiga({
-        chiave: risultato.chiave,
-        messaggio: errore instanceof Error ? errore.message : "Non è stato possibile aggiungere.",
-      });
+      setErrorePerRiga({ chiave: risultato.chiave, messaggio: errore.message });
     },
   });
 

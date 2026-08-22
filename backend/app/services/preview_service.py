@@ -11,14 +11,14 @@ momento è roba dell'Utente e sopravvive alla revoca del consenso (regola
 La regola 20 è verificata qui e non delegata al prompt: "una preview
 generata non supera le ottanta parole, non contiene testo tra virgolette e
 riporta l'indicazione di essere una sintesi generata". Le prime due
-condizioni si misurano sul testo, ed è quello che fa `_conforme`; la terza
-non è testo che il modello debba ricordarsi di scrivere ma un campo
+condizioni si misurano sul testo, con `testo_generato.genera_conforme`
+(estratto da qui con l'issue #27, quando la sintesi tematica ha iniziato a
+chiedere la stessa disciplina con un tetto di parole diverso); la terza non
+è testo che il modello debba ricordarsi di scrivere ma un campo
 obbligatorio della risposta (`AVVISO`), perché un'indicazione che dipende
 dall'obbedienza del modello è un'indicazione che prima o poi manca.
 """
 
-import logging
-import re
 from typing import Any
 from uuid import UUID
 
@@ -28,8 +28,7 @@ from app.cataloghi import llm_personale
 from app.core.supabase import get_user_client
 from app.repositories import artefatto_repository, preview_repository
 from app.services import consenso as consenso_service
-
-logger = logging.getLogger("app.services.preview")
+from app.services import testo_generato
 
 TIPO = "preview_personalizzata"
 
@@ -40,48 +39,13 @@ ottanta parole."""
 
 MASSIMO_PAROLE = 80
 
-_VIRGOLETTE = '"«»“”„‘'
-"""Ogni comparsa di uno di questi caratteri è una citazione, e la regola
-20 le vieta tutte: virgolette dritte, caporali, curve inglesi e tedesche,
-più la singola curva di apertura (‘), che in italiano non ha altro uso.
-
-Fuori dall'elenco stanno l'apostrofo dritto (') e quello tipografico (’),
-che in italiano compaiono a ogni riga in "dell'amicizia", "un'affinità".
-Vietarli — anche solo a coppie, cercando del testo racchiuso — avrebbe
-respinto quasi ogni frase corretta: "e di un'affinità rara con l'autore"
-contiene una coppia perfettamente apostrofata. Una citazione fra
-apostrofi dritti resta quindi teoricamente possibile; il prompt la vieta,
-e nessun controllo automatico può distinguerla da due elisioni vicine
-senza leggere la frase.
-"""
-
-
-class PreviewNonConformeError(Exception):
-    """Il modello ha risposto, ma fuori dai vincoli della regola 20, due
-    volte di fila.
-
-    Trattata come una fonte che non risponde e non come un errore
-    interno — stessa filosofia del "JSON fuori schema" di ADR 0017: un
-    output non conforme non si salva e non si aggiusta, perché aggiustarlo
-    (troncare a ottanta parole, togliere le virgolette) produrrebbe un
-    testo mutilato firmato come se fosse quello che il modello ha detto.
-    """
+PreviewNonConformeError = testo_generato.TestoNonConformeError
+"""Alias e non un tipo nuovo: stesso errore di `testo_generato`, con il
+nome storico di questo modulo perché router e test lo importano da qui."""
 
 
 class VoceNonTrovataError(Exception):
     """La Voce non esiste o non è di chi chiede."""
-
-
-def _conta_parole(testo: str) -> int:
-    return len([p for p in re.split(r"\s+", testo.strip()) if p])
-
-
-def _conforme(testo: str) -> bool:
-    if not testo.strip():
-        return False
-    if _conta_parole(testo) > MASSIMO_PAROLE:
-        return False
-    return not any(c in testo for c in _VIRGOLETTE)
 
 
 async def genera(access_token: str, utente_id: UUID, voce_id: UUID) -> dict[str, Any]:
@@ -112,29 +76,18 @@ async def _genera_conforme(
     storico: list[tuple[str, list[str], list[str], float | None]],
     testi: list[str],
 ) -> str:
-    """Un solo secondo tentativo, non un ciclo: se due risposte di fila
-    escono dai vincoli, il problema è il prompt o il modello, e insistere
-    spende soldi per lo stesso esito."""
-    for tentativo in (1, 2):
-        testo = (
-            await llm_personale.genera_preview(
-                titolo=scheda["titolo"],
-                autori=scheda["autori"],
-                generi=scheda["generi"],
-                anno_prima_pubblicazione=scheda["anno_prima_pubblicazione"],
-                descrizione=scheda["descrizione"],
-                libri_letti=storico,
-                testi_propri=testi,
-            )
-        ).strip()
-        if _conforme(testo):
-            return testo
-        logger.warning(
-            "Preview fuori dai vincoli della regola 20 al tentativo %s (%s parole).",
-            tentativo,
-            _conta_parole(testo),
-        )
-    raise PreviewNonConformeError
+    return await testo_generato.genera_conforme(
+        lambda: llm_personale.genera_preview(
+            titolo=scheda["titolo"],
+            autori=scheda["autori"],
+            generi=scheda["generi"],
+            anno_prima_pubblicazione=scheda["anno_prima_pubblicazione"],
+            descrizione=scheda["descrizione"],
+            libri_letti=storico,
+            testi_propri=testi,
+        ),
+        MASSIMO_PAROLE,
+    )
 
 
 async def ultima(access_token: str, voce_id: UUID) -> dict[str, Any] | None:

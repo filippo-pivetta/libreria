@@ -222,6 +222,23 @@ export function Scaffale({
             >
               Cerca nei tuoi insight
             </Link>
+            {/* Suggerimenti e sintesi tematica (issue #27): stesso
+                trattamento della ricerca semantica sopra — un
+                collegamento discreto e non una voce di menu, perché
+                dipendono dal consenso e la navigazione (§5) resta a
+                quattro voci fisse. */}
+            <Link
+              href="/suggerimenti"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Suggerimenti di lettura
+            </Link>
+            <Link
+              href="/sintesi"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Sintesi dei tuoi temi
+            </Link>
             <Link
               href="/aggiungi"
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

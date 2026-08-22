@@ -2,9 +2,14 @@
 
 Il PRD subordina al consenso **cinque** funzioni personali. L'issue #6 ne ha costruite due —
 ricerca semantica e preview personalizzata "me lo consigli?" — insieme a tutta l'infrastruttura
-del consenso. Le altre tre restano qui, ora tracciate in **issue #27**: questo file resta il
-riferimento tecnico dettagliato (cosa riusare, cosa decidere), l'issue il punto d'ingresso per
-aprire il lavoro.
+del consenso. Le altre tre erano tracciate qui sotto **issue #27**, che ne ha costruite altre
+due (**suggerimenti di lettura**, §1, e **sintesi tematica**, §2 — dettagli in design-frontend.md
+§26 e §27) lasciando fuori, per scelta esplicita, la terza. Resta aperta solo:
+
+- **§3, acquisizione di una citazione da foto** — nessuna issue la traccia ancora.
+
+Le sezioni 1 e 2 restano sotto per riferimento storico (cosa si è deciso e perché), non perché
+ci sia ancora lavoro da aprire.
 
 Cosa esiste già e non va rifatto:
 
@@ -25,18 +30,28 @@ Cosa esiste già e non va rifatto:
 - **Il doppio test.** `backend/tests/test_preview.py` contiene il test della regola 19 fatto
   sul corpo HTTP reale; `supabase/tests/verifica_consenso_e_indici.sql` copre il lato database.
 
-## 1. Suggerimenti di lettura
+## 1. Suggerimenti di lettura — costruita nell'issue #27
 
 PRD: "suggerimenti di lettura a partire dal solo storico personale, mai da quello dei
 collegati: funzione a sé, che propone cosa leggere". Distinta dalla preview, che dà un parere
 su un titolo che indichi tu.
 
-Da decidere in fase di costruzione: dove vivono. Non c'è una schermata nel design doc, e la
-navigazione ha quattro voci che il §5 tiene tali — verosimilmente una sezione dello scaffale o
-una pagina raggiunta da lì, come `/cerca`. Da chiarire anche se un suggerimento sia un
-`artefatto_generato` (e quindi conservato, cancellabile, sopravvivente alla revoca) o un
-risultato effimero: il PRD non lo elenca fra gli artefatti, e il CHECK su `tipo` andrebbe
-esteso se lo diventasse.
+Deciso in costruzione: **effimeri**, non un `artefatto_generato` — il PRD non li elenca fra gli
+artefatti, e ogni richiesta ne genera di nuovi senza conservare i precedenti (nessuna estensione
+del CHECK su `tipo`). Vivono in una pagina a sé, `/suggerimenti`, raggiunta da un collegamento
+nella riga dei filtri dello scaffale — non una sezione della Libreria, non una voce di menu.
+
+**Riscritti lo stesso giorno**, dopo un primo giro d'uso: la prima versione mandava al modello
+uno storico piatto (libri finiti, senza gerarchia) e non verificava i titoli, con il risultato
+di un titolo mai esistito arrivato all'Utente. La versione costruita usa un **profilo in tre
+gruppi** — libri amati (voto ≥ 4, qualsiasi età), letture più recenti (per `lettura.data_fine`
+vera, qualsiasi voto), libri non piaciuti o abbandonati (voto ≤ 2,5 o stato "abbandonato", mai
+usati per proporre libri simili) — ed **esclude ogni Voce già in libreria in qualunque stato**,
+non solo "letto" come nella prima versione. Ogni titolo proposto si **verifica** contro i
+cataloghi lato server prima di uscire (sovra-generazione: si chiedono fino a otto candidati per
+poterne scartare alcuni e uscire comunque con cinque), con un tetto di due titoli per stesso
+autore. Ogni proposta è etichettata "affine" o "scoperta" dal modello. Dettagli in
+design-frontend.md §26 e nel docstring di `app/services/suggerimenti_service.py`.
 
 Attenzione: il PRD elenca "Raccomandazioni basate sullo storico, con rifiuto permanente di
 titoli e autori e affinità calcolata su chi valuta gli stessi libri allo stesso modo" fra le
@@ -44,20 +59,33 @@ cose **post MVP**. I suggerimenti di lettura di questa lista sono la versione se
 rifiuti permanenti e senza affinità fra utenti — che, fra l'altro, leggerebbe dati di altri e
 violerebbe la regola 19 così com'è scritta.
 
-## 2. Sintesi tematica
+## 2. Sintesi tematica — costruita nell'issue #27
 
 PRD: "sintesi tematica trasversale dei propri insight tra libri diversi". Artefatto con
 `voce_id` nullo, già previsto dallo schema.
 
 Il design doc §10 dice dove **non** va: "la vista trasversale è rinviata. Ricerca semantica e
 sintesi tematica producono comunque risultati che attraversano più libri, ma una pagina di
-risultati non è una vista di navigazione". La pagina `/cerca` costruita dall'issue #6 è il posto
-naturale in cui atterrare, o una accanto con la stessa forma.
+risultati non è una vista di navigazione". Non è atterrata su `/cerca`: ha una pagina a sé,
+`/sintesi`, con la stessa forma di ingresso di `/suggerimenti`.
 
-Da decidere: se la sintesi si genera su tutto o su un sottoinsieme (un anno? un tema chiesto
-dall'Utente?), e se rigenerarla sostituisca la precedente o ne accumuli una nuova — oggi
-`artefatto_generato` non ha vincolo di unicità e le preview si accumulano, con l'interfaccia che
-ne mostra la più recente.
+Deciso in costruzione: si genera **su tutti** gli insight e le recensioni proprie, nessun
+sottoinsieme per anno o tema — non richiesto dal design doc, e avrebbe aggiunto una superficie
+di scelta senza una specifica. Rigenerarla **sostituisce** la precedente invece di accumularne
+una nuova: a differenza della preview, per cui più pareri nel tempo hanno senso, "la sintesi
+della mia libreria" è più vicina a un singolo stato che si aggiorna — esiste al più una sintesi
+per utente, cancellata solo dopo che la nuova è pronta.
+
+**Riscritta lo stesso giorno, dopo un primo giro d'uso.** La prima versione (un unico paragrafo
+generato, duecento parole, stessa disciplina della regola 20 della preview) si è rivelata poco
+utile: non verificabile, senza un posto dove andare, senza ragione di essere riletta. La
+versione costruita è un **elenco di temi**, ciascuno con: un nome, una frase che lo descrive
+(stessa disciplina di forma, ora per riga — venticinque parole invece di duecento — non
+sull'intero testo), i libri distinti da cui viene (collegati alla loro scheda), e su richiesta
+gli insight/recensioni veri che l'hanno prodotto. Un tema sostenuto da un solo libro non è
+"trasversale ... tra libri diversi" (PRD) e viene scartato — se dopo il filtro non ne resta
+nessuno, non si genera né sostituisce nulla: meglio nessuna sintesi che una vuota o inventata.
+Dettagli in design-frontend.md §27.
 
 ## 3. Acquisizione di una citazione da foto
 
