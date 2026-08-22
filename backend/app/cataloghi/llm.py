@@ -2,7 +2,8 @@
 le funzioni bibliografiche assistite: classificazione genere, deduzione
 anno/lingua, riconduzione autori, deduplicazione (issue #20), arricchimento
 delle descrizioni troppo corte (design-frontend.md §24, emendamento 21
-agosto 2026).
+agosto 2026) e traduzione delle descrizioni mancanti in una delle due
+lingue dell'interfaccia (issue #24, emendamento 22 agosto 2026).
 
 Stesso contratto degli altri client di questo pacchetto (google_books,
 open_library, wikidata): non sollevare mai per "il modello non ha deciso",
@@ -349,6 +350,58 @@ async def espandi_descrizione(
     ]
     dati = await chiama_json(messaggi, _SCHEMA_DESCRIZIONE_RIFORMULATA, "descrizione_riformulata")
     return str(dati.get("testo") or testo_originale)
+
+
+async def traduci_descrizione(
+    titolo: str,
+    autori: list[str],
+    testo_sorgente: str,
+    lingua_sorgente: str,
+    lingua_target: str,
+) -> str:
+    """Traduce una descrizione esistente in `lingua_sorgente` verso
+    `lingua_target`, quando quest'ultima non ha una descrizione propria
+    (issue #24, sotto-issue rimanente di #20 punto 6). Mai una generazione:
+    il modello riceve solo il testo sorgente reale, mai la sua conoscenza
+    generale dell'opera — stessa clausola di `espandi_descrizione`, perché
+    un modello è altrettanto incline ad "arricchire" un'opera nota in
+    traduzione quanto in riformulazione.
+
+    Nessun obiettivo di lunghezza qui: si traduce, non si standardizza. Un
+    testo tradotto fuori dalla fascia 200-900 caratteri (raro: la
+    lunghezza cambia poco tra lingue latine/inglese) viene accodato per
+    `standardizzazione_descrizione` dal chiamante, come già accade per le
+    descrizioni scritte da Wikipedia."""
+    messaggi = [
+        {
+            "role": "system",
+            "content": (
+                "Traduci descrizioni di opere letterarie da una lingua "
+                "all'altra, senza riassumere né espandere: la stessa "
+                "prosa, nella lingua richiesta.\n\n"
+                "FINGI DI NON SAPERE NULL'ALTRO sull'opera oltre al testo "
+                "sorgente: comportati come se quel testo fosse la tua "
+                "UNICA fonte di informazione al mondo, anche quando "
+                "riconosci il titolo e sai — o credi di sapere — altro "
+                "sulla trama, l'ambientazione, l'epoca o il contesto "
+                "storico. Quella conoscenza NON va usata per aggiungere "
+                "un dettaglio che il testo sorgente non contiene, "
+                "nemmeno se è corretto: una traduzione fedele riporta "
+                "esattamente i fatti del testo sorgente, non di più."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Titolo: {titolo}\n"
+                f"Autori: {', '.join(autori) or '(nessuno)'}\n\n"
+                f"Testo sorgente (lingua '{lingua_sorgente}'): {testo_sorgente}\n\n"
+                f"Traduci questo testo in lingua '{lingua_target}'."
+            ),
+        },
+    ]
+    dati = await chiama_json(messaggi, _SCHEMA_DESCRIZIONE_RIFORMULATA, "descrizione_tradotta")
+    return str(dati.get("testo") or testo_sorgente)
 
 
 async def accorcia_descrizione(
