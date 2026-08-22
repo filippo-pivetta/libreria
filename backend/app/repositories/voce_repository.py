@@ -16,7 +16,8 @@ from supabase import Client
 
 _SELECT_BASE = (
     "id, utente_id, libro_id, stato, pagine_adottate, voto, creato_at, "
-    "aggiornato_at, voce_di_libreria_privata(nota_intenzione)"
+    "aggiornato_at, voce_di_libreria_privata(nota_intenzione), "
+    "recensione(id), insight(id)"
 )
 
 _LINGUA_INTERFACCIA = "it"
@@ -127,6 +128,17 @@ def _appiattisci_nota_intenzione(voce: dict[str, Any]) -> dict[str, Any]:
     return voce
 
 
+def _appiattisci_conteggi(voce: dict[str, Any]) -> dict[str, Any]:
+    """`ha_recensione`/`numero_insight` (issue #5): un conteggio non è un
+    elenco o un'anteprima ai fini della regola 10 del PRD, quindi nessun
+    gating spoiler qui — il testo vero e proprio di recensione/insight è
+    esposto solo da `voci_service.dettaglio`, con le sue regole di
+    visibilità."""
+    voce["ha_recensione"] = bool(voce.pop("recensione", None))
+    voce["numero_insight"] = len(voce.pop("insight", None) or [])
+    return voce
+
+
 def _con_pagina_corrente(voce: dict[str, Any]) -> dict[str, Any]:
     """Estrae la pagina dell'ultimo avanzamento della sola Lettura aperta
     (se c'è) in un campo piatto `pagina_corrente`, e rimuove la busta
@@ -164,7 +176,9 @@ def get_by_libro(client: Client, libro_id: UUID, utente_id: UUID) -> dict[str, A
     )
     if response is None:
         return None
-    return _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
+    return _appiattisci_conteggi(
+        _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
+    )
 
 
 def create(client: Client, utente_id: UUID, libro_id: UUID) -> dict[str, Any]:
@@ -177,7 +191,7 @@ def create(client: Client, utente_id: UUID, libro_id: UUID) -> dict[str, Any]:
         .execute()
     )
     rows = cast("list[dict[str, Any]]", response.data)
-    return _appiattisci_nota_intenzione(rows[0])
+    return _appiattisci_conteggi(_appiattisci_nota_intenzione(rows[0]))
 
 
 def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
@@ -199,8 +213,10 @@ def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
     righe = cast("list[dict[str, Any]]", response.data)
     return [
         _con_pagina_corrente(
-            _appiattisci_nota_intenzione(
-                _appiattisci_descrizione(_appiattisci_generi(_appiattisci_autori(riga)))
+            _appiattisci_conteggi(
+                _appiattisci_nota_intenzione(
+                    _appiattisci_descrizione(_appiattisci_generi(_appiattisci_autori(riga)))
+                )
             )
         )
         for riga in righe
@@ -226,7 +242,9 @@ def get_dettaglio(client: Client, voce_id: UUID) -> dict[str, Any] | None:
     if response is None:
         return None
     voce = _appiattisci_autori(cast("dict[str, Any]", response.data))
-    return _appiattisci_nota_intenzione(_appiattisci_descrizione(_appiattisci_generi(voce)))
+    return _appiattisci_conteggi(
+        _appiattisci_nota_intenzione(_appiattisci_descrizione(_appiattisci_generi(voce)))
+    )
 
 
 def update_pagine_adottate(
@@ -243,7 +261,7 @@ def update_pagine_adottate(
         .execute()
     )
     rows = cast("list[dict[str, Any]]", response.data)
-    return _appiattisci_nota_intenzione(rows[0]) if rows else None
+    return _appiattisci_conteggi(_appiattisci_nota_intenzione(rows[0])) if rows else None
 
 
 def update_voto(client: Client, voce_id: UUID, voto: float | None) -> dict[str, Any] | None:
@@ -258,7 +276,7 @@ def update_voto(client: Client, voce_id: UUID, voto: float | None) -> dict[str, 
         .execute()
     )
     rows = cast("list[dict[str, Any]]", response.data)
-    return _appiattisci_nota_intenzione(rows[0]) if rows else None
+    return _appiattisci_conteggi(_appiattisci_nota_intenzione(rows[0])) if rows else None
 
 
 def update_nota_intenzione(
@@ -287,7 +305,9 @@ def update_nota_intenzione(
     )
     if response is None:
         return None
-    return _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
+    return _appiattisci_conteggi(
+        _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
+    )
 
 
 def cambia_stato(
@@ -315,4 +335,6 @@ def cambia_stato(
         .single()
         .execute()
     )
-    return _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
+    return _appiattisci_conteggi(
+        _appiattisci_nota_intenzione(cast("dict[str, Any]", response.data))
+    )

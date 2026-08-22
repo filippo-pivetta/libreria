@@ -16,6 +16,18 @@ const ETICHETTA_STATO: Record<string, string> = {
   abbandonato: "Abbandonato",
 };
 
+/** "una recensione, tre insight" (docs/rimandato-scaffale-scheda.md §2) —
+ * un conteggio, non un'anteprima: nessun gating spoiler in gioco qui,
+ * issue #5. */
+function formattaContenuti(voce: Voce): string {
+  const parti: string[] = [];
+  if (voce.haRecensione) parti.push("una recensione");
+  if (voce.numeroInsight > 0) {
+    parti.push(voce.numeroInsight === 1 ? "un insight" : `${voce.numeroInsight} insight`);
+  }
+  return parti.join(", ");
+}
+
 /**
  * "Nella tua libreria" (design doc §9, §15): sta fuori dalla scheda del
  * collegato, con un'etichetta che dice di chi è — la sua pagina resta
@@ -59,6 +71,7 @@ export function NellaTuaLibreria({
           <p className="font-ui text-sm text-ink">
             {ETICHETTA_STATO[propriaVoce.stato]}
             {propriaVoce.voto ? ` · ${propriaVoce.voto} stelle` : ""}
+            {formattaContenuti(propriaVoce) && ` · ${formattaContenuti(propriaVoce)}`}
           </p>
         ) : (
           <p className="font-ui text-sm text-ink-soft">Non è nella tua libreria.</p>
