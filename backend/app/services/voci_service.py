@@ -17,7 +17,8 @@ from postgrest.exceptions import APIError
 
 from app.core import storage
 from app.core.supabase import get_user_client
-from app.repositories import voce_repository
+from app.repositories import recensione_repository, voce_repository
+from app.services import insight_service
 
 
 class LibroInesistenteError(Exception):
@@ -112,11 +113,26 @@ async def elenco_libreria(access_token: str, utente_id: UUID) -> list[dict[str, 
 
 
 async def dettaglio(access_token: str, voce_id: UUID) -> dict[str, Any] | None:
+    """Oltre a Libro e storico delle Letture, compone recensione e insight
+    (issue #5) con due query mirate invece di un embed PostgREST a più
+    livelli — scomodo da esprimere (il bucket "senza lettura" richiederebbe
+    un filtro `lettura_id is null` dentro l'embed) e da far convivere con
+    il gating spoiler, che deve girare su una lista piatta prima di essere
+    ridistribuita per Lettura (stesso schema "due query, non N+1" di
+    `utenti_service.elenco_membri`)."""
     client = get_user_client(access_token)
-    dettaglio = await run_in_threadpool(voce_repository.get_dettaglio, client, voce_id)
-    if dettaglio is None:
+    voce = await run_in_threadpool(voce_repository.get_dettaglio, client, voce_id)
+    if voce is None:
         return None
-    return (await run_in_threadpool(firma_copertine, [dettaglio]))[0]
+    voce["recensione"] = await run_in_threadpool(recensione_repository.get_by_voce, client, voce_id)
+    id_letture = {UUID(lettura["id"]) for lettura in voce["letture"]}
+    per_lettura, senza_lettura = await insight_service.raggruppati_per_lettura(
+        access_token, voce_id, id_letture
+    )
+    for lettura in voce["letture"]:
+        lettura["insight"] = per_lettura.get(UUID(lettura["id"]), [])
+    voce["insight_senza_lettura"] = senza_lettura
+    return (await run_in_threadpool(firma_copertine, [voce]))[0]
 
 
 async def cambia_stato(

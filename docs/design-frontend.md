@@ -405,9 +405,8 @@ il contenuto personale sotto la piega dello schermo.
   sinistra/destra — e si solleva al passaggio del mouse come i volumi sullo scaffale, §7; un
   secondo clic sul valore già scelto lo cancella) e
   **nota di intenzione** (carta più calda, mai visibile a un collegato, in nessuno stato del
-  consenso) sono costruiti. **Recensione e insight raggruppati per lettura non lo sono
-  ancora**: appartengono per intero all'issue #5, non toccata da questo intervento — restano
-  nel documento come specifica per quando sarà implementata.
+  consenso), **recensione** (paragrafo Literata sotto le stelle) e **insight raggruppati per
+  lettura** sono costruiti (issue #5).
 - Se il libro è da leggere, **"me lo consigli?" prende il posto dei dati di lettura**. Vincoli
   del PRD: privata e mai condivisibile, sotto le ottanta parole, dichiarata come generata, e a
   consenso revocato l'interfaccia dice che è spenta invece di far finta che non esista.
@@ -415,8 +414,8 @@ il contenuto personale sotto la piega dello schermo.
 
 ### Sotto le due pagine
 
-Insight raggruppati per lettura (non ancora costruito, issue #5), poi lo storico delle letture
-in un pannello che si apre. Sui libri con una lettura sola già aperta, la maggioranza, non
+Insight raggruppati per lettura (issue #5), poi lo storico delle letture in un pannello che si
+apre. Sui libri con una lettura sola già aperta, la maggioranza, non
 compare nulla — compare solo quando c'è più di una lettura, o quando l'unica lettura è già
 chiusa (rilettura in corso su un libro già finito una volta).
 

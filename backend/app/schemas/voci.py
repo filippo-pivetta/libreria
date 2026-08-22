@@ -11,6 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.letture import EsitoLettura
+from app.schemas.recensioni import RecensioneResponse, Visibilita
 
 StatoVoce = Literal["da_leggere", "in_lettura", "in_pausa", "abbandonato", "letto"]
 
@@ -114,6 +115,13 @@ class VoceResponse(BaseModel):
     # avanzamento sulla fascia "in corso"); altrove resta None per
     # costruzione della query, non per assenza di dato.
     pagina_corrente: int | None = None
+    # Conteggi, non contenuto: un conteggio non è un elenco o un'anteprima
+    # ai fini della regola 10 del PRD, quindi nessun gating spoiler qui —
+    # a differenza del testo vero e proprio di recensione/insight, esposto
+    # solo da GET /voci/{id} con le sue regole di visibilità (issue #5).
+    # Per "Nella tua libreria" (docs/rimandato-scaffale-scheda.md §2).
+    ha_recensione: bool = False
+    numero_insight: int = 0
 
 
 class VoceConLibroResponse(VoceResponse):
@@ -134,6 +142,22 @@ class AvanzamentoEssenziale(BaseModel):
     generato_automaticamente: bool
 
 
+class InsightEssenziale(BaseModel):
+    """Annidato in `GET /voci/{id}` (`letture[].insight` e
+    `insight_senza_lettura`, issue #5). `testo` è `None` se e solo se
+    `spoiler` è vero, incondizionatamente — vale anche sui propri insight
+    (design-frontend.md §11: "il taglio non è un permesso, è un avviso").
+    Il testo pieno si ottiene solo con `GET /insight/{id}/testo`, dietro un
+    gesto esplicito di chi guarda."""
+
+    id: UUID
+    testo: str | None
+    spoiler: bool
+    visibilita: Visibilita
+    data: date
+    creato_at: datetime
+
+
 class LetturaConAvanzamenti(BaseModel):
     """Una Lettura con i propri avanzamenti, per lo storico delle
     letture nella scheda del libro (design-frontend.md §9, "sotto le due
@@ -144,6 +168,9 @@ class LetturaConAvanzamenti(BaseModel):
     data_fine: date | None
     esito: EsitoLettura | None
     avanzamenti: list[AvanzamentoEssenziale]
+    # Raggruppati per Lettura (design-frontend.md §10, "come impone il
+    # PRD"), gating spoiler già applicato — issue #5.
+    insight: list[InsightEssenziale]
 
 
 class VoceDettaglioResponse(VoceResponse):
@@ -153,6 +180,13 @@ class VoceDettaglioResponse(VoceResponse):
 
     libro: LibroEssenziale
     letture: list[LetturaConAvanzamenti]
+    # `None` se non scritta, o se scritta ma privata e chi guarda non è il
+    # proprietario (RLS, non un campo booleano applicativo) — issue #5.
+    recensione: RecensioneResponse | None
+    # Insight non legati a nessuna Lettura: scritti prima di iniziare il
+    # libro, o orfani di una Lettura poi cancellata (PRD: "restano sulla
+    # Voce, senza più alcuna Lettura associata") — issue #5.
+    insight_senza_lettura: list[InsightEssenziale]
 
 
 class AggiungiVoceResponse(BaseModel):

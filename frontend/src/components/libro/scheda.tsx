@@ -16,6 +16,8 @@ import { CorreggiPagine } from "@/components/libro/correggi-pagine";
 import { StoricoLetture } from "@/components/libro/storico-letture";
 import { VotoStelle } from "@/components/libro/voto-stelle";
 import { NotaIntenzione } from "@/components/libro/nota-intenzione";
+import { Recensione } from "@/components/libro/recensione";
+import { InsightLista } from "@/components/libro/insight-lista";
 
 const ETICHETTA_STATO: Record<string, string> = {
   da_leggere: "Da leggere",
@@ -32,8 +34,9 @@ const ETICHETTA_STATO: Record<string, string> = {
  * (unico dato bibliografico che l'Utente può correggere, quindi sta coi
  * fatti dell'opera e non nel pannello dell'avanzamento). A destra la tua
  * copia: stato, registrazione dell'avanzamento, transizioni, voto,
- * nota di intenzione, storico. Niente recensione/insight: issue #5, non
- * costruita.
+ * recensione, nota di intenzione. Sotto le due pagine, a piena
+ * larghezza: storico delle letture e insight raggruppati per lettura
+ * (design doc §9, "Sotto le due pagine" — issue #5).
  *
  * Nel contesto di un collegato (`isOwner === false`) la pagina destra
  * perde ogni superficie di scrittura — nessun pannello, nessuna
@@ -88,138 +91,150 @@ export function Scheda({
   const isOwner = data.utenteId === currentUserId;
 
   return (
-    // Le due pagine, separate da un vuoto di 2px sul piano 0 (design doc
-    // §9). Stesso ordine su ogni breakpoint: l'opera prima (sopra su
-    // mobile, a sinistra da tablet in su), la copia dopo.
-    <div
-      className="flex flex-col gap-0.5 md:flex-row"
-      {...(!isOwner ? { "data-guest": "" } : {})}
-    >
-      <section className="plane-1 pagina-opera grain min-h-[420px] flex-1 p-6 md:min-h-[640px]">
-        <div className="cover mb-4 h-48 w-32" style={{ backgroundColor: colore }}>
-          {data.libro.copertinaGrandeUrl && (
-            // <img> piano, non next/image: come sullo scaffale
-            // (components/libreria/volume.tsx), il dominio delle
-            // copertine è privato e firmato, non configurabile in
-            // anticipo per l'ottimizzatore di Next.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              ref={(elemento) => {
-                if (elemento?.complete) elemento.setAttribute("data-loaded", "");
-              }}
-              src={data.libro.copertinaGrandeUrl}
-              alt=""
-              decoding="async"
-              onLoad={(event) => event.currentTarget.setAttribute("data-loaded", "")}
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-            />
-          )}
-          <p className="cover__placeholder flex items-center justify-center p-3 text-center font-display text-base leading-snug text-on-accent">
-            {data.libro.titoloCanonico}
-          </p>
-        </div>
-        <p className="t-title text-2xl">{data.libro.titoloCanonico}</p>
-        {autori && <p className="t-meta mt-1">{autori}</p>}
-
-        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 border-b border-line pb-4">
-          <div>
-            <p className="t-label">Prima pubblicazione</p>
-            <p className="mt-0.5 font-ui text-sm text-ink">
-              {data.libro.annoPrimaPubblicazione ?? "Sconosciuta"}
+    // `data-guest` sul wrapper esterno, non solo sulle due pagine: governa
+    // via custom property CSS anche il blocco a piena larghezza sotto
+    // (storico e insight), che deve attenuarsi allo stesso modo.
+    <div {...(!isOwner ? { "data-guest": "" } : {})}>
+      {/* Le due pagine, separate da un vuoto di 2px sul piano 0 (design
+          doc §9). Stesso ordine su ogni breakpoint: l'opera prima (sopra
+          su mobile, a sinistra da tablet in su), la copia dopo. */}
+      <div className="flex flex-col gap-0.5 md:flex-row">
+        <section className="plane-1 pagina-opera grain min-h-[420px] flex-1 p-6 md:min-h-[640px]">
+          <div className="cover mb-4 h-48 w-32" style={{ backgroundColor: colore }}>
+            {data.libro.copertinaGrandeUrl && (
+              // <img> piano, non next/image: come sullo scaffale
+              // (components/libreria/volume.tsx), il dominio delle
+              // copertine è privato e firmato, non configurabile in
+              // anticipo per l'ottimizzatore di Next.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                ref={(elemento) => {
+                  if (elemento?.complete) elemento.setAttribute("data-loaded", "");
+                }}
+                src={data.libro.copertinaGrandeUrl}
+                alt=""
+                decoding="async"
+                onLoad={(event) => event.currentTarget.setAttribute("data-loaded", "")}
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            )}
+            <p className="cover__placeholder flex items-center justify-center p-3 text-center font-display text-base leading-snug text-on-accent">
+              {data.libro.titoloCanonico}
             </p>
           </div>
-          {data.libro.linguaOriginale && (
+          <p className="t-title text-2xl">{data.libro.titoloCanonico}</p>
+          {autori && <p className="t-meta mt-1">{autori}</p>}
+
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 border-b border-line pb-4">
             <div>
-              <p className="t-label">Lingua originale</p>
+              <p className="t-label">Prima pubblicazione</p>
               <p className="mt-0.5 font-ui text-sm text-ink">
-                {formattaLingua(data.libro.linguaOriginale)}
+                {data.libro.annoPrimaPubblicazione ?? "Sconosciuta"}
               </p>
             </div>
-          )}
-          {isOwner && (
-            <div>
-              <p className="t-label">Pagine</p>
-              <CorreggiPagine voceId={data.id} pagineAdottate={data.pagineAdottate} />
-            </div>
-          )}
-        </div>
-
-        {data.libro.generi.length > 0 && (
-          // Pastiglie senza alcun affordance di modifica (design doc §9):
-          // il PRD vieta la correzione a qualsiasi utente e non prevede
-          // nemmeno una segnalazione. L'assenza di comandi è il
-          // messaggio — bordo 1px, nessun riempimento.
-          <div className="mt-4 flex flex-wrap gap-2">
-            {data.libro.generi.map((genere) => (
-              <span
-                key={genere.id}
-                className="t-meta rounded-object border border-line px-2.5 py-1"
-              >
-                {genere.etichetta}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {data.libro.descrizione && (
-          <p className="t-meta mt-4 leading-relaxed">{data.libro.descrizione}</p>
-        )}
-      </section>
-
-      <section className="plane-1 pagina-copia grain relative min-h-[420px] flex-1 p-6 md:min-h-[640px]">
-        {ribbon && (
-          // Altezza fissa e corta, indipendente dallo stato: sulla
-          // scheda c'è un nastro solo (nessun bisogno di differenziare
-          // la lunghezza per riconoscerlo fra tanti, come sullo
-          // scaffale), e deve stare sopra la barra di avanzamento
-          // sotto, mai attraversarla.
-          <span
-            aria-hidden
-            className={`absolute top-0 right-6 w-3 rounded-b-sm ${ribbon.colorClass} ${ribbon.accessibileClass}`}
-            style={{ height: "22px" }}
-          />
-        )}
-
-        <p className="t-label mb-4">{ETICHETTA_STATO[data.stato]}</p>
-
-        {isOwner && data.stato === "in_lettura" ? (
-          letturaAperta && (
-            <SegnalibroAvanzamento
-              voceId={data.id}
-              lettura={letturaAperta}
-              pagineAdottate={data.pagineAdottate}
-            />
-          )
-        ) : (
-          // In pausa (proprio) o libro di un collegato: sola lettura,
-          // niente campo, niente data, niente "Salva" — in pausa non si
-          // registra un avanzamento, si riprende prima (design doc §9).
-          letturaAperta &&
-          data.pagineAdottate !== null &&
-          percentualeSalvata !== null && (
-            <div className="mb-5 max-w-[calc(100%-2.5rem)]">
-              <div className="relative h-1.5 w-full overflow-hidden rounded-object bg-surface-2">
-                <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${percentualeSalvata}%` }} />
+            {data.libro.linguaOriginale && (
+              <div>
+                <p className="t-label">Lingua originale</p>
+                <p className="mt-0.5 font-ui text-sm text-ink">
+                  {formattaLingua(data.libro.linguaOriginale)}
+                </p>
               </div>
-              <p className="t-meta t-num mt-1">
-                {paginaSalvata} di {data.pagineAdottate} pagine
-              </p>
+            )}
+            {isOwner && (
+              <div>
+                <p className="t-label">Pagine</p>
+                <CorreggiPagine voceId={data.id} pagineAdottate={data.pagineAdottate} />
+              </div>
+            )}
+          </div>
+
+          {data.libro.generi.length > 0 && (
+            // Pastiglie senza alcun affordance di modifica (design doc §9):
+            // il PRD vieta la correzione a qualsiasi utente e non prevede
+            // nemmeno una segnalazione. L'assenza di comandi è il
+            // messaggio — bordo 1px, nessun riempimento.
+            <div className="mt-4 flex flex-wrap gap-2">
+              {data.libro.generi.map((genere) => (
+                <span
+                  key={genere.id}
+                  className="t-meta rounded-object border border-line px-2.5 py-1"
+                >
+                  {genere.etichetta}
+                </span>
+              ))}
             </div>
-          )
-        )}
+          )}
 
-        {isOwner && <TransizioniStato voce={data} />}
+          {data.libro.descrizione && (
+            <p className="t-meta mt-4 leading-relaxed">{data.libro.descrizione}</p>
+          )}
+        </section>
 
-        <div className="mt-5">
-          <VotoStelle voceId={data.id} voto={data.voto} isOwner={isOwner} />
-        </div>
+        <section className="plane-1 pagina-copia grain relative min-h-[420px] flex-1 p-6 md:min-h-[640px]">
+          {ribbon && (
+            // Altezza fissa e corta, indipendente dallo stato: sulla
+            // scheda c'è un nastro solo (nessun bisogno di differenziare
+            // la lunghezza per riconoscerlo fra tanti, come sullo
+            // scaffale), e deve stare sopra la barra di avanzamento
+            // sotto, mai attraversarla.
+            <span
+              aria-hidden
+              className={`absolute top-0 right-6 w-3 rounded-b-sm ${ribbon.colorClass} ${ribbon.accessibileClass}`}
+              style={{ height: "22px" }}
+            />
+          )}
 
-        {isOwner && <NotaIntenzione voceId={data.id} notaIntenzione={data.notaIntenzione} />}
+          <p className="t-label mb-4">{ETICHETTA_STATO[data.stato]}</p>
 
-        <StoricoLetture voceId={data.id} letture={data.letture} isOwner={isOwner} />
-      </section>
+          {isOwner && data.stato === "in_lettura" ? (
+            letturaAperta && (
+              <SegnalibroAvanzamento
+                voceId={data.id}
+                lettura={letturaAperta}
+                pagineAdottate={data.pagineAdottate}
+              />
+            )
+          ) : (
+            // In pausa (proprio) o libro di un collegato: sola lettura,
+            // niente campo, niente data, niente "Salva" — in pausa non si
+            // registra un avanzamento, si riprende prima (design doc §9).
+            letturaAperta &&
+            data.pagineAdottate !== null &&
+            percentualeSalvata !== null && (
+              <div className="mb-5 max-w-[calc(100%-2.5rem)]">
+                <div className="relative h-1.5 w-full overflow-hidden rounded-object bg-surface-2">
+                  <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${percentualeSalvata}%` }} />
+                </div>
+                <p className="t-meta t-num mt-1">
+                  {paginaSalvata} di {data.pagineAdottate} pagine
+                </p>
+              </div>
+            )
+          )}
+
+          {isOwner && <TransizioniStato voce={data} />}
+
+          <div className="mt-5">
+            <VotoStelle voceId={data.id} voto={data.voto} isOwner={isOwner} />
+          </div>
+
+          <Recensione voceId={data.id} recensione={data.recensione} isOwner={isOwner} />
+
+          {isOwner && <NotaIntenzione voceId={data.id} notaIntenzione={data.notaIntenzione} />}
+        </section>
+      </div>
+
+      {/* Sotto le due pagine, a piena larghezza (design doc §9): storico
+          delle letture e insight raggruppati per lettura — issue #5. */}
+      <StoricoLetture voceId={data.id} letture={data.letture} isOwner={isOwner} />
+      <InsightLista
+        voceId={data.id}
+        letture={data.letture}
+        insightSenzaLettura={data.insightSenzaLettura}
+        isOwner={isOwner}
+      />
     </div>
   );
 }

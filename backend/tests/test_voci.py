@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 
 from app.core.security import get_current_user
 from app.main import app
+from app.repositories import insight_repository, recensione_repository, voce_repository
 from app.schemas.auth import AuthenticatedUser
 from app.services import voci_service
 
@@ -179,8 +180,11 @@ def test_get_voce_returns_detail(
                             "generato_automaticamente": False,
                         }
                     ],
+                    "insight": [],
                 }
             ],
+            "recensione": None,
+            "insight_senza_lettura": [],
         }
 
     monkeypatch.setattr(voci_service, "dettaglio", _fake_dettaglio)
@@ -211,6 +215,201 @@ def test_get_voce_requires_authentication(client: TestClient) -> None:
     response = client.get(f"/voci/{_VOCE_ID}")
 
     assert response.status_code == 401
+
+
+# --- GET /voci/{id}: composizione di recensione/insight (issue #5) --------
+#
+# A differenza dei test sopra, questi non monkeypatchano `voci_service.
+# dettaglio`: la vera logica di composizione (e il gating spoiler, che vive
+# in `insight_service`) deve girare per intero. Si mockano solo i
+# repository, il confine più vicino a Supabase.
+
+_LETTURA_APERTA_ID = UUID("00000000-0000-0000-0000-0000000000c1")
+_LETTURA_CANCELLATA_ID = UUID("00000000-0000-0000-0000-0000000000c9")
+
+
+def test_get_voce_dettaglio_nasconde_testo_spoiler_anche_al_proprietario(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Il test cardine della regola 10 (PRD): un insight contrassegnato
+    spoiler non è mai restituito in chiaro in un elenco, nemmeno al
+    proprietario che guarda la propria scheda (design-frontend.md §11:
+    "non è un permesso, è un avviso"). `authenticated` impersona proprio il
+    proprietario (`_USER_ID` = `_VOCE.utente_id`), non un terzo: se il
+    gating dipendesse per errore da chi guarda, questo test lo scoprirebbe."""
+    monkeypatch.setattr(
+        voce_repository,
+        "get_dettaglio",
+        lambda client, voce_id: {
+            **_VOCE,
+            "libro": _LIBRO,
+            "letture": [
+                {
+                    "id": str(_LETTURA_APERTA_ID),
+                    "data_inizio": "2026-08-15",
+                    "data_fine": None,
+                    "esito": None,
+                    "avanzamenti": [],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(recensione_repository, "get_by_voce", lambda client, voce_id: None)
+    monkeypatch.setattr(
+        insight_repository,
+        "list_by_voce",
+        lambda client, voce_id: [
+            {
+                "id": "00000000-0000-0000-0000-0000000000f1",
+                "voce_id": str(_VOCE_ID),
+                "lettura_id": str(_LETTURA_APERTA_ID),
+                "testo": "Il finale mi ha sorpreso.",
+                "spoiler": True,
+                "visibilita": "condiviso",
+                "data": "2026-08-16",
+                "creato_at": "2026-08-16T00:00:00Z",
+            }
+        ],
+    )
+
+    response = authenticated.get(f"/voci/{_VOCE_ID}")
+
+    assert response.status_code == 200
+    insight_nella_lettura = response.json()["letture"][0]["insight"]
+    assert len(insight_nella_lettura) == 1
+    assert insight_nella_lettura[0]["spoiler"] is True
+    assert insight_nella_lettura[0]["testo"] is None
+
+
+def test_get_voce_dettaglio_espone_insight_senza_spoiler_per_intero(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        voce_repository,
+        "get_dettaglio",
+        lambda client, voce_id: {
+            **_VOCE,
+            "libro": _LIBRO,
+            "letture": [
+                {
+                    "id": str(_LETTURA_APERTA_ID),
+                    "data_inizio": "2026-08-15",
+                    "data_fine": None,
+                    "esito": None,
+                    "avanzamenti": [],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(recensione_repository, "get_by_voce", lambda client, voce_id: None)
+    monkeypatch.setattr(
+        insight_repository,
+        "list_by_voce",
+        lambda client, voce_id: [
+            {
+                "id": "00000000-0000-0000-0000-0000000000f2",
+                "voce_id": str(_VOCE_ID),
+                "lettura_id": str(_LETTURA_APERTA_ID),
+                "testo": "Uno stile secco, quasi giornalistico.",
+                "spoiler": False,
+                "visibilita": "condiviso",
+                "data": "2026-08-16",
+                "creato_at": "2026-08-16T00:00:00Z",
+            }
+        ],
+    )
+
+    response = authenticated.get(f"/voci/{_VOCE_ID}")
+
+    insight_nella_lettura = response.json()["letture"][0]["insight"]
+    assert insight_nella_lettura[0]["testo"] == "Uno stile secco, quasi giornalistico."
+
+
+def test_get_voce_dettaglio_raggruppa_insight_senza_lettura(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Un insight senza `lettura_id` (scritto prima di iniziare il libro) e
+    uno il cui `lettura_id` punta a una Lettura non più tra quelle della
+    Voce (Lettura cancellata — PRD: "gli insight legati a una Lettura
+    cancellata restano sulla Voce, senza più alcuna Lettura associata")
+    finiscono entrambi in `insight_senza_lettura`, mai persi."""
+    monkeypatch.setattr(
+        voce_repository,
+        "get_dettaglio",
+        lambda client, voce_id: {
+            **_VOCE,
+            "libro": _LIBRO,
+            "letture": [
+                {
+                    "id": str(_LETTURA_APERTA_ID),
+                    "data_inizio": "2026-08-15",
+                    "data_fine": None,
+                    "esito": None,
+                    "avanzamenti": [],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(recensione_repository, "get_by_voce", lambda client, voce_id: None)
+    monkeypatch.setattr(
+        insight_repository,
+        "list_by_voce",
+        lambda client, voce_id: [
+            {
+                "id": "00000000-0000-0000-0000-0000000000f3",
+                "voce_id": str(_VOCE_ID),
+                "lettura_id": None,
+                "testo": "Prima ancora di iniziare, mi aspetto...",
+                "spoiler": False,
+                "visibilita": "condiviso",
+                "data": "2026-08-10",
+                "creato_at": "2026-08-10T00:00:00Z",
+            },
+            {
+                "id": "00000000-0000-0000-0000-0000000000f4",
+                "voce_id": str(_VOCE_ID),
+                "lettura_id": str(_LETTURA_CANCELLATA_ID),
+                "testo": "Orfano di una lettura cancellata.",
+                "spoiler": False,
+                "visibilita": "condiviso",
+                "data": "2026-08-11",
+                "creato_at": "2026-08-11T00:00:00Z",
+            },
+        ],
+    )
+
+    response = authenticated.get(f"/voci/{_VOCE_ID}")
+
+    body = response.json()
+    assert len(body["letture"][0]["insight"]) == 0
+    assert len(body["insight_senza_lettura"]) == 2
+
+
+def test_get_voce_dettaglio_include_recensione_del_proprietario(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        voce_repository,
+        "get_dettaglio",
+        lambda client, voce_id: {**_VOCE, "libro": _LIBRO, "letture": []},
+    )
+    monkeypatch.setattr(
+        recensione_repository,
+        "get_by_voce",
+        lambda client, voce_id: {
+            "id": "00000000-0000-0000-0000-0000000000e1",
+            "voce_id": str(_VOCE_ID),
+            "testo": "Un libro che resta addosso.",
+            "visibilita": "condiviso",
+            "creato_at": "2026-08-20T00:00:00Z",
+            "aggiornato_at": "2026-08-20T00:00:00Z",
+        },
+    )
+    monkeypatch.setattr(insight_repository, "list_by_voce", lambda client, voce_id: [])
+
+    response = authenticated.get(f"/voci/{_VOCE_ID}")
+
+    assert response.json()["recensione"]["testo"] == "Un libro che resta addosso."
 
 
 # --- PATCH /voci/{id}/stato -----------------------------------------------

@@ -6,6 +6,11 @@
  * di questo modulo.
  */
 
+import type { Recensione, RecensioneBody } from "@/lib/api/recensioni";
+import { toRecensione } from "@/lib/api/recensioni";
+import type { InsightEssenziale, InsightEssenzialeBody } from "@/lib/api/insight";
+import { toInsightEssenziale } from "@/lib/api/insight";
+
 export type StatoVoce = "da_leggere" | "in_lettura" | "in_pausa" | "abbandonato" | "letto";
 
 export type Autore = {
@@ -86,6 +91,11 @@ export type Voce = {
    * §7): altrove resta null per costruzione della query, non per assenza
    * di dato. */
   paginaCorrente: number | null;
+  /** Conteggi, non contenuto: per "Nella tua libreria"
+   * (docs/rimandato-scaffale-scheda.md §2, "una recensione, tre
+   * insight") — issue #5. */
+  haRecensione: boolean;
+  numeroInsight: number;
 };
 
 export type VoceConLibro = Voce & { libro: Libro };
@@ -103,9 +113,20 @@ export type Lettura = {
   dataFine: string | null;
   esito: "conclusa" | "abbandonata" | null;
   avanzamenti: Avanzamento[];
+  /** Raggruppati per Lettura (design doc §10), gating spoiler già
+   * applicato — issue #5. */
+  insight: InsightEssenziale[];
 };
 
-export type VoceDettaglio = VoceConLibro & { letture: Lettura[] };
+export type VoceDettaglio = VoceConLibro & {
+  letture: Lettura[];
+  /** `null` se non scritta, o se privata e chi guarda non è il
+   * proprietario (RLS, non un campo booleano applicativo) — issue #5. */
+  recensione: Recensione | null;
+  /** Insight non legati a nessuna Lettura: scritti prima di iniziare il
+   * libro, o orfani di una Lettura poi cancellata — issue #5. */
+  insightSenzaLettura: InsightEssenziale[];
+};
 
 type AutoreBody = {
   id: string;
@@ -146,6 +167,8 @@ type VoceBody = {
   creato_at: string;
   aggiornato_at: string;
   pagina_corrente: number | null;
+  ha_recensione: boolean;
+  numero_insight: number;
 };
 
 export type VoceConLibroBody = VoceBody & { libro: LibroBody };
@@ -163,9 +186,14 @@ type LetturaBody = {
   data_fine: string | null;
   esito: "conclusa" | "abbandonata" | null;
   avanzamenti: AvanzamentoBody[];
+  insight: InsightEssenzialeBody[];
 };
 
-type VoceDettaglioBody = VoceConLibroBody & { letture: LetturaBody[] };
+type VoceDettaglioBody = VoceConLibroBody & {
+  letture: LetturaBody[];
+  recensione: RecensioneBody | null;
+  insight_senza_lettura: InsightEssenzialeBody[];
+};
 
 function toLibro(body: LibroBody): Libro {
   return {
@@ -199,6 +227,8 @@ function toVoce(body: VoceBody): Voce {
     creatoAt: body.creato_at,
     aggiornatoAt: body.aggiornato_at,
     paginaCorrente: body.pagina_corrente,
+    haRecensione: body.ha_recensione,
+    numeroInsight: body.numero_insight,
   };
 }
 
@@ -222,11 +252,17 @@ function toLettura(body: LetturaBody): Lettura {
     dataFine: body.data_fine,
     esito: body.esito,
     avanzamenti: body.avanzamenti.map(toAvanzamento),
+    insight: body.insight.map(toInsightEssenziale),
   };
 }
 
 function toVoceDettaglio(body: VoceDettaglioBody): VoceDettaglio {
-  return { ...toVoceConLibro(body), letture: body.letture.map(toLettura) };
+  return {
+    ...toVoceConLibro(body),
+    letture: body.letture.map(toLettura),
+    recensione: body.recensione ? toRecensione(body.recensione) : null,
+    insightSenzaLettura: body.insight_senza_lettura.map(toInsightEssenziale),
+  };
 }
 
 type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
