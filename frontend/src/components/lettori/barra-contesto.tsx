@@ -12,8 +12,7 @@ import { PulsanteEsci } from "@/components/layout/pulsante-esci";
  * variazione. Uscita esplicita ("‹ Lettori", non il tasto indietro del
  * browser), nome della persona fisso mentre si scorre, due schede
  * interne — Libreria (`/lettori/[id]`) e Annali (`/lettori/[id]/annali`,
- * segnaposto finché l'issue #7 non esiste, vedi
- * docs/rimandato-annali-collegato.md).
+ * le sue metriche di lettura, issue #7).
  *
  * Piano 0, non piano 1: è la stanza, non un contenuto sollevato — stesso
  * principio della barra globale (design doc §5).

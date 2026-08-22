@@ -644,14 +644,21 @@ Le righe sono requisiti del PRD:
   decimali (1,5 accanto a un autore) vanno tenuti, con la frase che li spiega sotto: senza,
   sembrano un errore di calcolo;
 - i libri senza genere restano fuori dalla classifica dei generi e lo scarto è dichiarato
-  accanto;
+  accanto — e, nella ciambella, dentro: uno spicchio neutro proprio come le altre voci;
 - "di cui 2 riletture" chiarisce che l'unità è la Lettura e non il Libro.
 
 Selettore ad anno a frecce, con l'intervallo dichiarato dal primo anno con dati a oggi. Anni
 futuri non selezionabili; un anno intermedio senza letture mostra zeri, non un errore.
 
-Classifiche a cinque voci, con "mostra tutte". Barre in `accent`, mai una scala di colori
-diversi per voce: sono la stessa grandezza misurata su soggetti diversi.
+Autori più letti: classifica a cinque voci con "mostra tutte", barre in `accent`, mai una
+scala di colori diversi per voce — sono la stessa grandezza misurata su soggetti diversi.
+Generi principali: stesso principio ma a ciambella (emendamento 22 agosto 2026, issue #7),
+perché il part-to-whole si legge meglio come porzione di un intero che come barre affiancate;
+resta un solo accento, non una tavolozza — gli spicchi sono la stessa tinta a passi di
+opacità decrescenti (rampa sequenziale sul peso, non identità per colore), lo spicchio "non
+classificato" è neutro (`surface-2`, lo stesso dell'assente sullo scaffale), al più cinque
+spicchi con peso proprio oltre i quali si ripiegano in "Altri generi" — "mostra tutte" nella
+legenda sotto la ciambella resta la via per vedere ogni genere singolarmente.
 
 La spiegazione della divergenza a cavallo d'anno compare **solo quando serve**, cioè quando in
 quell'anno esiste almeno una lettura che attraversa il capodanno: il libro conta nell'anno di
@@ -675,11 +682,10 @@ identico per la scheda del singolo libro di un collegato (§9): anche lì la bar
 sparisce, sostituita da "‹ [nome]" verso la sua libreria e il titolo del libro accanto alle
 sue iniziali — un livello alla volta, mai un salto diretto a Lettori da dentro un libro.
 
-**Scheda Annali del collegato — dipende dall'issue #7, non ancora costruita.** La scheda
-compare comunque nella barra contestuale invece di sparire, con l'indicazione che arriva più
-avanti: nasconderla del tutto suggerirebbe che non è prevista, mentre lo è. Specifica completa
-in `docs/rimandato-annali-collegato.md`, da seguire quando Metriche di lettura (issue #7) sarà
-costruita — non da reinventare in quel momento.
+**Scheda Annali del collegato (issue #7).** Le sue metriche di lettura, calcolate sui suoi
+dati: stessa card della propria vista Annali (§14), più l'affiancamento con le tue metriche
+dello stesso anno e i libri letti in comune con i voti affiancati. Storico e dettagli in
+`docs/rimandato-annali-collegato.md`.
 
 **Libri in comune.** L'intestazione della sua libreria porta anche il numero di opere che
 possiedi anche tu (stesso Libro in entrambe le librerie), calcolato dalle due liste già

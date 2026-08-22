@@ -1,9 +1,16 @@
 # Rimandato dalla revisione di Lettori e libreria di un collegato (20 agosto 2026)
 
+**Risolto nell'issue #7 (22 agosto 2026).** Tutti e cinque i punti sotto sono stati costruiti
+insieme a Metriche di lettura, invece che in un intervento successivo come questa nota
+prevedeva in origine: `GET /metriche` e `GET /utenti/{id}/metriche` (backend), la scheda Annali
+propria e quella del collegato (frontend), con l'affiancamento e i libri in comune. File
+lasciato come riferimento storico di cosa è stato costruito e perché, non più una lista aperta.
+
 La scheda "Annali" nella barra contestuale di un collegato (`docs/design-frontend.md` §15,
-route `/lettori/[id]/annali`) è visibile e cliccabile, ma mostra solo un messaggio onesto: le
-sue metriche non esistono ancora. Non è un'issue GitHub — è la lista da ridarmi quando si apre
-Metriche di lettura (issue #7), per completare quella scheda senza reinventarla da zero.
+route `/lettori/[id]/annali`) era visibile e cliccabile, ma mostrava solo un messaggio onesto:
+le sue metriche non esistevano ancora. Non era un'issue GitHub — era la lista da ridare quando
+si apriva Metriche di lettura (issue #7), per completare quella scheda senza reinventarla da
+zero.
 
 Riferimento visivo: il file HTML fornito a corredo della revisione (mockup statico con dati
 finti), sezione "i suoi Annali", tab `data-tab="ann"`. Riferimento di specifica: `docs/design-
@@ -15,56 +22,38 @@ anche per le metriche del collegato mostrate qui, non va riscritta. Sotto solo c
 
 ## 1. Le sue metriche, mostrate a te
 
-Bloccato su: nessuna metrica esiste ancora, né propria né altrui — Metriche di lettura (issue
-#7) non è stata costruita.
-
-Da fare quando #7 esiste: la vista Annali di un collegato è la stessa card che vedi per te
-stesso (stesso componente, stessi piani, stessa tipografia — `docs/design-frontend.md` §14 lo
-impone esplicitamente: "un secondo sistema visivo per gli stessi dati raddoppierebbe il lavoro
-e dimezzerebbe il riconoscimento"), calcolata sui dati del collegato invece che sui tuoi. Serve
-lato backend una rotta che accetti l'anno e l'id del collegato invece che solo l'anno — verosi-
-milmente `GET /utenti/{utente_id}/metriche?anno=` a fianco di qualunque `GET /metriche?anno=`
-issue #7 introdurrà per le proprie, con lo stesso payload. La visibilità è già garantita dalla
-RLS di collegamento (nessuna riga di lettura è raggiungibile senza un collegamento attivo,
-issue #3): questa rotta va comunque protetta esplicitamente come `GET /utenti/{id}/voci`
-(403 `non_collegato` distinto da 404 utente inesistente), per lo stesso motivo già scritto lì.
+**Costruito.** `GET /utenti/{utente_id}/metriche?anno=` (`backend/app/routers/utenti.py`,
+`utenti_service.metriche_di`) a fianco di `GET /metriche?anno=` (`backend/app/routers/
+metriche.py`), stesso payload, stessa protezione di `GET /utenti/{id}/voci` (403
+`non_collegato` distinto da 404 utente inesistente). Lato frontend, `AnnaliCollegatoPage`
+(`frontend/src/app/(protected)/lettori/[id]/annali/page.tsx`) monta `PaginaAnnaliCollegato`,
+che passa i dati del collegato a `CarteMetriche` — lo stesso componente usato dalla propria
+pagina Annali (`frontend/src/components/annali/carte-metriche.tsx`), invariato.
 
 ## 2. "Rispetto a te" — l'affiancamento, non il punteggio
 
-Bloccato su: punto 1 (nessuna metrica, propria o altrui, da affiancare).
-
-Da fare quando #7 esiste: una seconda carta accanto a "Quest'anno", con gli stessi due numeri
-(libri finiti, pagine lette) ma i **tuoi**, dello stesso anno selezionato. È un affiancamento,
-non una classifica: niente percentuali di affinità, niente "hai letto più o meno di", niente
-badge — il PRD esclude esplicitamente ogni classifica fra utenti (fuori scope: "nessuna
-interazione sociale oltre la visione reciproca... nessuna classifica"). Serve solo che la tua
-rotta metriche personale sia interrogabile per lo stesso anno che stai guardando sul
-collegato, lato frontend, in parallelo alla rotta del punto 1 — nessun nuovo endpoint per
-questo pezzo, il backend restituisce sempre le metriche di un solo utente alla volta.
+**Costruito.** `CartaQuestAnno` (`frontend/src/components/annali/carta-questanno.tsx`) è lo
+stesso componente della carta "Quest'anno", montato una seconda volta con le proprie metriche
+dello stesso anno tramite la prop `cartaAffiancata` di `CarteMetriche` — nessun nuovo endpoint,
+`PaginaAnnaliCollegato` interroga in parallelo `GET /metriche` e `GET /utenti/{id}/metriche`
+per lo stesso anno selezionato. Nessun punteggio, nessuna percentuale: solo due numeri accanto.
 
 ## 3. Autori e generi più letti del collegato
 
-Bloccato su: punto 1.
-
-Da fare quando #7 esiste: le stesse due classifiche a cinque voci di `design-frontend.md` §14,
-calcolate sui dati del collegato — nessuna variazione di formato, stesso componente riusato.
+**Costruito.** Stesso componente `Classifica` (`frontend/src/components/annali/
+classifica.tsx`), nessuna variazione di formato: `CarteMetriche` lo monta identico sia per le
+proprie sia per le sue classifiche.
 
 ## 4. Libri letti in comune, con i voti affiancati
 
-Bloccato su: punto 1, più il voto in stelle (campo già esistente su `voce_di_libreria`, quindi
-non bloccato da issue #5, a differenza di recensioni/insight).
+**Costruito.** `LibriInComune` (`frontend/src/components/annali/libri-in-comune.tsx`):
+striscia orizzontale, intersezione dei `libro_id` fra le due librerie già caricate dalla
+pagina server (`getVoci` + `getLibreriaCollegato`, nessuna rotta dedicata), voto proprio e del
+collegato affiancati sotto ogni copertina con le stelle di sola lettura di
+`components/libro/voto-stelle.tsx` (`Stella`/`formattaVoto`, esportate per questo).
 
-Da fare quando #7 esiste: una striscia orizzontale di copertine — non uno scaffale, è un
-confronto fra due persone su un insieme di opere, non un ripiano di libri di uno solo — con,
-sotto ogni copertina, il tuo voto e il suo affiancati. L'insieme è l'intersezione dei
-`libro_id` fra le due librerie: la stessa intersezione già calcolata oggi per il conteggio "N
-in comune" nell'intestazione della libreria (`frontend/src/app/(protected)/lettori/[id]/
-page.tsx`) — quel calcolo va spostato/riusato qui, non riscritto, quando questa scheda avrà
-bisogno anche dei voti e non solo del conteggio.
+## 5. Cosa non è stato aggiunto
 
-## 5. Cosa NON aggiungere
-
-Il mockup di riferimento non propone nulla di tutto questo, ed è bene non inventarlo in corso
-d'opera quando si costruisce #7: nessun punteggio di affinità, nessuna classifica fra utenti,
-nessun'altra metrica trasversale a più collegati contemporaneamente (l'unica vista è sempre "tu
-e una persona alla volta"). Il PRD non prevede un grafo sociale.
+Come previsto: nessun punteggio di affinità, nessuna classifica fra utenti, nessun'altra
+metrica trasversale a più collegati contemporaneamente (l'unica vista resta "tu e una persona
+alla volta"). Il PRD non prevede un grafo sociale.
