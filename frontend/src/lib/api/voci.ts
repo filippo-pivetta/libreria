@@ -10,6 +10,7 @@ import type { Recensione, RecensioneBody } from "@/lib/api/recensioni";
 import { toRecensione } from "@/lib/api/recensioni";
 import type { InsightEssenziale, InsightEssenzialeBody } from "@/lib/api/insight";
 import { toInsightEssenziale } from "@/lib/api/insight";
+import { intestazioniConLingua } from "@/lib/lingua";
 
 export type StatoVoce = "da_leggere" | "in_lettura" | "in_pausa" | "abbandonato" | "letto";
 
@@ -278,15 +279,25 @@ export type VociResult =
   | { status: "ok"; data: VoceConLibro[] }
   | { status: "error"; message: string };
 
-/** GET /voci: lo scaffale, la propria libreria. */
-export async function getVoci(accessToken: string): Promise<VociResult> {
+/**
+ * GET /voci: lo scaffale, la propria libreria.
+ *
+ * `acceptLanguage`, opzionale (issue #34): la scelta fra le varianti di
+ * titolo/descrizione/etichetta di genere nella lingua dell'interfaccia
+ * avviene lato backend (`app/core/lingua.py`) sulla stessa intestazione
+ * `Accept-Language`. Dal browser il fetch la manda già da solo — nulla da
+ * passare qui; da un Server Component (fetch iniziale della pagina) va
+ * inoltrata esplicitamente, perché il fetch del server Next.js non eredita
+ * gli header della richiesta in arrivo. Vedi `app/(protected)/page.tsx`.
+ */
+export async function getVoci(accessToken: string, acceptLanguage?: string): Promise<VociResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
   let response: Response;
   try {
     response = await fetch(`${config.baseUrl}/voci`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: intestazioniConLingua(accessToken, acceptLanguage),
       // Dato per-utente, mai cacheato tra richieste o utenti diversi.
       cache: "no-store",
     });
@@ -345,10 +356,12 @@ export type VoceDettaglioResult =
   | { status: "not_found" }
   | { status: "error"; message: string };
 
-/** GET /voci/{id}: la scheda del libro, con Libro e storico delle Letture. */
+/** GET /voci/{id}: la scheda del libro, con Libro e storico delle Letture.
+ * `acceptLanguage`, opzionale: vedi il docstring di `getVoci` sopra. */
 export async function getVoceDettaglio(
   accessToken: string,
   voceId: string,
+  acceptLanguage?: string,
 ): Promise<VoceDettaglioResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
@@ -356,7 +369,7 @@ export async function getVoceDettaglio(
   let response: Response;
   try {
     response = await fetch(`${config.baseUrl}/voci/${voceId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: intestazioniConLingua(accessToken, acceptLanguage),
       cache: "no-store",
     });
   } catch {

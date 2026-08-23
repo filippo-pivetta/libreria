@@ -15,7 +15,7 @@ import { LoadingState } from "@/components/states/loading-state";
 // Testi del PRD, parola per parola (docs/design-frontend.md §17):
 // dall'issue #6 servono anche nelle impostazioni della Torre.
 import { AVVISO_VISIBILITA, TESTO_CONSENSO } from "@/lib/testi-consenso";
-import { ATTESA, SESSIONE } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 type Phase = "checking" | "no_session" | "form" | "submitting";
 
@@ -28,6 +28,7 @@ type Phase = "checking" | "no_session" | "form" | "submitting";
  */
 export default function CompletaAccountPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [phase, setPhase] = useState<Phase>("checking");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -148,7 +149,7 @@ export default function CompletaAccountPage() {
     } = await supabase.auth.getSession();
 
     if (!session) {
-      setError(SESSIONE.scadutaInvito);
+      setError(t("sessione.scadutaInvito"));
       setPhase("no_session");
       return;
     }
@@ -181,7 +182,7 @@ export default function CompletaAccountPage() {
   let content: ReactNode;
 
   if (phase === "checking") {
-    content = <LoadingState label={ATTESA.controlloInvito} />;
+    content = <LoadingState label={t("attesa.controlloInvito")} />;
   } else if (phase === "no_session") {
     content = (
       <ErrorState
@@ -258,7 +259,7 @@ export default function CompletaAccountPage() {
             </div>
 
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? ATTESA.generica : "Ho letto e accetto"}
+              {isSubmitting ? t("attesa.generica") : "Ho letto e accetto"}
             </Button>
           </form>
         </CardContent>

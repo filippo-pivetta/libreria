@@ -15,7 +15,7 @@ import {
 } from "@/lib/api/suggerimenti";
 import { useAggiungiRisultato } from "@/lib/hooks/use-aggiungi-risultato";
 import { Messaggio } from "@/components/ui/messaggio";
-import { ATTESA } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 const MINIMA_LUNGHEZZA_TOKEN_AUTORE = 4;
 
@@ -187,6 +187,7 @@ function SuggerimentoRiga({ suggerimento }: { suggerimento: Suggerimento }) {
  * pagina (a differenza della sintesi, che rilegge l'ultima già salvata).
  */
 export function Suggerimenti() {
+  const t = useTranslations();
   const [suggerimenti, setSuggerimenti] = useState<Suggerimento[] | null>(null);
   const [spenta, setSpenta] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
@@ -248,7 +249,7 @@ export function Suggerimenti() {
           onClick={() => genera.mutate()}
           disabled={genera.isPending}
         >
-          {genera.isPending ? ATTESA.penso : suggerimenti ? "Suggeriscimi altro" : "Suggeriscimi qualcosa"}
+          {genera.isPending ? t("attesa.penso") : suggerimenti ? "Suggeriscimi altro" : "Suggeriscimi qualcosa"}
         </Button>
       </section>
 

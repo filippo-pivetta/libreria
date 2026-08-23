@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { correggiVoto } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 const STELLE = [1, 2, 3, 4, 5] as const;
 
@@ -56,6 +56,7 @@ export function VotoStelle({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
   const [anteprima, setAnteprima] = useState<number | null>(null);
 
   const mutazione = useMutation({
@@ -64,7 +65,7 @@ export function VotoStelle({
       const result = await correggiVoto(token, voceId, nuovoVoto === voto ? null : nuovoVoto);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
+          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
         );
       }
     },
@@ -73,7 +74,7 @@ export function VotoStelle({
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
     onError: (error: unknown) =>
-      showError(error instanceof Error ? error.message : ERRORI.votoNonSalvato),
+      showError(error instanceof Error ? error.message : t("errori.votoNonSalvato")),
   });
 
   if (!isOwner) {

@@ -8,7 +8,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { getMe } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
 import { Messaggio } from "@/components/ui/messaggio";
-import { ASSENZE, ATTESA, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * "Me lo consigli?" (design doc §9, issue #6): un parere su questo libro
@@ -41,6 +41,7 @@ export function PreviewPersonalizzata({
   inEvidenza: boolean;
 }) {
   const queryClient = useQueryClient();
+  const t = useTranslations();
   const [spenta, setSpenta] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
 
@@ -79,7 +80,7 @@ export function PreviewPersonalizzata({
       }
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
+          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
         );
       }
       return result.data;
@@ -100,7 +101,7 @@ export function PreviewPersonalizzata({
       if (result.status === "error") throw new Error(result.message);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: chiave }),
-    onError: () => setErrore(ERRORI.parereNonCancellato),
+    onError: () => setErrore(t("errori.parereNonCancellato")),
   });
 
   const spentaDavvero = spenta || consenso === false;
@@ -121,7 +122,7 @@ export function PreviewPersonalizzata({
                 onClick={() => genera.mutate()}
                 disabled={genera.isPending}
               >
-                {genera.isPending ? ATTESA.penso : "Chiedine un altro"}
+                {genera.isPending ? t("attesa.penso") :"Chiedine un altro"}
               </Button>
             )}
             <Button
@@ -152,7 +153,7 @@ export function PreviewPersonalizzata({
             onClick={() => genera.mutate()}
             disabled={genera.isPending}
           >
-            {genera.isPending ? ATTESA.penso : "Chiedi un parere"}
+            {genera.isPending ? t("attesa.penso") :"Chiedi un parere"}
           </Button>
         </div>
       )}

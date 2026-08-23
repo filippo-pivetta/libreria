@@ -20,12 +20,6 @@ _SELECT_BASE = (
     "recensione(id), insight(id)"
 )
 
-_LINGUA_INTERFACCIA = "it"
-"""L'interfaccia bilingue è debito noto, non ancora implementata
-(AGENTS.md, lib/formato.ts): finché non lo è, generi e descrizione si
-mostrano sempre in italiano, come già fanno formattaData/formattaLingua
-lato frontend."""
-
 _SELECT_CON_LIBRO = (
     f"{_SELECT_BASE}, "
     "libro:libro_id (id, titolo_canonico, "
@@ -72,13 +66,14 @@ def _appiattisci_autori(voce: dict[str, Any]) -> dict[str, Any]:
     return voce
 
 
-def _appiattisci_generi(voce: dict[str, Any]) -> dict[str, Any]:
+def _appiattisci_generi(voce: dict[str, Any], lingua: str) -> dict[str, Any]:
     """PostgREST restituisce i generi imbustati nella riga di giunzione
     (`libro.libro_genere[].genere.genere_etichetta[]`), con l'etichetta di
-    ogni lingua annidata: qui si sceglie quella dell'interfaccia e si
-    scarta il resto. `genere_etichetta` copre ogni id dell'elenco chiuso
-    (migrazione 20260821120000), quindi un genere assegnato ha sempre
-    un'etichetta nella lingua dell'interfaccia."""
+    ogni lingua annidata: qui si sceglie quella dell'interfaccia (issue #34,
+    risolta dal chiamante con `app.core.lingua.lingua_interfaccia`, mai un
+    valore fisso) e si scarta il resto. `genere_etichetta` copre ogni id
+    dell'elenco chiuso (migrazione 20260821120000), quindi un genere
+    assegnato ha sempre un'etichetta nella lingua dell'interfaccia."""
     libro = voce.get("libro")
     if libro is not None:
         generi = []
@@ -90,7 +85,7 @@ def _appiattisci_generi(voce: dict[str, Any]) -> dict[str, Any]:
                 (
                     e["etichetta"]
                     for e in genere.get("genere_etichetta", [])
-                    if e.get("lingua") == _LINGUA_INTERFACCIA
+                    if e.get("lingua") == lingua
                 ),
                 None,
             )
@@ -100,7 +95,7 @@ def _appiattisci_generi(voce: dict[str, Any]) -> dict[str, Any]:
     return voce
 
 
-def _appiattisci_descrizione(voce: dict[str, Any]) -> dict[str, Any]:
+def _appiattisci_descrizione(voce: dict[str, Any], lingua: str) -> dict[str, Any]:
     """Solo la descrizione nella lingua dell'interfaccia, mai un ripiego
     su un'altra (design-frontend.md §9: "nessun ripiego su un'altra
     lingua se manca in quella dell'interfaccia — a differenza del titolo,
@@ -108,7 +103,7 @@ def _appiattisci_descrizione(voce: dict[str, Any]) -> dict[str, Any]:
     libro = voce.get("libro")
     if libro is not None:
         descrizioni = libro.pop("libro_descrizione", [])
-        riga = next((d for d in descrizioni if d.get("lingua") == _LINGUA_INTERFACCIA), None)
+        riga = next((d for d in descrizioni if d.get("lingua") == lingua), None)
         libro["descrizione"] = riga["testo"] if riga else None
         libro["descrizione_riformulata"] = bool(riga["riformulata"]) if riga else False
     return voce
@@ -194,14 +189,15 @@ def create(client: Client, utente_id: UUID, libro_id: UUID) -> dict[str, Any]:
     return _appiattisci_conteggi(_appiattisci_nota_intenzione(rows[0]))
 
 
-def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
+def list_con_libro(client: Client, utente_id: UUID, lingua: str) -> list[dict[str, Any]]:
     """La libreria di `utente_id`, con Libro incorporato: filtro
     esplicito, non la sola RLS (issue #3 — la RLS permette anche a un
     collegato attivo di leggere queste righe, quindi ometterlo
     mescolerebbe qui la propria libreria con quella di un collegato).
     Riusata identica sia per `GET /voci` (con `utente_id` = chi chiama)
     sia per `GET /utenti/{id}/voci` (con l'id del collegato, dopo che
-    il chiamante ha già verificato il collegamento attivo)."""
+    il chiamante ha già verificato il collegamento attivo). `lingua`:
+    issue #34, vedi `_appiattisci_generi`."""
     response = (
         client.table("voce_di_libreria")
         .select(_SELECT_LISTA)
@@ -215,7 +211,9 @@ def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
         _con_pagina_corrente(
             _appiattisci_conteggi(
                 _appiattisci_nota_intenzione(
-                    _appiattisci_descrizione(_appiattisci_generi(_appiattisci_autori(riga)))
+                    _appiattisci_descrizione(
+                        _appiattisci_generi(_appiattisci_autori(riga), lingua), lingua
+                    )
                 )
             )
         )
@@ -223,12 +221,13 @@ def list_con_libro(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
     ]
 
 
-def get_dettaglio(client: Client, voce_id: UUID) -> dict[str, Any] | None:
+def get_dettaglio(client: Client, voce_id: UUID, lingua: str) -> dict[str, Any] | None:
     """La Voce con Libro e l'intero storico delle Letture (ciascuna con i
     propri avanzamenti), per la scheda del libro. Letture più recenti per
     prime, avanzamenti di ciascuna in ordine cronologico (design-
     frontend.md §10: "raggruppati per lettura", le letture più vecchie su
-    una carta di luminanza diversa)."""
+    una carta di luminanza diversa). `lingua`: issue #34, vedi
+    `_appiattisci_generi`."""
     response = (
         client.table("voce_di_libreria")
         .select(_SELECT_DETTAGLIO)
@@ -243,7 +242,9 @@ def get_dettaglio(client: Client, voce_id: UUID) -> dict[str, Any] | None:
         return None
     voce = _appiattisci_autori(cast("dict[str, Any]", response.data))
     return _appiattisci_conteggi(
-        _appiattisci_nota_intenzione(_appiattisci_descrizione(_appiattisci_generi(voce)))
+        _appiattisci_nota_intenzione(
+            _appiattisci_descrizione(_appiattisci_generi(voce, lingua), lingua)
+        )
     )
 
 

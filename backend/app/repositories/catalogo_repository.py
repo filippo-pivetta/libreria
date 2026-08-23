@@ -25,6 +25,8 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import dict_row
 
+from app.core.lingua import LINGUE_INTERFACCIA as _LINGUE_INTERFACCIA
+
 SOGLIA_MINIMA_DESCRIZIONE = 200
 """Sotto questa lunghezza (caratteri) una descrizione è troppo corta per
 lo standard di prosa breve della scheda del libro e viene accodata per la
@@ -41,13 +43,15 @@ scheda vuole. Tolleranza ampia apposta: solo ciò che è chiaramente fuori
 standard paga una chiamata al modello, non ogni descrizione più lunga del
 target."""
 
-_LINGUE_INTERFACCIA = ("it", "en")
-"""Le due lingue dell'interfaccia (PRD: bilingue dal primo giorno), per la
-traduzione assistita delle descrizioni (issue #24). Stessa coppia di
-`app/lavori/descrizioni.py::LINGUE`, duplicata qui e non importata: questo
-modulo sta sotto `app/lavori` nello strato dei repository, la dipendenza
-non può andare nell'altro verso (stessa duplicazione già accettata per
-`voce_repository._LINGUA_INTERFACCIA`)."""
+"""`_LINGUE_INTERFACCIA` (importata sopra da `app.core.lingua.LINGUE_INTERFACCIA`,
+issue #34/#40): le due lingue dell'interfaccia (PRD: bilingue dal primo
+giorno), per la traduzione assistita delle descrizioni (issue #24) —
+l'elenco chiuso delle lingue supportate, non la lingua scelta per una
+richiesta: a differenza di `app.core.lingua.lingua_interfaccia`, che
+risolve un valore per richiesta dall'intestazione, questo lavoro in
+secondo piano deve conoscere entrambe insieme, per sapere quale manca
+all'altra. Prima duplicata qui a mano: nessuna ragione impediva
+l'import, `app.core` non dipende da `app.repositories`."""
 
 
 def _altra_lingua_interfaccia(lingua: str) -> str:

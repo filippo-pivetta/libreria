@@ -10,6 +10,7 @@ import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { Messaggio } from "@/components/ui/messaggio";
+import { useLocale } from "next-intl";
 
 const SOGLIA_APPUNTO = 200;
 
@@ -33,6 +34,7 @@ const SOGLIA_APPUNTO = 200;
  * linguaggio naturale si finisce di scrivere prima di volerla porre.
  */
 export function RicercaSemantica() {
+  const lingua = useLocale();
   const [domanda, setDomanda] = useState("");
   const [spenta, setSpenta] = useState(false);
   const [esito, setEsito] = useState<Esito | null>(null);
@@ -142,7 +144,7 @@ export function RicercaSemantica() {
               </p>
               <p className="t-meta mt-2">
                 {r.tipoContenuto === "recensione" ? "Recensione" : "Insight"} ·{" "}
-                {formattaData(r.data)}
+                {formattaData(r.data, lingua)}
                 {r.spoiler ? " · spoiler per i tuoi collegati" : ""}
               </p>
             </li>

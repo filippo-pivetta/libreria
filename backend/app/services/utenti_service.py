@@ -50,7 +50,9 @@ async def elenco_membri(access_token: str, self_id: UUID) -> list[dict[str, Any]
     return risultato
 
 
-async def libreria_di(access_token: str, self_id: UUID, utente_id: UUID) -> dict[str, Any]:
+async def libreria_di(
+    access_token: str, self_id: UUID, utente_id: UUID, lingua: str
+) -> dict[str, Any]:
     """Distingue esplicitamente "non collegato" (403) da "libreria
     vuota" (200, lista vuota) — design-frontend.md §15: "quella libreria
     non è più accessibile" non è un errore generico."""
@@ -66,13 +68,13 @@ async def libreria_di(access_token: str, self_id: UUID, utente_id: UUID) -> dict
     if not collegato:
         raise NonCollegatoError
 
-    voci = await run_in_threadpool(voce_repository.list_con_libro, client, utente_id)
+    voci = await run_in_threadpool(voce_repository.list_con_libro, client, utente_id, lingua)
     voci = await run_in_threadpool(voci_service.firma_copertine, voci)
     return {"utente": utente, "voci": voci}
 
 
 async def metriche_di(
-    access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+    access_token: str, self_id: UUID, utente_id: UUID, anno: int | None, lingua: str
 ) -> dict[str, Any]:
     """GET /utenti/{id}/metriche (issue #7): le metriche del collegato,
     non le proprie — stesso controllo di accesso di `libreria_di`
@@ -93,4 +95,4 @@ async def metriche_di(
     if not collegato:
         raise NonCollegatoError
 
-    return await metriche_service.metriche_di(access_token, utente_id, anno)
+    return await metriche_service.metriche_di(access_token, utente_id, anno, lingua)

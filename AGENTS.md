@@ -53,7 +53,7 @@ Scrittura: mai "con successo"/"per favore"/punti esclamativi/"ops"; gli errori s
 
 Tre canali di messaggi e non di più: `ui/messaggio.tsx` in linea accanto al comando (il caso normale), il toast per le scritture il cui bersaglio può essere già scorso via, `ErrorState`/`EmptyState` per una regione intera.
 
-Mobile e desktop pari importanza, mobile come riferimento nei casi di dubbio. Interfaccia bilingue IT/EN prevista dal PRD ma non ancora implementata: le stringhe stanno in `src/messaggi/it.ts` con chiavi stabili — mezzo lavoro dell'issue #34 già fatto — e manca il framework (`next-intl` o equivalente) più la seconda lingua.
+Mobile e desktop pari importanza, mobile come riferimento nei casi di dubbio. Interfaccia bilingue IT/EN prevista dal PRD, ora costruita (issue #34) ma non estesa a tutta l'interfaccia: `next-intl` risolve la lingua da `Accept-Language` a ogni richiesta (nessun selettore, nessun cookie — `src/lib/lingua.ts`/`src/i18n/request.ts`), e i cataloghi `frontend/messages/{it,en}.json` coprono le quattro categorie prima in `src/messaggi/it.ts` (errori, assenze, sessione, attese). Il backend allinea la stessa intestazione per scegliere fra le varianti di titolo/descrizione/etichetta di genere già salvate nelle due lingue (`backend/app/core/lingua.py`, iniettato nei router con `Depends`) — mai una preferenza indipendente. Il resto delle stringhe (comandi, etichette, intestazioni) resta inline in italiano: perimetro deliberato, non debito dimenticato — vedi `docs/lavoro-rimandato.md`.
 
 ## Vincoli non negoziabili
 - L'identità utente arriva SEMPRE da una dipendenza che verifica il token, MAI dal body o dalla query string.

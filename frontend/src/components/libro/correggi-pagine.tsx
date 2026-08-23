@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { correggiPagine } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * Correzione delle pagine adottate (design doc §12): si clicca sul
@@ -32,6 +32,7 @@ export function CorreggiPagine({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
   const [valore, setValore] = useState(pagineAdottate !== null ? String(pagineAdottate) : "");
   // Ultimo valore confermato — dalla prop in arrivo o da una scrittura
   // riuscita: usato per non salvare quando si esce dal campo senza
@@ -56,7 +57,7 @@ export function CorreggiPagine({
           result.status === "conflitto"
             ? "Il nuovo totale è inferiore a un avanzamento già registrato."
             : result.status === "not_found"
-              ? ASSENZE.voceSparita
+              ? t("assenze.voceSparita")
               : result.message;
         throw new Error(messaggio);
       }
@@ -70,7 +71,7 @@ export function CorreggiPagine({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : ERRORI.pagineNonCorrette,
+        error instanceof Error ? error.message : t("errori.pagineNonCorrette"),
       );
       setValore(salvato !== null ? String(salvato) : "");
     },
@@ -83,7 +84,7 @@ export function CorreggiPagine({
     }
     const numero = Number(valore);
     if (!Number.isFinite(numero) || numero <= 0) {
-      showError(ERRORI.pagineNonValide);
+      showError(t("errori.pagineNonValide"));
       setValore(salvato !== null ? String(salvato) : "");
       return;
     }

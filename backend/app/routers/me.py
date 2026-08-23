@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from app.core.lingua import lingua_interfaccia
 from app.core.security import get_current_user
 from app.core.tempo import oggi_europa_centrale
 from app.schemas.auth import AuthenticatedUser
@@ -83,11 +84,14 @@ async def patch_consenso(
 @router.get("/me/export/libri-letti")
 async def esporta_libri_letti(
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+    lingua: str = Depends(lingua_interfaccia),  # noqa: B008
 ) -> Response:
     """CSV dei libri con stato "letto" dell'utente (issue #8, ADR 0011
     rivisto, PRD comportamento 14bis). Nessuna conferma: non è un'azione
     distruttiva."""
-    contenuto = await export_service.libri_letti_csv(current_user.access_token, current_user.id)
+    contenuto = await export_service.libri_letti_csv(
+        current_user.access_token, current_user.id, lingua
+    )
     nome_file = f"libri-letti-{oggi_europa_centrale().isoformat()}.csv"
     return Response(
         content=contenuto,

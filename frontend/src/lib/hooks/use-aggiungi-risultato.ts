@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { aggiungiDaCatalogo, type Risultato, type VoceDelRisultato } from "@/lib/api/ricerca";
 import { aggiungiVoce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
-import { ASSENZE } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 export type EsitoAggiunta = { chiave: string; libroId: string; voce: VoceDelRisultato };
 
@@ -30,6 +30,7 @@ export function useAggiungiRisultato(opzioni?: {
   onError?: (errore: Error, risultato: Risultato) => void;
 }) {
   const queryClient = useQueryClient();
+  const t = useTranslations();
 
   return useMutation({
     mutationFn: async (risultato: Risultato): Promise<EsitoAggiunta> => {
@@ -38,7 +39,7 @@ export function useAggiungiRisultato(opzioni?: {
       if (risultato.origine === "locale" || risultato.libroId !== null) {
         const libroId = risultato.origine === "locale" ? risultato.libroId : risultato.libroId!;
         const esito = await aggiungiVoce(token, libroId);
-        if (esito.status === "not_found") throw new Error(ASSENZE.libroSparito);
+        if (esito.status === "not_found") throw new Error(t("assenze.libroSparito"));
         if (esito.status !== "ok") throw new Error(esito.message);
         return {
           chiave: risultato.chiave,

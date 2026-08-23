@@ -6,6 +6,7 @@
  */
 
 import { toVoceConLibro, type VoceConLibro, type VoceConLibroBody } from "@/lib/api/voci";
+import { intestazioniConLingua } from "@/lib/lingua";
 
 export type StatoRelazione = "assente" | "in_attesa" | "attiva";
 
@@ -86,10 +87,13 @@ export type LibreriaCollegatoResult =
   | { status: "non_collegato" }
   | { status: "error"; message: string };
 
-/** GET /utenti/{id}/voci: la libreria di un collegato (design doc §15). */
+/** GET /utenti/{id}/voci: la libreria di un collegato (design doc §15).
+ * `acceptLanguage`, opzionale: vedi il docstring di
+ * `lib/api/voci.ts::getVoci`, stesso meccanismo. */
 export async function getLibreriaCollegato(
   accessToken: string,
   utenteId: string,
+  acceptLanguage?: string,
 ): Promise<LibreriaCollegatoResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
@@ -97,7 +101,7 @@ export async function getLibreriaCollegato(
   let response: Response;
   try {
     response = await fetch(`${config.baseUrl}/utenti/${utenteId}/voci`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: intestazioniConLingua(accessToken, acceptLanguage),
       cache: "no-store",
     });
   } catch {

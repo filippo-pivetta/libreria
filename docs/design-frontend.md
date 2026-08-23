@@ -948,8 +948,9 @@ nessuna etichetta, perché uno scheletro con la forma del contenuto dice già co
 **L'apostrofo è quello tipografico (`’`), mai quello dritto.** Ce n'erano 248 dritti e nessuno
 tipografico: in un'app che serve Fraunces e Literata con l'asse `opsz`, `'` è una tacca da
 macchina da scrivere in mezzo alle grazie, ed era il difetto tipografico più visibile del
-codice. Le stringhe vivono in `src/messaggi/it.ts`, primo passo verso l'interfaccia bilingue
-(issue #34): chiavi stabili, ancora senza framework né seconda lingua.
+codice. Le stringhe vivono in `frontend/messages/it.json`/`en.json`, il catalogo `next-intl`
+dell'interfaccia bilingue (issue #34): le stesse chiavi che finora stavano in
+`src/messaggi/it.ts`, ora con la traduzione inglese a fianco.
 
 **Tre canali, non cinque (sessione UI).** Ne convivevano cinque per dire le stesse cose —
 toast, testo in linea con `useState` locale in otto componenti, testo per riga in quattro
@@ -1130,7 +1131,11 @@ Sei punti che si risolvono provandoli con contenuti veri, non discutendone.
 2. **La soglia fra sentenza e appunto**, indicata a ~200 battute.
 3. **Il serif a corpo 19 su un insight lungo:** regge le frasi brevi, va provato su un paragrafo
    di appunti pratici.
-4. **Il perimetro della traduzione**, che il PRD rinvia alla fase di costruzione.
+4. ~~**Il perimetro della traduzione**, che il PRD rinvia alla fase di costruzione.~~ Deciso
+   nell'issue #34: framework (`next-intl`, lingua dedotta da `Accept-Language`, nessun
+   selettore) più le quattro categorie già estratte (errori, assenze, sessione, attese).
+   L'estrazione del resto delle stringhe (comandi, etichette, intestazioni) resta fuori,
+   perimetro deliberato — vedi `docs/lavoro-rimandato.md`.
 5. **Fraunces accanto a Literata**, sulla stessa schermata: titolo in Fraunces, insight in
    Literata, a mezzo centimetro di distanza.
 6. **Le ombre al buio.** Un'ombra scura su un fondo scuro può sparire o, peggio, formare un

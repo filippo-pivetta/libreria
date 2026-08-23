@@ -14,7 +14,7 @@ import type { Lettura } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { formattaData } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useLocale, useTranslations } from "next-intl";
 
 // Soglia tra i due trattamenti tipografici (design doc §10): sotto,
 // "Sentenza" (opsz 32, senza troncamento); sopra, "Appunto" (opsz 12,
@@ -32,6 +32,8 @@ function UnSoloInsight({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
+  const lingua = useLocale();
   const [testoRivelato, setTestoRivelato] = useState<string | null>(null);
   const [espansa, setEspansa] = useState(false);
   const [confermaCancella, setConfermaCancella] = useState(false);
@@ -42,7 +44,7 @@ function UnSoloInsight({
       const result = await rivelaInsightTesto(token, insight.id);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.insightSparito : result.message,
+          result.status === "not_found" ? t("assenze.insightSparito") : result.message,
         );
       }
       return result.testo;
@@ -50,7 +52,7 @@ function UnSoloInsight({
     onSuccess: (testo) => setTestoRivelato(testo),
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : ERRORI.insightNonScoperto,
+        error instanceof Error ? error.message : t("errori.insightNonScoperto"),
       );
     },
   });
@@ -66,7 +68,7 @@ function UnSoloInsight({
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["voce", voceId] }),
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : ERRORI.insightNonCancellato,
+        error instanceof Error ? error.message : t("errori.insightNonCancellato"),
       );
     },
   });
@@ -109,7 +111,7 @@ function UnSoloInsight({
             </button>
           )}
           <p className="t-meta mt-2">
-            {formattaData(insight.data)}
+            {formattaData(insight.data, lingua)}
             {isOwner && insight.spoiler ? " · spoiler per i tuoi collegati" : ""}
           </p>
         </>
@@ -202,6 +204,7 @@ function GruppoInsight({
 function InsightForm({ voceId }: { voceId: string }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
   const [aperto, setAperto] = useState(false);
   const [testo, setTesto] = useState("");
   const [spoiler, setSpoiler] = useState(false);
@@ -213,7 +216,7 @@ function InsightForm({ voceId }: { voceId: string }) {
       const result = await creaInsight(token, voceId, testo.trim(), spoiler, visibilita);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
+          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
         );
       }
     },
@@ -225,7 +228,7 @@ function InsightForm({ voceId }: { voceId: string }) {
       setAperto(false);
     },
     onError: (error: unknown) => {
-      showError(error instanceof Error ? error.message : ERRORI.insightNonSalvato);
+      showError(error instanceof Error ? error.message : t("errori.insightNonSalvato"));
     },
   });
 
@@ -298,6 +301,7 @@ export function InsightLista({
   insightSenzaLettura: InsightEssenziale[];
   isOwner: boolean;
 }) {
+  const lingua = useLocale();
   const totale =
     insightSenzaLettura.length + letture.reduce((somma, lettura) => somma + lettura.insight.length, 0);
   if (totale === 0 && !isOwner) return null;
@@ -322,8 +326,8 @@ export function InsightLista({
           key={lettura.id}
           voceId={voceId}
           titolo={
-            formattaData(lettura.dataInizio) +
-            (lettura.dataFine ? ` – ${formattaData(lettura.dataFine)}` : " – in corso")
+            formattaData(lettura.dataInizio, lingua) +
+            (lettura.dataFine ? ` – ${formattaData(lettura.dataFine, lingua)}` : " – in corso")
           }
           insightList={lettura.insight}
           isOwner={isOwner}

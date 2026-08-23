@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroElenco } from "@/components/states/scheletri";
 import { Messaggio } from "@/components/ui/messaggio";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 // Stessa costante di providers/toast-provider.tsx (DURATA_MS), per
 // coerenza fra le due finestre di "annulla" dell'app.
@@ -34,6 +34,7 @@ export function SezioneCollegamenti({
   collegamentiIniziali: Collegamento[];
 }) {
   const queryClient = useQueryClient();
+  const t = useTranslations();
   const [erroreAzione, setErroreAzione] = useState<{ id: string; messaggio: string } | null>(
     null,
   );
@@ -74,7 +75,7 @@ export function SezioneCollegamenti({
       const result = await accettaCollegamento(token, id);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.richiestaSparita : result.message,
+          result.status === "not_found" ? t("assenze.richiestaSparita") : result.message,
         );
       }
     },
@@ -84,7 +85,7 @@ export function SezioneCollegamenti({
       setErroreAzione({
         id,
         messaggio:
-          err instanceof Error ? err.message : ERRORI.richiestaNonAccettata,
+          err instanceof Error ? err.message : t("errori.richiestaNonAccettata"),
       }),
   });
 
@@ -94,7 +95,7 @@ export function SezioneCollegamenti({
       const result = await terminaCollegamento(token, id);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.collegamentoSparito : result.message,
+          result.status === "not_found" ? t("assenze.collegamentoSparito") : result.message,
         );
       }
     },
@@ -103,7 +104,7 @@ export function SezioneCollegamenti({
     onError: (err: unknown, id: string) =>
       setErroreAzione({
         id,
-        messaggio: err instanceof Error ? err.message : ERRORI.collegamentoNonAggiornato,
+        messaggio: err instanceof Error ? err.message : t("errori.collegamentoNonAggiornato"),
       }),
   });
 
@@ -146,7 +147,7 @@ export function SezioneCollegamenti({
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : ERRORI.collegamentiNonCaricati}
+        message={error instanceof Error ? error.message : t("errori.collegamentiNonCaricati")}
         onRetry={() => void refetch()}
       />
     );

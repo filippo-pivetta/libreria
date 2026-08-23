@@ -6,7 +6,7 @@ import type { Risultato } from "@/lib/api/ricerca";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Messaggio } from "@/components/ui/messaggio";
-import { ATTESA } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * Una riga dei risultati di ricerca.
@@ -69,6 +69,7 @@ export function RigaRisultato({
   errore: string | null;
   onAggiungi: () => void;
 }) {
+  const t = useTranslations();
   const autori = risultato.autori.join(", ");
   const anno = annoDi(risultato);
   const riga = sottotitolo(risultato);
@@ -100,7 +101,7 @@ export function RigaRisultato({
           </Link>
         ) : (
           <Button variant="outline" size="sm" disabled={inCorso} onClick={onAggiungi}>
-            {inCorso ? ATTESA.aggiungo : "Aggiungi"}
+            {inCorso ? t("attesa.aggiungo") : "Aggiungi"}
           </Button>
         )}
         {/* Errore per riga e non un avviso in cima: in una lista un

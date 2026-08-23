@@ -2,11 +2,12 @@ import { getMe } from "@/lib/api/me";
 import { getCollegamenti } from "@/lib/api/collegamenti";
 import { getVoceDettaglio } from "@/lib/api/voci";
 import { getLibreriaCollegato } from "@/lib/api/utenti";
+import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { ProtectedNav } from "@/components/layout/protected-nav";
 import { BarraContestoLibro } from "@/components/libro/barra-contesto-libro";
-import { ASSENZE, SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 function Pagina({ children }: { children: React.ReactNode }) {
   return <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">{children}</main>;
@@ -23,6 +24,7 @@ function Pagina({ children }: { children: React.ReactNode }) {
  */
 export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
   const { id } = await props.params;
+  const t = await getTranslations();
 
   const supabase = await createClient();
   const {
@@ -32,17 +34,18 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
   if (!session) {
     return (
       <Pagina>
-        <ErrorState message={SESSIONE.scaduta} />
+        <ErrorState message={t("sessione.scaduta")} />
       </Pagina>
     );
   }
 
-  const voce = await getVoceDettaglio(session.access_token, id);
+  const lingua = await accettaLinguaInoltrata();
+  const voce = await getVoceDettaglio(session.access_token, id, lingua);
 
   if (voce.status === "not_found") {
     return (
       <Pagina>
-        <ErrorState title="Non trovata" message={ASSENZE.voceNonTua} />
+        <ErrorState title="Non trovata" message={t("assenze.voceNonTua")} />
       </Pagina>
     );
   }
@@ -75,7 +78,7 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
     );
   }
 
-  const collegato = await getLibreriaCollegato(session.access_token, voce.data.utenteId);
+  const collegato = await getLibreriaCollegato(session.access_token, voce.data.utenteId, lingua);
   const nomeCollegato = collegato.status === "ok" ? collegato.utente.nomeUtente : "";
 
   return (

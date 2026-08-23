@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { correggiNotaIntenzione } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * Nota di intenzione (design doc §9): solo il proprietario la vede, mai
@@ -31,6 +31,7 @@ export function NotaIntenzione({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
   const [aperta, setAperta] = useState(notaIntenzione !== null);
   const [testo, setTesto] = useState(notaIntenzione ?? "");
   const conferma = useConfermaEffimera();
@@ -41,7 +42,7 @@ export function NotaIntenzione({
       const result = await correggiNotaIntenzione(token, voceId, valore);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
+          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
         );
       }
     },
@@ -50,7 +51,7 @@ export function NotaIntenzione({
       conferma.mostra();
     },
     onError: (error: unknown) => {
-      showError(error instanceof Error ? error.message : ERRORI.notaNonSalvata);
+      showError(error instanceof Error ? error.message : t("errori.notaNonSalvata"));
       setTesto(notaIntenzione ?? "");
     },
   });

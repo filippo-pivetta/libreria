@@ -9,12 +9,15 @@ import { CarteMetriche } from "@/components/annali/carte-metriche";
 import { SelettoreAnno } from "@/components/annali/selettore-anno";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroAnnali } from "@/components/states/scheletri";
-import { ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
-function messaggioErrore(result: { status: string; message?: string }): string {
+function messaggioErrore(
+  result: { status: string; message?: string },
+  t: (chiave: string) => string,
+): string {
   if (result.status === "anno_futuro") return "Gli anni futuri non sono selezionabili.";
   if (result.status === "error" && result.message) return result.message;
-  return ERRORI.metricheNonCaricate;
+  return t("errori.metricheNonCaricate");
 }
 
 /**
@@ -26,6 +29,7 @@ function messaggioErrore(result: { status: string; message?: string }): string {
  * successivi rifanno la richiesta con l'anno scelto.
  */
 export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche }) {
+  const t = useTranslations();
   const [anno, setAnno] = useState(metricheIniziali.anno);
 
   const { data, isPending, isError, error, refetch } = useQuery({
@@ -33,7 +37,7 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
     queryFn: async () => {
       const token = await getAccessToken();
       const result = await getMetriche(token, anno);
-      if (result.status !== "ok") throw new Error(messaggioErrore(result));
+      if (result.status !== "ok") throw new Error(messaggioErrore(result, t));
       return result.data;
     },
     initialData: anno === metricheIniziali.anno ? metricheIniziali : undefined,
@@ -48,7 +52,7 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : ERRORI.metricheNonCaricate}
+        message={error instanceof Error ? error.message : t("errori.metricheNonCaricate")}
         onRetry={() => void refetch()}
       />
     );

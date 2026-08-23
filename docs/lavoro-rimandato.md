@@ -11,8 +11,11 @@ gesto va ridisegnato da zero. Oggi il volume è solo un link alla scheda.
 
 ## Chiuso nella sessione UI
 
-- Interfaccia bilingue (#34): fatto a metà — le stringhe sono estratte in
-  `frontend/src/messaggi/it.ts` con chiavi stabili. Restano il framework e l'inglese.
+- Interfaccia bilingue (#34): le stringhe sono state estratte in `frontend/src/messaggi/it.ts`
+  con chiavi stabili — restava il framework e l'inglese. Completato in una sessione successiva
+  (23 agosto 2026): `next-intl`, cataloghi `frontend/messages/{it,en}.json`, backend allineato
+  sulla stessa `Accept-Language` (`backend/app/core/lingua.py`). Il resto (estrazione completa,
+  numeri non ancora sensibili alla lingua, contenuto assistito) è tracciato in #40.
 - Il comando sulla luce, la barra di navigazione in fondo su mobile, i tre canali di
   messaggi e la riscrittura degli errori: vedi `docs/design-frontend.md` §3, §5, §8, §19.
 
@@ -20,5 +23,6 @@ gesto va ridisegnato da zero. Oggi il volume è solo un link alla scheda.
 
 - Acquisizione di una citazione da foto — [#32](https://github.com/filippo-pivetta/libreria/issues/32)
 - Cancellazione della Voce di libreria intera — [#33](https://github.com/filippo-pivetta/libreria/issues/33)
-- Interfaccia bilingue italiano/inglese — [#34](https://github.com/filippo-pivetta/libreria/issues/34)
 - Rito di apertura (View Transitions) — [#35](https://github.com/filippo-pivetta/libreria/issues/35)
+- Interfaccia bilingue, il resto del lavoro dopo il framework — [#40](https://github.com/filippo-pivetta/libreria/issues/40)
+- URL delle pagine tutte in inglese, oggi miste con l'italiano — [#41](https://github.com/filippo-pivetta/libreria/issues/41)

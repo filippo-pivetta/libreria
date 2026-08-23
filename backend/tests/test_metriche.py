@@ -64,7 +64,7 @@ def test_get_metriche_returns_payload(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_metriche_di(
-        access_token: str, utente_id: UUID, anno: int | None
+        access_token: str, utente_id: UUID, anno: int | None, lingua: str
     ) -> dict[str, Any]:
         assert access_token == "test-token"
         assert utente_id == _USER_ID
@@ -85,7 +85,7 @@ def test_get_metriche_defaults_anno_to_none(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_metriche_di(
-        access_token: str, utente_id: UUID, anno: int | None
+        access_token: str, utente_id: UUID, anno: int | None, lingua: str
     ) -> dict[str, Any]:
         assert anno is None
         return _METRICHE_ZERO
@@ -101,7 +101,7 @@ def test_get_metriche_returns_422_on_anno_futuro(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_metriche_di(
-        access_token: str, utente_id: UUID, anno: int | None
+        access_token: str, utente_id: UUID, anno: int | None, lingua: str
     ) -> dict[str, Any]:
         raise metriche_service.AnnoFuturoError
 
@@ -175,7 +175,7 @@ def test_metriche_di_nessun_dato_restituisce_zeri(monkeypatch: pytest.MonkeyPatc
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, None))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, None, "it"))
 
     assert risultato == _METRICHE_ZERO
 
@@ -204,13 +204,52 @@ def test_metriche_di_riletture_conta_letture_non_libri(monkeypatch: pytest.Monke
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     assert risultato["libri_finiti"] == 2
     assert risultato["riletture"] == 1
     # Nessun genere assegnato: entrambe le Letture finiscono nello scarto.
     assert risultato["libri_senza_genere"] == 2
     assert risultato["generi_principali"] == []
+
+
+def test_metriche_di_etichetta_genere_segue_la_lingua_richiesta(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Issue #34: `lingua` non è più fissa a "it" — con l'inglese
+    richiesto, l'etichetta di genere restituita è quella inglese."""
+    letture = [
+        {
+            "id": "l1",
+            "voce_id": "00000000-0000-0000-0000-0000000000a1",
+            "data_inizio": "2026-01-01",
+            "data_fine": "2026-02-01",
+            "esito": "conclusa",
+        }
+    ]
+    libro = {
+        "id": "b1",
+        "libro_autore": [],
+        "libro_genere": [
+            {
+                "genere": {
+                    "id": "g1",
+                    "genere_etichetta": [
+                        {"lingua": "it", "etichetta": "Narrativa"},
+                        {"lingua": "en", "etichetta": "Fiction"},
+                    ],
+                }
+            }
+        ],
+    }
+    voci = {"00000000-0000-0000-0000-0000000000a1": libro}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "en"))
+
+    assert risultato["generi_principali"] == [{"id": "g1", "nome": "Fiction", "peso": 1.0}]
 
 
 def test_metriche_di_ripartisce_il_peso_tra_autori_e_generi(
@@ -232,7 +271,7 @@ def test_metriche_di_ripartisce_il_peso_tra_autori_e_generi(
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     # round(1/3, 3) = 0.333: arrotondato in metriche_service._classifica per
     # non trasmettere rumore binario, non un errore di calcolo.
@@ -268,7 +307,7 @@ def test_metriche_di_abbandono_non_conta_come_finito_ma_conta_le_pagine(
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     assert risultato["libri_finiti"] == 0
     assert risultato["pagine_lette"] == 40
@@ -298,8 +337,8 @@ def test_metriche_di_pagine_lette_sono_incrementi_a_cavallo_anno(
 
     import asyncio
 
-    metriche_2025 = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2025))
-    metriche_2026 = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    metriche_2025 = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2025, "it"))
+    metriche_2026 = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     assert metriche_2025["pagine_lette"] == 50
     assert metriche_2026["pagine_lette"] == 70
@@ -320,7 +359,7 @@ def test_metriche_di_segnala_letture_a_cavallo_anno(monkeypatch: pytest.MonkeyPa
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     assert risultato["ha_letture_a_cavallo_anno"] is True
 
@@ -347,7 +386,7 @@ def test_metriche_di_anno_minimo_e_il_primo_con_dati(monkeypatch: pytest.MonkeyP
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     assert risultato["anno_minimo"] == 2020
     assert risultato["anno_massimo"] == 2026
@@ -359,7 +398,7 @@ def test_metriche_di_rifiuta_anno_futuro(monkeypatch: pytest.MonkeyPatch) -> Non
     import asyncio
 
     with pytest.raises(metriche_service.AnnoFuturoError):
-        asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2027))
+        asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2027, "it"))
 
 
 def test_metriche_di_riletture_non_dipende_dal_join_sul_libro(
@@ -393,7 +432,7 @@ def test_metriche_di_riletture_non_dipende_dal_join_sul_libro(
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     assert risultato["libri_finiti"] == 2
     assert risultato["riletture"] == 0
@@ -431,7 +470,7 @@ def test_metriche_di_genere_senza_etichetta_italiana_non_conta_come_assente(
 
     import asyncio
 
-    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026))
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
 
     assert risultato["libri_senza_genere"] == 0
     assert [r["id"] for r in risultato["generi_principali"]] == ["g1"]

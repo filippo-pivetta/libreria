@@ -14,12 +14,6 @@ from fastapi.concurrency import run_in_threadpool
 from app.core.supabase import get_user_client
 from app.repositories import export_repository
 
-_LINGUA_INTERFACCIA = "it"
-"""Stessa scelta di app/repositories/voce_repository.py e
-app/services/metriche_service.py: l'interfaccia bilingue è debito noto
-(AGENTS.md), i generi e i titoli si mostrano sempre in italiano finché
-non è costruita."""
-
 _INTESTAZIONE = [
     "titolo",
     "autori",
@@ -34,14 +28,13 @@ _INTESTAZIONE = [
 ]
 
 
-def _titolo(libro: dict[str, Any]) -> str:
-    """Variante nella lingua dell'interfaccia, altrimenti il titolo
-    canonico (PRD, entità "Variante di titolo") — mai un titolo vuoto."""
+def _titolo(libro: dict[str, Any], lingua: str) -> str:
+    """Variante nella lingua dell'interfaccia (issue #34), altrimenti il
+    titolo canonico (PRD, entità "Variante di titolo") — mai un titolo
+    vuoto."""
     varianti = libro.get("variante_titolo") or []
-    variante_it = next(
-        (v["titolo"] for v in varianti if v.get("lingua") == _LINGUA_INTERFACCIA), None
-    )
-    return str(variante_it or libro["titolo_canonico"])
+    variante = next((v["titolo"] for v in varianti if v.get("lingua") == lingua), None)
+    return str(variante or libro["titolo_canonico"])
 
 
 def _autori(libro: dict[str, Any]) -> str:
@@ -52,7 +45,7 @@ def _autori(libro: dict[str, Any]) -> str:
     return "; ".join(r["autore"]["nome_canonico"] for r in righe if r.get("autore"))
 
 
-def _generi(libro: dict[str, Any]) -> str:
+def _generi(libro: dict[str, Any], lingua: str) -> str:
     etichette = []
     for riga in libro.get("libro_genere") or []:
         genere = riga.get("genere")
@@ -62,7 +55,7 @@ def _generi(libro: dict[str, Any]) -> str:
             (
                 e["etichetta"]
                 for e in genere.get("genere_etichetta", [])
-                if e.get("lingua") == _LINGUA_INTERFACCIA
+                if e.get("lingua") == lingua
             ),
             None,
         )
@@ -95,13 +88,13 @@ def _recensione_testo(riga: dict[str, Any]) -> str:
     return recensione["testo"] if recensione else ""
 
 
-def _riga_csv(riga: dict[str, Any]) -> list[Any]:
+def _riga_csv(riga: dict[str, Any], lingua: str) -> list[Any]:
     libro = riga["libro"]
     lettura = _ultima_lettura_conclusa(riga.get("letture") or [])
     return [
-        _titolo(libro),
+        _titolo(libro, lingua),
         _autori(libro),
-        _generi(libro),
+        _generi(libro, lingua),
         libro.get("anno_prima_pubblicazione"),
         libro.get("lingua_originale"),
         riga.get("pagine_adottate"),
@@ -112,18 +105,20 @@ def _riga_csv(riga: dict[str, Any]) -> list[Any]:
     ]
 
 
-async def libri_letti_csv(access_token: str, utente_id: UUID) -> bytes:
+async def libri_letti_csv(access_token: str, utente_id: UUID, lingua: str) -> bytes:
     """CSV dei libri con stato "letto" dell'utente, ordinato per titolo.
     BOM UTF-8 in testa (`utf-8-sig`): senza, Excel apre il file
     interpretando gli accenti italiani con la codifica sbagliata invece
-    di chiedere, il difetto più comune di un CSV non firmato."""
+    di chiedere, il difetto più comune di un CSV non firmato. `lingua`
+    (issue #34): titolo e generi seguono la stessa lingua dell'interfaccia
+    di ogni altra funzione bibliografica, non più fissa a "it"."""
     client = get_user_client(access_token)
     righe = await run_in_threadpool(export_repository.list_libri_letti, client, utente_id)
 
     corpo = io.StringIO()
     scrittore = csv.writer(corpo)
     scrittore.writerow(_INTESTAZIONE)
-    for riga in sorted(righe, key=lambda r: _titolo(r["libro"])):
-        scrittore.writerow(_riga_csv(riga))
+    for riga in sorted(righe, key=lambda r: _titolo(r["libro"], lingua)):
+        scrittore.writerow(_riga_csv(riga, lingua))
 
     return corpo.getvalue().encode("utf-8-sig")

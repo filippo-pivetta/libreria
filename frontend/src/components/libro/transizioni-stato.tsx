@@ -8,7 +8,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CampoData } from "@/components/ui/campo-data";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 type Transizione = { stato: StatoVoce; etichetta: string; chiedeData?: boolean };
 
@@ -69,6 +69,7 @@ function oggiISO(): string {
 export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
   const [pendente, setPendente] = useState<Transizione | null>(null);
   const [data, setData] = useState<string>(oggiISO);
   const altroRef = useRef<HTMLDetailsElement>(null);
@@ -98,7 +99,7 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
           result.status === "conflitto"
             ? result.message
             : result.status === "not_found"
-              ? ASSENZE.voceSparita
+              ? t("assenze.voceSparita")
               : result.message;
         throw new Error(messaggio);
       }
@@ -110,7 +111,7 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
     onError: (error: unknown) => {
-      showError(error instanceof Error ? error.message : ERRORI.statoNonCambiato);
+      showError(error instanceof Error ? error.message : t("errori.statoNonCambiato"));
     },
   });
 

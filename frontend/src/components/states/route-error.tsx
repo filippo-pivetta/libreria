@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { ErrorState } from "@/components/states/error-state";
-import { ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * Corpo condiviso dei confini d'errore di rotta (issue #11): un errore
@@ -24,6 +24,7 @@ export function RouteError({
   // training).
   retry: () => void;
 }) {
+  const t = useTranslations();
   useEffect(() => {
     // Un log lato client è il minimo indispensabile qui: non c'è ancora
     // un servizio di telemetria in questo progetto (fuori dal perimetro
@@ -34,7 +35,7 @@ export function RouteError({
 
   return (
     <ErrorState
-      message={ERRORI.imprevisto}
+      message={t("errori.imprevisto")}
       onRetry={retry}
     />
   );

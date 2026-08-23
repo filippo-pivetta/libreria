@@ -8,7 +8,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import type { Lettura } from "@/lib/api/voci";
 import { formattaData } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useLocale, useTranslations } from "next-intl";
 
 const ETICHETTA_ESITO: Record<string, string> = {
   conclusa: "conclusa",
@@ -49,6 +49,8 @@ export function StoricoLetture({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
+  const lingua = useLocale();
   const [inConfermaId, setInConfermaId] = useState<string | null>(null);
   // Chiusura ritardata del menù "⋯" (non al primo mouseleave): un
   // timer per riga, non uno solo — righe diverse possono essere aperte
@@ -79,7 +81,7 @@ export function StoricoLetture({
       const result = await cancellaLettura(token, letturaId);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.letturaSparita : result.message,
+          result.status === "not_found" ? t("assenze.letturaSparita") : result.message,
         );
       }
     },
@@ -90,7 +92,7 @@ export function StoricoLetture({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : ERRORI.letturaNonCancellata,
+        error instanceof Error ? error.message : t("errori.letturaNonCancellata"),
       );
     },
   });
@@ -124,8 +126,8 @@ export function StoricoLetture({
               </span>
             ) : (
               <span className="t-meta">
-                {formattaData(lettura.dataInizio)}
-                {lettura.dataFine ? ` – ${formattaData(lettura.dataFine)}` : " – in corso"}
+                {formattaData(lettura.dataInizio, lingua)}
+                {lettura.dataFine ? ` – ${formattaData(lettura.dataFine, lingua)}` : " – in corso"}
                 {lettura.esito ? ` · ${ETICHETTA_ESITO[lettura.esito]}` : ""}
                 {" · "}
                 {lettura.avanzamenti.length}{" "}
