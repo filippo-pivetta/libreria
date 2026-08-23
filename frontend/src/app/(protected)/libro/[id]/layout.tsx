@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { ProtectedNav } from "@/components/layout/protected-nav";
 import { BarraContestoLibro } from "@/components/libro/barra-contesto-libro";
+import { ASSENZE, SESSIONE } from "@/messaggi/it";
 
 function Pagina({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">{children}</main>;
+  return <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">{children}</main>;
 }
 
 /**
@@ -31,7 +32,7 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
   if (!session) {
     return (
       <Pagina>
-        <ErrorState message="La sessione è scaduta. Ricarica la pagina." />
+        <ErrorState message={SESSIONE.scaduta} />
       </Pagina>
     );
   }
@@ -41,7 +42,7 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
   if (voce.status === "not_found") {
     return (
       <Pagina>
-        <ErrorState title="Non trovata" message="Questa voce non esiste, o non è tua." />
+        <ErrorState title="Non trovata" message={ASSENZE.voceNonTua} />
       </Pagina>
     );
   }

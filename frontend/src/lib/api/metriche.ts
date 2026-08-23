@@ -73,7 +73,7 @@ function toMetriche(body: MetricheBody): Metriche {
 function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
   return { baseUrl };
 }
@@ -100,14 +100,14 @@ export async function getMetriche(accessToken: string, anno?: number): Promise<M
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 422) {
     return { status: "anno_futuro" };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const body = (await response.json()) as MetricheBody;
@@ -143,7 +143,7 @@ export async function getMetricheCollegato(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 404) {
@@ -156,7 +156,7 @@ export async function getMetricheCollegato(
     return { status: "anno_futuro" };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const body = (await response.json()) as MetricheBody;

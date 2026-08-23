@@ -267,13 +267,45 @@
      si possono usare le variabili dentro @media: restano un riferimento
      scritto e i valori vanno ripetuti, ma almeno esiste un posto dove
      leggerli.
-       640px   la scheda del libro impila le due pagine, la copertina rimpicciolisce
-       900px   lo scaffale ha spazio per la fascia delle letture in corso affiancata
-       1180px  larghezza massima del contenuto
+       640px   la copertina rimpicciolisce, le ombre si accorciano, la
+               navigazione passa dalla barra in alto alla barra in fondo
+       768px   la scheda del libro apre le due pagine affiancate
+       1024px  larghezza massima del contenuto
+
+     Allineati ai valori realmente usati (correzione della sessione UI).
+     Prima dicevano 640/900/1180 mentre il codice usava 640, 768 (la piega
+     della scheda, in .pagina-opera/.pagina-copia e in scheda.tsx) e 1024
+     (`max-w-5xl` su ogni contenitore): 900 e 1180 non comparivano in
+     nessuna regola. Una soglia dichiarata e mai applicata è peggio di una
+     non dichiarata, perché chi legge il documento progetta su di essa.
      -------------------------------------------------------------------- */
   --bp-s: 640px;
-  --bp-m: 900px;
-  --measure: 1180px;
+  --bp-m: 768px;
+  --bp-l: 1024px;
+
+  /* ---------------------------------------------------------------------
+     TOCCO E BORDI DELLO SCHERMO
+
+     `--tap` è il lato minimo di un bersaglio sotto il dito. Non cambia
+     l'aspetto dei controlli su desktop: si applica solo dietro
+     `@media (pointer: coarse)`, più in basso. La densità del desktop è una
+     scelta di progetto, il pollice no.
+
+     I `--safe-*` valgono zero ovunque tranne dove il sistema dichiara un
+     intaglio o un indicatore home. Richiedono `viewport-fit: cover`, che
+     sta in `generateViewport()` (app/layout.tsx): senza quello restano
+     zero anche su un iPhone.
+     -------------------------------------------------------------------- */
+  --tap: 44px;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+
+  /* Altezza della barra di navigazione in fondo su mobile, al netto della
+     safe area. Serve anche al contenuto, che deve poter finire sopra di
+     lei, e al toast, che non deve coprirla. */
+  --tab-h: 56px;
 }
 
 @media (max-width: 640px) {
@@ -294,6 +326,176 @@
   outline: none;
   border-bottom-color: var(--focus);
   box-shadow: 0 1px 0 var(--focus);
+}
+
+/* -----------------------------------------------------------------------------
+   SOTTO LA BARRA IN FONDO
+
+   Sotto i 640px la navigazione è fissa in fondo allo schermo (§5, sessione
+   UI). Un elemento fisso esce dal flusso, quindi l'ultima riga di ogni pagina
+   gli finirebbe sotto: questa classe restituisce al contenuto lo spazio che la
+   barra gli toglie, più un respiro, e non fa nulla da 640px in su, dove la
+   barra torna in cima.
+
+   Una classe sola invece della stessa `calc()` ripetuta su ogni `<main>`: i
+   contenitori sono sei, e il giorno in cui `--tab-h` cambia devono cambiare
+   tutti insieme.
+   -------------------------------------------------------------------------- */
+@media (max-width: 639.98px) {
+  .sotto-la-barra {
+    padding-bottom: calc(var(--tab-h) + var(--safe-b) + var(--sp5));
+  }
+}
+
+/* Il toast vive in fondo alla pagina. Sotto i 640px si alza sopra la barra di
+   navigazione, che è fissa lì; da 640px in su, dove la barra è in cima, gli
+   basta il margine dal bordo. Stesse variabili della barra, così una modifica
+   a `--tab-h` li muove insieme. */
+.sopra-la-barra {
+  bottom: calc(var(--safe-b) + var(--sp4));
+}
+@media (max-width: 639.98px) {
+  .sopra-la-barra {
+    bottom: calc(var(--tab-h) + var(--safe-b) + var(--sp3));
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   IL SALTO AL CONTENUTO
+   Invisibile finché non prende il fuoco. Non `display: none`, che lo
+   toglierebbe anche dall'ordine di tabulazione: sta fuori schermo e rientra.
+   -------------------------------------------------------------------------- */
+.skip-link {
+  position: fixed;
+  top: calc(var(--safe-t) + var(--sp2));
+  left: calc(var(--safe-l) + var(--sp2));
+  z-index: 100;
+  transform: translateY(calc(-100% - var(--sp6)));
+  background-color: var(--mtg-surface-2);
+  color: var(--mtg-ink);
+  border: var(--border-width) solid var(--mtg-line-strong);
+  border-radius: var(--radius-field);
+  box-shadow: var(--shadow-2);
+  padding: var(--sp3) var(--sp4);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  transition: transform var(--dur-micro) var(--ease-rise);
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+/* -----------------------------------------------------------------------------
+   IL TOCCO
+
+   Due regole che valgono solo dove c'è un dito, così la densità del desktop
+   (che il documento sceglie di proposito: h-8 sui pulsanti, campi a riga sola)
+   resta intatta.
+
+   1. Niente lampeggio grigio di sistema al tocco su iOS e Android: copre il
+      feedback che i controlli si danno da soli e non ha nulla a che vedere con
+      la palette della stanza.
+   2. Ogni bersaglio arriva a `--tap`. Una regola sola invece di una modifica
+      in sessanta componenti — e soprattutto una regola che non si dimentica al
+      prossimo componente scritto.
+
+   `min-height` e non `height`: un pulsante che è già più alto non si accorcia,
+   e uno che contiene due righe di testo cresce come deve.
+   -------------------------------------------------------------------------- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse) {
+  [data-slot="button"],
+  [data-slot="input"],
+  [data-slot="switch"],
+  .field-line,
+  summary,
+  [role="slider"],
+  a[class*="rounded-field"],
+  a[class*="rounded-object"],
+  /* Le pastiglie del filtro per stato: non passano da <Button>, quindi non
+     hanno `data-slot`, e restavano gli unici bersagli sotto i 44px rimasti
+     in pagina (misurati: 26px). */
+  button[class*="rounded-full"],
+  a[class*="rounded-full"] {
+    min-height: var(--tap);
+  }
+
+  /* I comandi testuali in linea (".Mostra tutto", "Cancella", i due toggle di
+     visibilità) non hanno riquadro e non devono prenderlo: si allargano
+     l'area di tocco oltre il testo, senza spostare nulla nel flusso. */
+  .tocco-esteso {
+    position: relative;
+  }
+  .tocco-esteso::before {
+    content: "";
+    position: absolute;
+    inset: 50% 0 0 0;
+    translate: 0 -50%;
+    min-height: var(--tap);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   PREFERENZE DI SISTEMA SU CONTRASTO E COLORE
+
+   §3 dichiara che, non esistendo un interruttore della luce, "si mitiga
+   rispettando `prefers-contrast` e la modalità a colori forzati del sistema,
+   che restano gli unici comandi esterni onorati". Erano promessi e non
+   costruiti: questi due blocchi sono quella promessa.
+
+   (Il comando in Torre, aggiunto dopo, non li rende inutili: chi forza il
+   contrasto lo vuole in entrambe le stanze.)
+   -------------------------------------------------------------------------- */
+
+@media (prefers-contrast: more) {
+  :root {
+    /* Le linee smettono di essere un accenno e diventano un bordo. */
+    --mtg-line: color-mix(in oklab, var(--mtg-ink) 42%, transparent);
+    --mtg-line-strong: color-mix(in oklab, var(--mtg-ink) 68%, transparent);
+    /* Il testo secondario si avvicina al principale: 6:1 è a norma, ma non è
+       ciò che chiede chi ha alzato il contrasto di sistema. */
+    --mtg-ink-soft: color-mix(in oklab, var(--mtg-ink) 82%, var(--mtg-ink-soft));
+    --focus-width: 3px;
+  }
+  /* Grana e lampada sono le due cose che tolgono nitidezza a una superficie:
+     sono decorazione, e qui la decorazione cede. */
+  .grain::before {
+    display: none;
+  }
+  .plane-0-lit {
+    background-image: none;
+  }
+}
+
+@media (forced-colors: active) {
+  /* In modalità a colori forzati il sistema riscrive colori, sfondi e bordi:
+     l'unica cosa sbagliata da fare è combattere. Si tolgono ombre, grana e
+     velature — che diventano rettangoli opachi — e si lascia che i bordi
+     dichiarino la struttura che qui la luminanza non può più dichiarare. */
+  .plane-1,
+  .plane-2,
+  .liftable::after {
+    box-shadow: none;
+  }
+  .plane-1,
+  .plane-2 {
+    border: 1px solid;
+  }
+  .grain::before,
+  .plane-2::after,
+  .volume__cover::after,
+  .cover::after {
+    display: none;
+  }
+  .plane-0-lit {
+    background-image: none;
+  }
+  :focus-visible {
+    outline: 2px solid;
+  }
 }
 
 /* Utility di piano. Usare queste, non ricomporre ombre a mano. */
@@ -352,7 +554,56 @@
 /* Salto di piano animato.
    box-shadow NON è compositabile e anima sul thread principale. Ogni
    transizione fra piani si fa con uno pseudo-elemento che porta l'ombra del
-   piano superiore e a cui si anima solo `opacity`. */
+   piano superiore e a cui si anima solo `opacity`.
+
+   Questa classe era citata in AGENTS.md e nella regola prefers-reduced-motion
+   in fondo al file, ma non è mai esistita: il sollevamento viveva tutto e solo
+   dentro `.volume`, che se lo riscriveva. Quindi la regola reduced-motion su
+   `.liftable` non colpiva nulla, e il fatto che i volumi rispettassero
+   comunque la preferenza dipendeva da un secondo blocco scritto apposta per
+   loro. Ora la classe c'è davvero e `.volume` la compone (volume.tsx).
+
+   Due parametri: `--lift` è di quanto sale, `--lift-radius` il raggio dello
+   pseudo-elemento che porta l'ombra, che deve combaciare con la forma
+   dell'oggetto sollevato (il volume ha gli angoli di sinistra quasi vivi,
+   perché lì c'è la costa). */
+.liftable {
+  --lift: -6px;
+  --lift-radius: var(--radius-card);
+  position: relative;
+  transition: transform var(--dur-lift) var(--ease-rise);
+}
+.liftable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: var(--lift-radius);
+  box-shadow: var(--shadow-2);
+  opacity: 0;
+  transition: opacity var(--dur-lift) var(--ease-rise);
+}
+.liftable:hover,
+.liftable:focus-visible {
+  transform: translateY(var(--lift));
+}
+.liftable:hover::after,
+.liftable:focus-visible::after {
+  opacity: 1;
+}
+
+/* Sotto il dito il sollevamento non ha senso — il dito è già il puntatore, e
+   :hover su touch resta "appiccicato" dopo il tocco, lasciando l'oggetto
+   sollevato finché non si tocca altrove. Resta il salto di piano, che è
+   informazione, non decorazione. */
+@media (hover: none) {
+  .liftable:hover {
+    transform: none;
+  }
+  .liftable:hover::after {
+    opacity: 0;
+  }
+}
 
 /* Mobile: le stesse ombre, su uno schermo tenuto a trenta centimetri, sembrano
    sporco. Si accorcia il raggio della componente lunga.
@@ -389,25 +640,19 @@
     0 2px 0 color-mix(in oklab, var(--mtg-ink) 34%, transparent);
 }
 
-/* Il volume: costa a sinistra, copertina rivolta a chi guarda. */
+/* Il volume: costa a sinistra, copertina rivolta a chi guarda.
+   Il sollevamento e il salto al piano 2 arrivano da `.liftable`, che il
+   componente mette accanto a questa classe: qui restano solo i due parametri
+   che il volume ha di suo — dieci pixel invece dei sei predefiniti (§7,
+   regola 10) e gli angoli di sinistra quasi vivi, dove c'è la costa. */
 .volume {
-  position: relative;
+  --lift: -10px;
+  --lift-radius: 2px var(--radius-object) var(--radius-object) 2px;
   display: flex;
   align-items: stretch;
   flex: 0 0 auto;
   border: 0; padding: 0; background: none; text-align: left; cursor: pointer;
-  transition: transform 260ms var(--ease-rise);
 }
-/* Il salto al piano 2 passa da uno pseudo-elemento: box-shadow non è
-   compositabile e animarla manda il lavoro sul thread principale. */
-.volume::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  border-radius: 2px var(--radius-object) var(--radius-object) 2px;
-  box-shadow: var(--shadow-2); opacity: 0;
-  transition: opacity 260ms var(--ease-rise);
-}
-.volume:hover, .volume:focus-visible { transform: translateY(-10px); }
-.volume:hover::after, .volume:focus-visible::after { opacity: 1; }
 
 /* Stanza scura: la variante desaturata di --cover-color (design doc §3),
    scritta dal componente in --cover-color-notte. Ripiego su --cover-color
@@ -440,17 +685,21 @@
 }
 .volume__cover img {
   width: 100%; height: 100%; object-fit: cover; display: block;
-  opacity: 0; transition: opacity 320ms var(--ease-rise);
+  opacity: 0; transition: opacity var(--dur-panel) var(--ease-rise);
 }
 .volume__cover img[data-loaded] { opacity: 1; }
 
 /* Velatura notturna: una copertina bianca al buio acceca.
-   Si toglie al passaggio del mouse. */
+   Si toglie al passaggio del mouse — e sotto il dito, dove il passaggio del
+   mouse non esiste, non si mette affatto (blocco @media (hover: none) più
+   sotto): al tocco restava velata per sempre, cioè la mitigazione diventava
+   un difetto permanente proprio sul dispositivo dove le copertine sono più
+   piccole e hanno più bisogno di essere leggibili. */
 .volume__cover::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: var(--mtg-surface-0);
   opacity: var(--cover-veil);
-  transition: opacity 200ms var(--ease-settle);
+  transition: opacity var(--dur-micro) var(--ease-settle);
 }
 .volume:hover .volume__cover::after { opacity: 0; }
 
@@ -462,7 +711,7 @@
   padding: var(--sp3);
   color: rgb(255 255 255 / 0.94);
   pointer-events: none;
-  opacity: 1; transition: opacity 320ms var(--ease-rise);
+  opacity: 1; transition: opacity var(--dur-panel) var(--ease-rise);
 }
 /* Il segnaposto è sempre nel markup (ripiego per il caso onError, che
    nasconde solo l'<img>), ma una volta che la copertina vera ha
@@ -541,10 +790,9 @@
 .reading-band::-webkit-scrollbar { display: none; }
 .reading-band .volume { scroll-snap-align: start; }
 
-@media (prefers-reduced-motion: reduce) {
-  .volume:hover, .volume:focus-visible { transform: none; }
-  .volume:hover::after, .volume:focus-visible::after { opacity: 1; }
-}
+/* Il blocco che stava qui ripeteva per `.volume` ciò che la regola su
+   `.liftable` in fondo al file dice già — ora che quella classe esiste
+   davvero e il volume la compone, la ripetizione è sparita. */
 
 /* Copertina della scheda del libro: di notte una copertina bianca acceca.
    La velatura si toglie al passaggio del mouse. */
@@ -559,18 +807,29 @@
 .cover img {
   position: absolute; inset: 0;
   width: 100%; height: 100%; object-fit: cover; display: block;
-  opacity: 0; transition: opacity 320ms var(--ease-rise);
+  opacity: 0; transition: opacity var(--dur-panel) var(--ease-rise);
 }
 .cover img[data-loaded] { opacity: 1; }
-.cover__placeholder { position: absolute; inset: 0; opacity: 1; transition: opacity 320ms var(--ease-rise); }
+.cover__placeholder { position: absolute; inset: 0; opacity: 1; transition: opacity var(--dur-panel) var(--ease-rise); }
 .cover:has(img[data-loaded]) .cover__placeholder { opacity: 0; }
 .cover::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: var(--mtg-surface-0);
   opacity: var(--cover-veil);
-  transition: opacity 200ms var(--ease-settle);
+  transition: opacity var(--dur-micro) var(--ease-settle);
 }
 .cover:hover::after { opacity: 0; }
+
+/* Dove non c'è un puntatore, il velo notturno non si applica: non esiste il
+   gesto che lo toglie. La copertina resta leggibile, che è ciò che il velo
+   voleva proteggere in primo luogo — al buio abbaglia una copertina bianca a
+   tutto schermo, non una miniatura da 96px. */
+@media (hover: none) {
+  .volume__cover::after,
+  .cover::after {
+    opacity: 0;
+  }
+}
 
 /* -----------------------------------------------------------------------------
    5. TIPOGRAFIA
@@ -595,68 +854,129 @@
 
 body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); color: var(--mtg-ink); }
 
-/* Display */
-.t-display {
-  font-family: var(--font-display);
-  font-variation-settings: "opsz" 72, "SOFT" 20;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  text-wrap: balance;      /* costoso e senza effetto oltre le 6 righe: solo qui */
-  text-box-trim: trim-both;
-  text-box-edge: cap alphabetic;
-}
-.t-title { /* titoli di libro, sezioni */
-  font-family: var(--font-display);
-  font-variation-settings: "opsz" 24, "SOFT" 10;
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 1.22;
-  text-wrap: balance;
-}
+/* -----------------------------------------------------------------------------
+   Le classi tipografiche stanno in `@layer components`, NON fuori da ogni
+   layer. È la stessa trappola del reset in globals.css (correzione del 19
+   agosto 2026), che qui mordeva in silenzio da sempre.
 
-/* Lettura. Sentenza e appunto sono LO STESSO carattere con due voci ottiche:
-   è l'asse opsz a fare la differenza, non un secondo font. Mettere Fraunces
-   sulle sentenze creerebbe due serif adiacenti nello stesso elenco, ed è
-   l'unico posto dell'app dove si scontrerebbero. */
-.t-sentenza {           /* insight sotto ~200 battute */
-  font-family: var(--font-read);
-  font-variation-settings: "opsz" 32;
-  font-weight: 300;
-  font-size: 1.1875rem;  /* 19px */
-  line-height: 1.55;
-  text-wrap: pretty;
-  /* NIENTE text-shadow. L'"incisione" della v1 sporcava le grazie a corpo 19 e
-     su fondo scuro produceva un alone. Corpo, peso e interlinea sono già tre
-     segnali e bastano. */
-}
-.t-appunto {            /* insight oltre ~200 battute */
-  font-family: var(--font-read);
-  font-variation-settings: "opsz" 12;
-  font-weight: 400;
-  font-size: 0.9375rem;  /* 15px */
-  line-height: 1.65;
-  text-wrap: pretty;
-}
-.t-appunto[data-clamped] { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+   In CSS una regola SENZA layer batte sempre una regola dentro un layer,
+   qualunque siano specificità e ordine. Le utility di Tailwind v4 vivono in
+   `@layer utilities`. Quindi, finché queste classi sono state fuori da ogni
+   layer, `.t-label` e `.t-meta` hanno vinto su `text-ink` — e con loro
+   `.t-num` su `font-display` e `.t-sentenza` su ogni `text-*` di corpo.
 
-/* UI */
-.t-label {
-  font-family: var(--font-ui);
-  font-size: 0.65625rem;  /* 10.5px */
-  font-weight: 500;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--mtg-ink-soft);
-}
-.t-meta { font-family: var(--font-ui); font-size: 0.78125rem; color: var(--mtg-ink-soft); }
+   Che cosa si vedeva, in 22 punti dell'interfaccia:
+     - la voce di navigazione ATTIVA non è mai stata in inchiostro pieno,
+       nonostante §5 lo prescriva: restava `ink-soft`, e a distinguerla c'era
+       il solo filetto;
+     - ogni `hover:text-ink` su un comando testuale non faceva nulla, quindi
+       quei comandi non rispondevano al passaggio del mouse;
+     - i numeri grandi degli Annali chiedevano Fraunces e ricevevano Inter
+       Tight;
+     - "Cancella davvero", "Salva", "Vai alla tua copia" ed "Esci" chiedevano
+       `ink` e restavano in `ink-soft`.
 
-/* Numeri delle metriche: tabulari SEMPRE, altrimenti le colonne ballano al
-   cambio d'anno. */
-.t-num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+   Dentro `components` l'ordine torna quello che ogni chiamante già dà per
+   scontato: la classe porta famiglia, corpo e interlinea, e una utility
+   accanto può correggerne una.
+   -------------------------------------------------------------------------- */
+
+@layer components {
+  /* Display */
+  .t-display {
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 72, "SOFT" 20;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    text-wrap: balance;      /* costoso e senza effetto oltre le 6 righe: solo qui */
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+  }
+  .t-title { /* titoli di libro, sezioni */
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 24, "SOFT" 10;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.22;
+    text-wrap: balance;
+  }
+
+  /* Lettura. Sentenza e appunto sono LO STESSO carattere con due voci ottiche:
+     è l'asse opsz a fare la differenza, non un secondo font. Mettere Fraunces
+     sulle sentenze creerebbe due serif adiacenti nello stesso elenco, ed è
+     l'unico posto dell'app dove si scontrerebbero. */
+  .t-sentenza {           /* insight sotto ~200 battute */
+    font-family: var(--font-read);
+    font-variation-settings: "opsz" 32;
+    font-weight: 300;
+    font-size: 1.1875rem;  /* 19px */
+    line-height: 1.55;
+    text-wrap: pretty;
+    /* NIENTE text-shadow. L'"incisione" della v1 sporcava le grazie a corpo 19 e
+       su fondo scuro produceva un alone. Corpo, peso e interlinea sono già tre
+       segnali e bastano. */
+  }
+  .t-appunto {            /* insight oltre ~200 battute */
+    font-family: var(--font-read);
+    font-variation-settings: "opsz" 12;
+    font-weight: 400;
+    font-size: 0.9375rem;  /* 15px */
+    line-height: 1.65;
+    text-wrap: pretty;
+  }
+  .t-appunto[data-clamped] { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* UI */
+  .t-label {
+    font-family: var(--font-ui);
+    font-size: 0.65625rem;  /* 10.5px */
+    font-weight: 500;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--mtg-ink-soft);
+  }
+  .t-meta { font-family: var(--font-ui); font-size: 0.78125rem; color: var(--mtg-ink-soft); }
+
+  /* Numeri delle metriche: tabulari SEMPRE, altrimenti le colonne ballano al
+     cambio d'anno. */
+  .t-num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+}
 
 /* Nessun letter-spacing negativo sotto i 24px. */
 p, li { text-wrap: pretty; }
+
+/* -----------------------------------------------------------------------------
+   PANNELLI IN PAGINA
+
+   L'app non ha modali (§19): ogni cosa che si apre è un pannello dentro il
+   flusso — la recensione, la nota di intenzione, il modulo dell'insight, la
+   riga della data nelle transizioni di stato, il riepilogo prima di cancellare
+   una Voce. Comparivano tutti di colpo, perché il montaggio di un elemento non
+   ha uno stato di partenza da cui transire.
+
+   `@starting-style` è quello stato di partenza, e permette di farlo senza
+   JavaScript e senza una libreria di animazione — è esattamente ciò che §20
+   prevedeva ("ingresso dei pannelli senza JavaScript") e che non era mai stato
+   costruito. Si animano solo `opacity` e `translate`, quindi il lavoro resta
+   sul compositore.
+
+   Nessuna uscita: un pannello che si chiude sparisce dal DOM, e trattenerlo
+   per animarlo richiederebbe di gestire a mano uno stato "in uscita" in cinque
+   componenti. L'ingresso è dove si guadagna — è il momento in cui l'occhio
+   deve capire che è comparso qualcosa di nuovo e da dove.
+   -------------------------------------------------------------------------- */
+.pannello {
+  transition:
+    opacity var(--dur-panel) var(--ease-rise),
+    translate var(--dur-panel) var(--ease-rise);
+}
+@starting-style {
+  .pannello {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
 
 /* -----------------------------------------------------------------------------
    6. MOTO
@@ -682,8 +1002,17 @@ p, li { text-wrap: pretty; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .liftable:hover { transform: none; }
-  .liftable:hover::after { opacity: 1; } /* il salto di piano resta, senza moto */
+  /* Il salto di piano resta — è informazione, dice "questo si può
+     afferrare" — e sparisce solo il movimento. `:focus-visible` accanto a
+     `:hover`: chi naviga da tastiera deve vedere lo stesso stato. */
+  .liftable:hover,
+  .liftable:focus-visible {
+    transform: none;
+  }
+  .liftable:hover::after,
+  .liftable:focus-visible::after {
+    opacity: 1;
+  }
 }
 
 /* La luce non transisce: il valore si aggiorna al cambio pagina, mai con un

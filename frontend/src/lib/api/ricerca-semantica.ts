@@ -65,7 +65,7 @@ export async function cercaSemantica(
 ): Promise<RicercaSemanticaResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   let response: Response;
@@ -75,7 +75,7 @@ export async function cercaSemantica(
       { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
     );
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 409) {
@@ -90,7 +90,7 @@ export async function cercaSemantica(
   }
 
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const body = (await response.json()) as Body;

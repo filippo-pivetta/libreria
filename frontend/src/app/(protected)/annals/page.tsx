@@ -2,6 +2,7 @@ import { getMetriche } from "@/lib/api/metriche";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { PaginaAnnali } from "@/components/annali/pagina-annali";
+import { ERRORI, SESSIONE } from "@/messaggi/it";
 
 /**
  * Annali (design-frontend.md §14, issue #7): le proprie metriche di
@@ -18,7 +19,7 @@ export default async function AnnalsPage() {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+    return <ErrorState message={SESSIONE.scaduta} />;
   }
 
   const result = await getMetriche(session.access_token);
@@ -29,7 +30,7 @@ export default async function AnnalsPage() {
         message={
           result.status === "error"
             ? result.message
-            : "Non è stato possibile caricare le metriche."
+            : ERRORI.metricheNonCaricate
         }
       />
     );

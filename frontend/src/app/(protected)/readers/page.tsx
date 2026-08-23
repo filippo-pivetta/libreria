@@ -2,6 +2,7 @@ import { getUtenti } from "@/lib/api/utenti";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { ElencoLettori } from "@/components/lettori/elenco-lettori";
+import { SESSIONE } from "@/messaggi/it";
 
 /**
  * Lettori (design doc §16): l'elenco membri, con lo stato della
@@ -16,7 +17,7 @@ export default async function ReadersPage() {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+    return <ErrorState message={SESSIONE.scaduta} />;
   }
 
   const result = await getUtenti(session.access_token);

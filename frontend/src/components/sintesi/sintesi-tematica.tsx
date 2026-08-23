@@ -11,6 +11,8 @@ import { getMe } from "@/lib/api/me";
 import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
+import { Messaggio } from "@/components/ui/messaggio";
+import { ATTESA, ERRORI } from "@/messaggi/it";
 
 const SOGLIA_APPUNTO = 200;
 
@@ -143,7 +145,7 @@ export function SintesiTematica() {
       const result = await getSintesi(token);
       if (result.status === "ok") return result.data;
       if (result.status === "not_found") return null;
-      throw new Error("Non è stato possibile leggere la sintesi.");
+      throw new Error(ERRORI.sintesiNonLetta);
     },
   });
 
@@ -193,7 +195,7 @@ export function SintesiTematica() {
       if (result.status === "error") throw new Error(result.message);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: chiave }),
-    onError: () => setErrore("Non è stato possibile cancellare la sintesi."),
+    onError: () => setErrore(ERRORI.sintesiNonCancellata),
   });
 
   const spentaDavvero = spenta || consenso === false;
@@ -225,7 +227,7 @@ export function SintesiTematica() {
                 onClick={() => genera.mutate()}
                 disabled={genera.isPending}
               >
-                {genera.isPending ? "Cerco temi…" : "Genera di nuovo"}
+                {genera.isPending ? ATTESA.cercoTemi : "Genera di nuovo"}
               </Button>
             )}
             <Button
@@ -240,7 +242,7 @@ export function SintesiTematica() {
         </div>
       ) : spentaDavvero ? (
         <EmptyState
-          title="L'elaborazione assistita è spenta"
+          title="L’elaborazione assistita è spenta"
           description="La sintesi tematica è una delle funzioni che dipendono dal consenso. Riaccendilo dalle impostazioni nella Torre."
         />
       ) : (
@@ -251,7 +253,7 @@ export function SintesiTematica() {
           onClick={() => genera.mutate()}
           disabled={genera.isPending}
         >
-          {genera.isPending ? "Cerco temi…" : "Genera una sintesi"}
+          {genera.isPending ? ATTESA.cercoTemi : "Genera una sintesi"}
         </Button>
       )}
 
@@ -260,7 +262,7 @@ export function SintesiTematica() {
           toccare la sintesi che resta visibile (il backend non sostituisce
           finché non ha un risultato valido). */}
       {messaggioVuoto && <p className="t-meta max-w-prose">{messaggioVuoto}</p>}
-      {errore && <p className="t-meta">{errore}</p>}
+      <Messaggio>{errore}</Messaggio>
     </div>
   );
 }

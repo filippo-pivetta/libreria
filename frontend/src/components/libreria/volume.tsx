@@ -49,7 +49,7 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
   return (
     <Link
       href={`/libro/${voce.id}`}
-      className="volume"
+      className="volume liftable"
       title={etichetta}
       aria-label={etichetta}
       {...(senzaPagine ? { "data-no-pages": "" } : {})}

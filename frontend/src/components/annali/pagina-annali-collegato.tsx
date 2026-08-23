@@ -11,14 +11,15 @@ import { CarteMetriche } from "@/components/annali/carte-metriche";
 import { SelettoreAnno } from "@/components/annali/selettore-anno";
 import { LibriInComune } from "@/components/annali/libri-in-comune";
 import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
+import { ScheletroAnnali } from "@/components/states/scheletri";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 function messaggioErrore(result: { status: string; message?: string }): string {
-  if (result.status === "non_collegato") return "Quella libreria non è più accessibile.";
-  if (result.status === "not_found") return "Questo utente non esiste.";
+  if (result.status === "non_collegato") return ASSENZE.libreriaChiusa;
+  if (result.status === "not_found") return ASSENZE.utenteInesistente;
   if (result.status === "anno_futuro") return "Gli anni futuri non sono selezionabili.";
   if (result.status === "error" && result.message) return result.message;
-  return "Non è stato possibile caricare le sue metriche.";
+  return ERRORI.metricheSueNonCaricate;
 }
 
 /**
@@ -75,14 +76,19 @@ export function PaginaAnnaliCollegato({
     initialData: anno === metricheCollegatoIniziali.anno ? metrichePropriaIniziale : undefined,
   });
 
-  if (collegatoQuery.isPending) return <LoadingState label="Carico le sue metriche…" />;
+  if (collegatoQuery.isPending) return (
+      <div role="status" aria-busy>
+        <span className="sr-only">Un momento…</span>
+        <ScheletroAnnali />
+      </div>
+    );
   if (collegatoQuery.isError) {
     return (
       <ErrorState
         message={
           collegatoQuery.error instanceof Error
             ? collegatoQuery.error.message
-            : "Qualcosa è andato storto."
+            : ERRORI.metricheSueNonCaricate
         }
         onRetry={() => void collegatoQuery.refetch()}
       />

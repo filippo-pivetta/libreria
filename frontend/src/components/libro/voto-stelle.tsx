@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { correggiVoto } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 const STELLE = [1, 2, 3, 4, 5] as const;
 
@@ -63,7 +64,7 @@ export function VotoStelle({
       const result = await correggiVoto(token, voceId, nuovoVoto === voto ? null : nuovoVoto);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questa voce non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
         );
       }
     },
@@ -72,7 +73,7 @@ export function VotoStelle({
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
     onError: (error: unknown) =>
-      showError(error instanceof Error ? error.message : "Non è stato possibile salvare il voto."),
+      showError(error instanceof Error ? error.message : ERRORI.votoNonSalvato),
   });
 
   if (!isOwner) {
@@ -102,7 +103,7 @@ export function VotoStelle({
         {STELLE.map((n) => (
           <span
             key={n}
-            className="relative inline-block transition-transform duration-150 ease-out hover:z-10 hover:scale-125"
+            className="relative inline-block transition-[translate] duration-(--dur-micro) ease-(--ease-rise) hover:z-10 hover:-translate-y-0.5"
           >
             <Stella riempimento={mostrato - (n - 1)} />
             <span className="absolute inset-0 flex">

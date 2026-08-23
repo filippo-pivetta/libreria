@@ -7,6 +7,8 @@ import { cancellaArtefatto, generaPreview, getPreview } from "@/lib/api/preview"
 import { getAccessToken } from "@/lib/api/access-token";
 import { getMe } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
+import { Messaggio } from "@/components/ui/messaggio";
+import { ASSENZE, ATTESA, ERRORI } from "@/messaggi/it";
 
 /**
  * "Me lo consigli?" (design doc §9, issue #6): un parere su questo libro
@@ -77,7 +79,7 @@ export function PreviewPersonalizzata({
       }
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questa voce non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
         );
       }
       return result.data;
@@ -98,7 +100,7 @@ export function PreviewPersonalizzata({
       if (result.status === "error") throw new Error(result.message);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: chiave }),
-    onError: () => setErrore("Non è stato possibile cancellare il parere."),
+    onError: () => setErrore(ERRORI.parereNonCancellato),
   });
 
   const spentaDavvero = spenta || consenso === false;
@@ -119,7 +121,7 @@ export function PreviewPersonalizzata({
                 onClick={() => genera.mutate()}
                 disabled={genera.isPending}
               >
-                {genera.isPending ? "Ci penso…" : "Chiedine un altro"}
+                {genera.isPending ? ATTESA.penso : "Chiedine un altro"}
               </Button>
             )}
             <Button
@@ -150,12 +152,12 @@ export function PreviewPersonalizzata({
             onClick={() => genera.mutate()}
             disabled={genera.isPending}
           >
-            {genera.isPending ? "Ci penso…" : "Chiedi un parere"}
+            {genera.isPending ? ATTESA.penso : "Chiedi un parere"}
           </Button>
         </div>
       )}
 
-      {errore && <p className="t-meta mt-2">{errore}</p>}
+      <Messaggio className="mt-2">{errore}</Messaggio>
     </div>
   );
 }

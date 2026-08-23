@@ -47,7 +47,7 @@ async function inviaAvanzamento(
 ): Promise<AvanzamentoResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   let response: Response;
@@ -62,7 +62,7 @@ async function inviaAvanzamento(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 404) {
@@ -78,7 +78,7 @@ async function inviaAvanzamento(
     };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   return { status: "ok", data: toAvanzamento((await response.json()) as AvanzamentoBody) };

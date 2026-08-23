@@ -137,7 +137,7 @@ export function RicercaLibri() {
           Aggiungi un libro
         </label>
         {/* Un campo solo, senza selettore di modalità: il PRD è netto,
-            non esistono altre vie d'ingresso, né codice né scansione. */}
+            non esistono altre vie d’ingresso, né codice né scansione. */}
         <input
           id="ricerca"
           type="search"

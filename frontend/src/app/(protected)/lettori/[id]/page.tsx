@@ -3,6 +3,7 @@ import { getLibreriaCollegato } from "@/lib/api/utenti";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { Scaffale } from "@/components/libreria/scaffale";
+import { ASSENZE, SESSIONE } from "@/messaggi/it";
 
 /**
  * Scheda "Libreria" del contesto di un collegato (design doc §15): la
@@ -20,7 +21,7 @@ export default async function LibreriaCollegatoPage(props: PageProps<"/lettori/[
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+    return <ErrorState message={SESSIONE.scaduta} />;
   }
 
   const [propria, collegato] = await Promise.all([
@@ -34,7 +35,7 @@ export default async function LibreriaCollegatoPage(props: PageProps<"/lettori/[
     // richieste (es. interruzione nel frattempo), non un errore di
     // logica — un messaggio generico basta, il layout la intercetterà
     // al prossimo caricamento.
-    return <ErrorState message="Questa libreria non è al momento raggiungibile." />;
+    return <ErrorState message={ASSENZE.libreriaIrraggiungibile} />;
   }
 
   const libroIdPropri = new Set(propria.status === "ok" ? propria.data.map((v) => v.libroId) : []);

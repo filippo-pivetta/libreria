@@ -18,8 +18,11 @@ export function BarraContestoLibro({
   titoloLibro: string;
 }) {
   return (
-    <div className="plane-0 sticky top-0 z-10 border-b border-line">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-6 py-4">
+    <div
+      className="plane-0 sticky top-0 z-30 border-b border-line"
+      style={{ paddingTop: "var(--safe-t)" }}
+    >
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
         <PulsanteEsci href={`/lettori/${utenteId}`} label={nomeUtente} />
         <div className="flex min-w-0 items-center gap-3">
           <span

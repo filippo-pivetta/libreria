@@ -15,6 +15,7 @@ import { LoadingState } from "@/components/states/loading-state";
 // Testi del PRD, parola per parola (docs/design-frontend.md §17):
 // dall'issue #6 servono anche nelle impostazioni della Torre.
 import { AVVISO_VISIBILITA, TESTO_CONSENSO } from "@/lib/testi-consenso";
+import { ATTESA, SESSIONE } from "@/messaggi/it";
 
 type Phase = "checking" | "no_session" | "form" | "submitting";
 
@@ -147,7 +148,7 @@ export default function CompletaAccountPage() {
     } = await supabase.auth.getSession();
 
     if (!session) {
-      setError("La sessione è scaduta. Chiedi un nuovo invito al Manutentore.");
+      setError(SESSIONE.scadutaInvito);
       setPhase("no_session");
       return;
     }
@@ -180,7 +181,7 @@ export default function CompletaAccountPage() {
   let content: ReactNode;
 
   if (phase === "checking") {
-    content = <LoadingState label="Verifica dell'invito…" />;
+    content = <LoadingState label={ATTESA.controlloInvito} />;
   } else if (phase === "no_session") {
     content = (
       <ErrorState
@@ -200,7 +201,7 @@ export default function CompletaAccountPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          {error && <ErrorState title="Qualcosa è andato storto" message={error} />}
+          {error && <ErrorState message={error} />}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
             {!passwordGiaImpostata && (
               <>
@@ -257,7 +258,7 @@ export default function CompletaAccountPage() {
             </div>
 
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Un momento…" : "Ho letto e accetto"}
+              {isSubmitting ? ATTESA.generica : "Ho letto e accetto"}
             </Button>
           </form>
         </CardContent>

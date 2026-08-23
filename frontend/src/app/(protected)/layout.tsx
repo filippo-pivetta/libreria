@@ -49,7 +49,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     return (
       <div className="plane-0-lit flex min-h-screen flex-col items-center justify-center gap-4 p-6">
         <div className="w-full max-w-sm">
-          <ErrorState title="Qualcosa è andato storto" message={me.message} />
+          <ErrorState message={me.message} />
         </div>
         <SignOutButton />
       </div>

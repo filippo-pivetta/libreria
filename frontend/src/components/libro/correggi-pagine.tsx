@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+
+import { useConfermaEffimera } from "@/lib/hooks/use-conferma-effimera";
+import { Messaggio } from "@/components/ui/messaggio";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { correggiPagine } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-
-const DURATA_CONFERMA_MS = 2200;
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 /**
  * Correzione delle pagine adottate (design doc §12): si clicca sul
@@ -43,7 +45,7 @@ export function CorreggiPagine({
     setSalvato(pagineAdottate);
     setValore(pagineAdottate !== null ? String(pagineAdottate) : "");
   }
-  const [mostraConferma, setMostraConferma] = useState(false);
+  const conferma = useConfermaEffimera();
 
   const mutazione = useMutation({
     mutationFn: async (nuovoValore: number | null) => {
@@ -54,7 +56,7 @@ export function CorreggiPagine({
           result.status === "conflitto"
             ? "Il nuovo totale è inferiore a un avanzamento già registrato."
             : result.status === "not_found"
-              ? "Questa voce non esiste più."
+              ? ASSENZE.voceSparita
               : result.message;
         throw new Error(messaggio);
       }
@@ -64,12 +66,11 @@ export function CorreggiPagine({
       setSalvato(voce.pagineAdottate);
       void queryClient.invalidateQueries({ queryKey: ["voce", voceId] });
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
-      setMostraConferma(true);
-      setTimeout(() => setMostraConferma(false), DURATA_CONFERMA_MS);
+      conferma.mostra();
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : "Non è stato possibile correggere le pagine.",
+        error instanceof Error ? error.message : ERRORI.pagineNonCorrette,
       );
       setValore(salvato !== null ? String(salvato) : "");
     },
@@ -82,7 +83,7 @@ export function CorreggiPagine({
     }
     const numero = Number(valore);
     if (!Number.isFinite(numero) || numero <= 0) {
-      showError("Inserisci un numero di pagine valido.");
+      showError(ERRORI.pagineNonValide);
       setValore(salvato !== null ? String(salvato) : "");
       return;
     }
@@ -113,7 +114,7 @@ export function CorreggiPagine({
         }}
         className="w-16 border-0 border-b border-dashed border-line-strong bg-transparent p-0 font-ui text-sm text-ink outline-none placeholder:text-ink-soft focus-visible:border-solid focus-visible:border-ink"
       />
-      {mostraConferma && <span className="t-meta">Salvato.</span>}
+      <Messaggio tono="conferma">{conferma.visibile ? "Salvato." : ""}</Messaggio>
     </span>
   );
 }

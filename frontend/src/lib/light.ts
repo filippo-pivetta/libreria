@@ -262,6 +262,56 @@ const fmt = (x: Oklch) =>
     ? `oklch(${x.l.toFixed(4)} ${x.c.toFixed(4)} ${x.h.toFixed(2)} / ${x.a.toFixed(3)})`
     : `oklch(${x.l.toFixed(4)} ${x.c.toFixed(4)} ${x.h.toFixed(2)})`;
 
+/* -----------------------------------------------------------------------------
+ * OKLCH → sRGB.
+ *
+ * Serve a due chiamanti che senza questo avrebbero due copie della stessa
+ * matrice: `scripts/check-contrast.mts`, che ne calcola la luminanza relativa,
+ * e `themeColorHex()` qui sotto. Il secondo è la ragione per cui la conversione
+ * vive qui e non nello script: `<meta name="theme-color">` non accetta in modo
+ * affidabile una funzione di colore moderna — Safari e i browser Android
+ * leggono quel valore fuori dal motore CSS della pagina, e un `oklch()` lì
+ * dentro viene scartato in silenzio, lasciando la chrome del sistema al suo
+ * colore predefinito. Un esadecimale sRGB è l'unica forma che passa ovunque.
+ * -------------------------------------------------------------------------- */
+
+export function oklchToSrgb({ l: L, c: C, h: H }: Oklch): [number, number, number] {
+  const h = (H * Math.PI) / 180;
+  const a = C * Math.cos(h);
+  const b = C * Math.sin(h);
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.291485548 * b;
+  const l3 = l_ ** 3,
+    m3 = m_ ** 3,
+    s3 = s_ ** 3;
+  const r = 4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3;
+  const g = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3;
+  const bl = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3;
+  const enc = (x: number) => {
+    const v = Math.max(0, Math.min(1, x));
+    return v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055;
+  };
+  return [enc(r), enc(g), enc(bl)];
+}
+
+/**
+ * Il colore della chrome del browser: il piano 0 del momento, in esadecimale.
+ *
+ * Su mobile è ciò che separa un'app da un sito — senza, la barra di stato
+ * resta bianca mentre la stanza è bruna, e il salto si vede sopra ogni
+ * schermata. Segue l'ancoraggio risolto, quindi anche la preferenza scelta in
+ * Torre, non solo l'ora.
+ */
+export function themeColorHex(p: Palette = currentPalette()): string {
+  const canale = (x: number) =>
+    Math.round(x * 255)
+      .toString(16)
+      .padStart(2, "0");
+  const [r, g, b] = oklchToSrgb(p.surface0);
+  return `#${canale(r)}${canale(g)}${canale(b)}`;
+}
+
 export function paletteToCssVars(p: Palette): Record<string, string> {
   return {
     "--raw-surface-0": fmt(p.surface0),
@@ -289,9 +339,60 @@ export function paletteToCssVars(p: Palette): Record<string, string> {
  * bordo di luce, velatura delle copertine); `style` porta i valori interpolati,
  * che vincono sui blocchi di fallback in tokens.anchors.css.
  */
-export function lightAttrs(d: Date = new Date()): {
+export type PreferenzaLuce = "ora" | "chiara" | "scura";
+
+/** Il nome del cookie che porta la preferenza. Letto solo lato server. */
+export const COOKIE_LUCE = "mtg-luce";
+
+export function preferenzaValida(valore: string | undefined): PreferenzaLuce {
+  return valore === "chiara" || valore === "scura" ? valore : "ora";
+}
+
+/**
+ * L'ancoraggio e la palette effettivi, data la preferenza.
+ *
+ * "ora" è il comportamento di sempre: la stanza segue il momento della
+ * giornata, interpolata fra i due ancoraggi adiacenti. "chiara" e "scura"
+ * fissano rispettivamente `giorno` e `notte`, senza interpolazione — sono
+ * scelte, non momenti, e un valore intermedio non vorrebbe dire nulla.
+ *
+ * Fissare un ancoraggio non introduce rischi di contrasto: `giorno` e `notte`
+ * sono due dei quattro punti che `scripts/check-contrast.mts` già verifica, e
+ * lo spazio dei valori fissi è un sottoinsieme stretto di quello campionato.
+ */
+export function risolviLuce(
+  preferenza: PreferenzaLuce,
+  d: Date = new Date(),
+): { anchor: Anchor; palette: Palette } {
+  if (preferenza === "chiara") return { anchor: "giorno", palette: ANCHORS.giorno };
+  if (preferenza === "scura") return { anchor: "notte", palette: ANCHORS.notte };
+  return { anchor: currentAnchor(d), palette: currentPalette(d) };
+}
+
+/**
+ * Ciò che va scritto su <html> dal layout del server.
+ *
+ * `data-light` porta l'ancoraggio dominante (serve ai pochi selettori che
+ * devono sapere se la stanza è scura: nastri, bordo di luce, velatura delle
+ * copertine); `style` porta i valori, che vincono sui blocchi di fallback in
+ * tokens.anchors.css.
+ *
+ * **La preferenza (sessione UI).** Fino a qui non esisteva alcun comando e la
+ * luce era solo una conseguenza dell'ora — con un costo che §3 nominava e
+ * accettava: "chi ha una sensibilità alla luce non può forzare la stanza scura
+ * di giorno". Ora la Torre porta un comando a tre stati e questa funzione lo
+ * riceve. Resta invariato tutto il resto: il calcolo è lato server, il valore
+ * cambia solo al cambio pagina, non c'è alcun timer nel browser, e due
+ * collegati che non hanno espresso preferenze vedono la stessa stanza alla
+ * stessa ora.
+ */
+export function lightAttrs(
+  preferenza: PreferenzaLuce = "ora",
+  d: Date = new Date(),
+): {
   "data-light": Anchor;
   style: Record<string, string>;
 } {
-  return { "data-light": currentAnchor(d), style: paletteToCssVars(currentPalette(d)) };
+  const { anchor, palette } = risolviLuce(preferenza, d);
+  return { "data-light": anchor, style: paletteToCssVars(palette) };
 }

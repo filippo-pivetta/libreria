@@ -40,7 +40,7 @@ type MeResponseBody = {
 export async function getMe(accessToken: string): Promise<MeResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   let response: Response;
@@ -51,7 +51,7 @@ export async function getMe(accessToken: string): Promise<MeResult> {
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 404) {
@@ -59,7 +59,7 @@ export async function getMe(accessToken: string): Promise<MeResult> {
   }
 
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const body = (await response.json()) as MeResponseBody;
@@ -84,7 +84,7 @@ export async function completeAccount(
 ): Promise<CompleteAccountResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   let response: Response;
@@ -99,7 +99,7 @@ export async function completeAccount(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 201) {
@@ -121,7 +121,7 @@ export async function completeAccount(
     }
   }
 
-  return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+  return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
 }
 
 function toMe(body: MeResponseBody): Me {
@@ -157,7 +157,7 @@ export async function aggiornaConsenso(
 ): Promise<AggiornaConsensoResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   let response: Response;
@@ -172,7 +172,7 @@ export async function aggiornaConsenso(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 404) {
@@ -180,7 +180,7 @@ export async function aggiornaConsenso(
   }
 
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   return { status: "ok", data: toMe((await response.json()) as MeResponseBody) };
@@ -204,7 +204,7 @@ export async function eliminaAccount(
 ): Promise<EliminaAccountResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   let response: Response;
@@ -219,7 +219,7 @@ export async function eliminaAccount(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 204) {
@@ -238,7 +238,7 @@ export async function eliminaAccount(
     }
   }
 
-  return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+  return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
 }
 
 export type EsportaLibriLettiResult =
@@ -266,7 +266,7 @@ function _nomeFileDaHeader(header: string | null): string {
 export async function esportaLibriLetti(accessToken: string): Promise<EsportaLibriLettiResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   let response: Response;
@@ -276,11 +276,11 @@ export async function esportaLibriLetti(accessToken: string): Promise<EsportaLib
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const blob = await response.blob();

@@ -22,6 +22,10 @@ import {
   NOTE_FUORI_DAL_CONSENSO,
   TESTO_CONSENSO,
 } from "@/lib/testi-consenso";
+import { Messaggio } from "@/components/ui/messaggio";
+import { SceltaLuce } from "@/components/torre/scelta-luce";
+import { type PreferenzaLuce } from "@/lib/light";
+import { ERRORI, SESSIONE } from "@/messaggi/it";
 
 /**
  * Sezione impostazioni della Torre (design doc §17): l'avviso di
@@ -44,6 +48,7 @@ export function SezioneImpostazioni({
   nomeUtente,
   consensoIniziale,
   indiciStatoIniziale,
+  preferenzaLuce,
 }: {
   /** Serve solo a verificare lato client che la conferma digitata nella
    * cancellazione coincida: il confronto che conta è comunque rifatto
@@ -51,6 +56,9 @@ export function SezioneImpostazioni({
    * disabilitato. */
   nomeUtente: string;
   consensoIniziale: boolean;
+  /** Letta dal cookie nel layout radice e passata giù: il client non legge
+   * mai il cookie da sé, perché la palette la calcola il server. */
+  preferenzaLuce: PreferenzaLuce;
   /** Stato reale letto da `/me`: senza questo la sezione poteva solo
    * indovinare "in ricostruzione" dal booleano del consenso, senza mai
    * sapere se una ricostruzione precedente fosse davvero finita. */
@@ -71,7 +79,7 @@ export function SezioneImpostazioni({
       if (result.status !== "ok") {
         throw new Error(
           result.status === "not_provisioned"
-            ? "Il tuo account non risulta completato."
+            ? SESSIONE.accountIncompleto
             : result.message,
         );
       }
@@ -90,7 +98,7 @@ export function SezioneImpostazioni({
     onError: (err: unknown, valore: boolean) => {
       setConsenso(!valore);
       setErrore(
-        err instanceof Error ? err.message : "Non è stato possibile cambiare il consenso.",
+        err instanceof Error ? err.message : ERRORI.consensoNonCambiato,
       );
     },
   });
@@ -118,7 +126,7 @@ export function SezioneImpostazioni({
     },
     onError: (err: unknown) => {
       setErroreExport(
-        err instanceof Error ? err.message : "Non è stato possibile scaricare il file.",
+        err instanceof Error ? err.message : ERRORI.fileNonScaricato,
       );
     },
   });
@@ -132,7 +140,7 @@ export function SezioneImpostazioni({
           result.status === "conferma_non_corrispondente"
             ? "Il nome utente digitato non corrisponde."
             : result.status === "not_provisioned"
-              ? "Il tuo account non risulta completato."
+              ? SESSIONE.accountIncompleto
               : result.message,
         );
       }
@@ -152,7 +160,7 @@ export function SezioneImpostazioni({
     },
     onError: (err: unknown) => {
       setErroreCancellazione(
-        err instanceof Error ? err.message : "Non è stato possibile cancellare l'account.",
+        err instanceof Error ? err.message : ERRORI.accountNonCancellato,
       );
     },
   });
@@ -164,6 +172,21 @@ export function SezioneImpostazioni({
         <p className="t-meta max-w-prose">{AVVISO_VISIBILITA}</p>
       </section>
 
+      {/* La luce della stanza. §17 diceva "quattro cose e basta" e non
+          prevedeva alcun comando sulla luce, "che non è una preferenza ma una
+          conseguenza dell’ora": diventano cinque. Sta qui, prima
+          dell’elaborazione assistita, perché è la sola impostazione che non
+          riguarda i dati — cambia come si vede l’app, non cosa l’app fa dei
+          tuoi testi. */}
+      <section className="flex flex-col gap-2">
+        <p className="t-label">Luce della stanza</p>
+        <p className="t-meta max-w-prose">
+          La stanza si scurisce da sé dal mattino alla notte. Se preferisci, puoi
+          fermarla su una delle due.
+        </p>
+        <SceltaLuce iniziale={preferenzaLuce} />
+      </section>
+
       <section className="flex flex-col gap-3">
         <p className="t-label">Elaborazione assistita</p>
         <div className="plane-1 grain flex flex-col gap-3 rounded-card p-4">
@@ -173,7 +196,7 @@ export function SezioneImpostazioni({
               checked={consenso}
               onCheckedChange={(valore) => mutazione.mutate(valore)}
               disabled={mutazione.isPending}
-              aria-label="Consenti l'elaborazione assistita"
+              aria-label="Consenti l’elaborazione assistita"
             />
           </div>
           <p className="t-meta max-w-prose">
@@ -187,7 +210,7 @@ export function SezioneImpostazioni({
             </p>
           )}
           <p className="t-meta max-w-prose">{NOTE_FUORI_DAL_CONSENSO}</p>
-          {errore && <p className="text-xs text-ink-soft">{errore}</p>}
+          <Messaggio>{errore}</Messaggio>
         </div>
       </section>
 
@@ -206,7 +229,7 @@ export function SezioneImpostazioni({
         >
           Scarica CSV
         </Button>
-        {erroreExport && <p className="t-meta text-xs">{erroreExport}</p>}
+        <Messaggio>{erroreExport}</Messaggio>
       </section>
 
       <section className="flex flex-col gap-2">
@@ -231,7 +254,7 @@ export function SezioneImpostazioni({
             Elimina l&apos;account
           </Button>
         </div>
-        {erroreCancellazione && <p className="t-meta text-xs">{erroreCancellazione}</p>}
+        <Messaggio>{erroreCancellazione}</Messaggio>
       </section>
     </div>
   );

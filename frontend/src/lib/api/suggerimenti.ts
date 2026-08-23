@@ -42,7 +42,7 @@ export async function generaSuggerimenti(
 ): Promise<SuggerimentiResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
 
   const notaPulita = nota?.trim() || null;
@@ -56,7 +56,7 @@ export async function generaSuggerimenti(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 409) return { status: "consenso_revocato" };
@@ -73,7 +73,7 @@ export async function generaSuggerimenti(
     return { status: "error", message: "I suggerimenti non sono arrivati. Riprova fra poco." };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const body = (await response.json()) as Body;

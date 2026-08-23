@@ -8,6 +8,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import type { Lettura } from "@/lib/api/voci";
 import { formattaData } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 const ETICHETTA_ESITO: Record<string, string> = {
   conclusa: "conclusa",
@@ -78,7 +79,7 @@ export function StoricoLetture({
       const result = await cancellaLettura(token, letturaId);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questa lettura non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.letturaSparita : result.message,
         );
       }
     },
@@ -89,7 +90,7 @@ export function StoricoLetture({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : "Non è stato possibile cancellare la lettura.",
+        error instanceof Error ? error.message : ERRORI.letturaNonCancellata,
       );
     },
   });

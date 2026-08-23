@@ -72,7 +72,7 @@ export type SintesiResult =
 function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
   return { baseUrl };
 }
@@ -121,7 +121,7 @@ async function esito(response: Response): Promise<SintesiResult> {
     return { status: "error", message: "La sintesi non è arrivata. Riprova fra poco." };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
   return { status: "ok", data: toSintesi((await response.json()) as Body) };
 }
@@ -138,7 +138,7 @@ export async function getSintesi(accessToken: string): Promise<SintesiResult> {
       }),
     );
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 }
 
@@ -155,6 +155,6 @@ export async function generaSintesi(accessToken: string): Promise<SintesiResult>
       }),
     );
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 }

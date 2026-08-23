@@ -25,7 +25,7 @@ export function CarteMetriche({
   // (annoMassimo, che il backend fissa sempre a quello — PRD,
   // comportamento #12): sfogliando un anno passato col selettore la
   // dicitura letterale sarebbe falsa, mentre il numero resta sempre vero.
-  const titoloQuestAnno = metriche.anno === metriche.annoMassimo ? "Quest'anno" : String(metriche.anno);
+  const titoloQuestAnno = metriche.anno === metriche.annoMassimo ? "Quest’anno" : String(metriche.anno);
 
   return (
     <div className="flex flex-col gap-4">
