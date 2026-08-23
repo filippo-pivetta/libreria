@@ -7,7 +7,7 @@ import { aggiungiVoce, type Voce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 const ETICHETTA_STATO: Record<string, string> = {
   da_leggere: "Da leggere",
@@ -45,6 +45,7 @@ export function NellaTuaLibreria({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
 
   const mutazione = useMutation({
     mutationFn: async () => {
@@ -52,7 +53,7 @@ export function NellaTuaLibreria({
       const result = await aggiungiVoce(token, libroId);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.libroSparito : result.message,
+          result.status === "not_found" ? t("assenze.libroSparito") : result.message,
         );
       }
     },
@@ -60,7 +61,7 @@ export function NellaTuaLibreria({
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
     onError: (error: unknown) =>
-      showError(error instanceof Error ? error.message : ERRORI.libroNonAggiunto),
+      showError(error instanceof Error ? error.message : t("errori.libroNonAggiunto")),
   });
 
   return (

@@ -19,15 +19,17 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.cataloghi import wikipedia
 from app.cataloghi.errori import FonteNonRaggiungibileError
+from app.core.lingua import LINGUE_INTERFACCIA as LINGUE
 from app.lavori.errori import ErroreTransitorio
 from app.repositories import catalogo_repository, database, lavoro_repository
 
 logger = logging.getLogger("app.lavori.descrizioni")
 
-LINGUE = ("it", "en")
-"""Le lingue dell'interfaccia (PRD: bilingue dal primo giorno). Non tutte
-quelle che Wikipedia ha: conservare descrizioni in lingue che nessuno può
-leggere occuperebbe spazio senza servire a nessuno."""
+# `LINGUE` (issue #34/#40): le lingue dell'interfaccia (PRD: bilingue dal
+# primo giorno), importate da `app.core.lingua.LINGUE_INTERFACCIA` invece
+# di una quarta copia hardcoded — non tutte quelle che Wikipedia ha:
+# conservare descrizioni in lingue che nessuno può leggere occuperebbe
+# spazio senza servire a nessuno.
 
 
 async def esegui(payload: dict[str, Any]) -> None:

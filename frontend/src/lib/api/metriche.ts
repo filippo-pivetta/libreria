@@ -6,6 +6,8 @@
  * per il flusso di controllo.
  */
 
+import { intestazioniConLingua } from "@/lib/lingua";
+
 export type VoceClassifica = {
   id: string;
   nome: string;
@@ -85,9 +87,20 @@ export type MetricheResult =
   | { status: "anno_futuro" }
   | { status: "error"; message: string };
 
-/** GET /metriche: le proprie metriche di lettura. `anno` omesso ->
- * l'anno corrente in Europa centrale, deciso dal backend. */
-export async function getMetriche(accessToken: string, anno?: number): Promise<MetricheResult> {
+/**
+ * GET /metriche: le proprie metriche di lettura. `anno` omesso ->
+ * l'anno corrente in Europa centrale, deciso dal backend.
+ *
+ * `acceptLanguage`, opzionale (issue #34): inoltra la lingua dell'interfaccia
+ * al backend, che sceglie con la stessa intestazione l'etichetta di genere
+ * nella lingua giusta (`app/core/lingua.py`) — vedi il docstring di
+ * `lib/api/voci.ts::getVoci`, stesso meccanismo.
+ */
+export async function getMetriche(
+  accessToken: string,
+  anno?: number,
+  acceptLanguage?: string,
+): Promise<MetricheResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
@@ -96,7 +109,7 @@ export async function getMetriche(accessToken: string, anno?: number): Promise<M
   let response: Response;
   try {
     response = await fetch(`${config.baseUrl}/metriche${query}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: intestazioniConLingua(accessToken, acceptLanguage),
       cache: "no-store",
     });
   } catch {
@@ -125,11 +138,12 @@ export type MetricheCollegatoResult =
   | { status: "error"; message: string };
 
 /** GET /utenti/{id}/metriche: le metriche di un collegato, stesso
- * payload delle proprie. */
+ * payload delle proprie. `acceptLanguage`, opzionale: vedi `getMetriche`. */
 export async function getMetricheCollegato(
   accessToken: string,
   utenteId: string,
   anno?: number,
+  acceptLanguage?: string,
 ): Promise<MetricheCollegatoResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
@@ -139,7 +153,7 @@ export async function getMetricheCollegato(
   let response: Response;
   try {
     response = await fetch(`${config.baseUrl}/utenti/${utenteId}/metriche${query}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: intestazioniConLingua(accessToken, acceptLanguage),
       cache: "no-store",
     });
   } catch {

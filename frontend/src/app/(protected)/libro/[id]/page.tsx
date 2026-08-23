@@ -1,9 +1,10 @@
 import { getVoceDettaglio, getVoci } from "@/lib/api/voci";
+import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { Scheda } from "@/components/libro/scheda";
 import { NellaTuaLibreria } from "@/components/libro/nella-tua-libreria";
-import { ASSENZE, SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Scheda del libro (design doc §9). `params` è una Promise in Next 16
@@ -18,6 +19,7 @@ import { ASSENZE, SESSIONE } from "@/messaggi/it";
  */
 export default async function LibroPage(props: PageProps<"/libro/[id]">) {
   const { id } = await props.params;
+  const t = await getTranslations();
 
   const supabase = await createClient();
   const {
@@ -25,16 +27,17 @@ export default async function LibroPage(props: PageProps<"/libro/[id]">) {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message={SESSIONE.scaduta} />;
+    return <ErrorState message={t("sessione.scaduta")} />;
   }
 
-  const result = await getVoceDettaglio(session.access_token, id);
+  const lingua = await accettaLinguaInoltrata();
+  const result = await getVoceDettaglio(session.access_token, id, lingua);
 
   if (result.status === "not_found") {
     // Nessuna corsa verso un componente not-found dedicato: un rifiuto
     // indistinguibile da un contenuto inesistente resta testo semplice
     // (PRD, casi limite), non un vicolo cieco di framework.
-    return <ErrorState title="Non trovata" message={ASSENZE.voceNonTua} />;
+    return <ErrorState title="Non trovata" message={t("assenze.voceNonTua")} />;
   }
   if (result.status === "error") {
     return <ErrorState message={result.message} />;
@@ -46,7 +49,7 @@ export default async function LibroPage(props: PageProps<"/libro/[id]">) {
     return <Scheda voceIniziale={result.data} currentUserId={session.user.id} />;
   }
 
-  const mie = await getVoci(session.access_token);
+  const mie = await getVoci(session.access_token, lingua);
   const propriaVoce =
     mie.status === "ok" ? (mie.data.find((v) => v.libroId === result.data.libroId) ?? null) : null;
 

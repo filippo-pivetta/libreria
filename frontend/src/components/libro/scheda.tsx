@@ -20,7 +20,7 @@ import { Recensione } from "@/components/libro/recensione";
 import { PreviewPersonalizzata } from "@/components/libro/preview-personalizzata";
 import { InsightLista } from "@/components/libro/insight-lista";
 import { EliminaVoce } from "@/components/libro/elimina-voce";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useLocale, useTranslations } from "next-intl";
 
 const ETICHETTA_STATO: Record<string, string> = {
   da_leggere: "Da leggere",
@@ -54,13 +54,15 @@ export function Scheda({
   voceIniziale: VoceDettaglio;
   currentUserId: string;
 }) {
+  const t = useTranslations();
+  const lingua = useLocale();
   const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ["voce", voceIniziale.id],
     queryFn: async () => {
       const token = await getAccessToken();
       const result = await getVoceDettaglio(token, voceIniziale.id);
       if (result.status !== "ok") {
-        throw new Error(result.status === "not_found" ? ASSENZE.voceSparita : result.message);
+        throw new Error(result.status === "not_found" ? t("assenze.voceSparita") : result.message);
       }
       return result.data;
     },
@@ -79,7 +81,7 @@ export function Scheda({
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : ERRORI.libroNonCaricato}
+        message={error instanceof Error ? error.message : t("errori.libroNonCaricato")}
         onRetry={() => void refetch()}
       />
     );
@@ -147,7 +149,7 @@ export function Scheda({
               <div>
                 <p className="t-label">Lingua originale</p>
                 <p className="mt-0.5 font-ui text-sm text-ink">
-                  {formattaLingua(data.libro.linguaOriginale)}
+                  {formattaLingua(data.libro.linguaOriginale, lingua)}
                 </p>
               </div>
             )}

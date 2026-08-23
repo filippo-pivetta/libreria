@@ -8,7 +8,7 @@ import { ErrorState } from "@/components/states/error-state";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { SezioneCollegamenti } from "@/components/torre/sezione-collegamenti";
 import { SezioneImpostazioni } from "@/components/torre/sezione-impostazioni";
-import { SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Torre (design doc §17): una superficie sola, due sezioni. Sopra i
@@ -17,6 +17,7 @@ import { SESSIONE } from "@/messaggi/it";
  * cancellazione dell'account (issue #8, ADR 0011 rivisto).
  */
 export default async function TowerPage() {
+  const t = await getTranslations();
   const preferenzaLuce = preferenzaValida((await cookies()).get(COOKIE_LUCE)?.value);
   const supabase = await createClient();
   const {
@@ -24,7 +25,7 @@ export default async function TowerPage() {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message={SESSIONE.scaduta} />;
+    return <ErrorState message={t("sessione.scaduta")} />;
   }
 
   const [collegamenti, me] = await Promise.all([
@@ -40,7 +41,7 @@ export default async function TowerPage() {
       <ErrorState
         message={
           me.status === "not_provisioned"
-            ? SESSIONE.accountIncompleto
+            ? t("sessione.accountIncompleto")
             : me.message
         }
       />

@@ -1,0 +1,59 @@
+{
+  "errori": {
+    "votoNonSalvato": "The rating wasn’t saved. Try again.",
+    "recensioneNonSalvata": "The review wasn’t saved. The text is still here.",
+    "recensioneNonCancellata": "The review wasn’t deleted. Try again.",
+    "notaNonSalvata": "The note wasn’t saved. The text is still here.",
+    "insightNonSalvato": "The insight wasn’t saved. The text is still here.",
+    "insightNonCancellato": "The insight wasn’t deleted. Try again.",
+    "insightNonScoperto": "The text didn’t arrive. Try again.",
+    "statoNonCambiato": "The status didn’t change. Try again.",
+    "pagineNonCorrette": "The page total wasn’t updated. Try again.",
+    "pagineNonValide": "Enter a page count greater than zero.",
+    "letturaNonCancellata": "The reading wasn’t deleted. Try again.",
+    "voceNonCancellata": "The entry wasn’t deleted. Try again.",
+    "libroNonAggiunto": "The book wasn’t added to your library. Try again.",
+    "consensoNonCambiato": "The consent didn’t change. Try again.",
+    "fileNonScaricato": "The file wasn’t downloaded. Try again.",
+    "accountNonCancellato": "The account wasn’t deleted. Try again.",
+    "richiestaNonInviata": "The request didn’t go through. Try again.",
+    "richiestaNonAccettata": "The request wasn’t accepted. Try again.",
+    "collegamentoNonAggiornato": "The connection didn’t change. Try again.",
+    "parereNonCancellato": "The opinion wasn’t deleted. Try again.",
+    "sintesiNonCancellata": "The synthesis wasn’t deleted. Try again.",
+    "sintesiNonLetta": "The synthesis didn’t arrive. Reload the page.",
+    "metricheNonCaricate": "The metrics didn’t arrive. Reload the page.",
+    "metricheSueNonCaricate": "Their metrics didn’t arrive. Reload the page.",
+    "libreriaNonCaricata": "The library didn’t arrive. Reload the page.",
+    "libroNonCaricato": "The book didn’t arrive. Reload the page.",
+    "lettoriNonCaricati": "The list of readers didn’t arrive. Reload the page.",
+    "collegamentiNonCaricati": "The connections didn’t arrive. Reload the page.",
+    "imprevisto": "Something broke. Try again, or go back to the previous page."
+  },
+  "assenze": {
+    "voceSparita": "This entry no longer exists.",
+    "voceNonTua": "This entry doesn’t exist, or isn’t yours.",
+    "letturaSparita": "This reading no longer exists.",
+    "insightSparito": "This insight no longer exists.",
+    "libroSparito": "This book no longer exists.",
+    "utenteSparito": "This user no longer exists.",
+    "utenteInesistente": "This user doesn’t exist.",
+    "richiestaSparita": "This request no longer exists.",
+    "collegamentoSparito": "This connection no longer exists.",
+    "libreriaChiusa": "That library is no longer accessible.",
+    "libreriaIrraggiungibile": "This library isn’t reachable right now."
+  },
+  "sessione": {
+    "scaduta": "The session has expired. Reload the page.",
+    "scadutaInvito": "The session has expired. Ask the maintainer for a new invite.",
+    "accountIncompleto": "Your account isn’t complete yet."
+  },
+  "attesa": {
+    "generica": "One moment…",
+    "penso": "Thinking…",
+    "cercoTemi": "Looking for themes…",
+    "cercoCataloghi": "searching the catalogs…",
+    "aggiungo": "Adding…",
+    "controlloInvito": "Checking the invite…"
+  }
+}

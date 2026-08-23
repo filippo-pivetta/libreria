@@ -1,0 +1,59 @@
+{
+  "errori": {
+    "votoNonSalvato": "Il voto non è stato registrato. Riprova.",
+    "recensioneNonSalvata": "La recensione non è stata salvata. Il testo è ancora qui.",
+    "recensioneNonCancellata": "La recensione non è stata cancellata. Riprova.",
+    "notaNonSalvata": "La nota non è stata salvata. Il testo è ancora qui.",
+    "insightNonSalvato": "L’insight non è stato salvato. Il testo è ancora qui.",
+    "insightNonCancellato": "L’insight non è stato cancellato. Riprova.",
+    "insightNonScoperto": "Il testo non è arrivato. Riprova.",
+    "statoNonCambiato": "Lo stato non è cambiato. Riprova.",
+    "pagineNonCorrette": "Il totale delle pagine non è stato aggiornato. Riprova.",
+    "pagineNonValide": "Scrivi un numero di pagine maggiore di zero.",
+    "letturaNonCancellata": "La lettura non è stata cancellata. Riprova.",
+    "voceNonCancellata": "La voce non è stata cancellata. Riprova.",
+    "libroNonAggiunto": "Il libro non è stato aggiunto alla tua libreria. Riprova.",
+    "consensoNonCambiato": "Il consenso non è cambiato. Riprova.",
+    "fileNonScaricato": "Il file non è stato scaricato. Riprova.",
+    "accountNonCancellato": "L’account non è stato cancellato. Riprova.",
+    "richiestaNonInviata": "La richiesta non è partita. Riprova.",
+    "richiestaNonAccettata": "La richiesta non è stata accettata. Riprova.",
+    "collegamentoNonAggiornato": "Il collegamento non è cambiato. Riprova.",
+    "parereNonCancellato": "Il parere non è stato cancellato. Riprova.",
+    "sintesiNonCancellata": "La sintesi non è stata cancellata. Riprova.",
+    "sintesiNonLetta": "La sintesi non è arrivata. Ricarica la pagina.",
+    "metricheNonCaricate": "Le metriche non sono arrivate. Ricarica la pagina.",
+    "metricheSueNonCaricate": "Le sue metriche non sono arrivate. Ricarica la pagina.",
+    "libreriaNonCaricata": "La libreria non è arrivata. Ricarica la pagina.",
+    "libroNonCaricato": "Il libro non è arrivato. Ricarica la pagina.",
+    "lettoriNonCaricati": "L’elenco dei lettori non è arrivato. Ricarica la pagina.",
+    "collegamentiNonCaricati": "I collegamenti non sono arrivati. Ricarica la pagina.",
+    "imprevisto": "Qualcosa si è rotto. Riprova, o torna alla pagina precedente."
+  },
+  "assenze": {
+    "voceSparita": "Questa voce non esiste più.",
+    "voceNonTua": "Questa voce non esiste, o non è tua.",
+    "letturaSparita": "Questa lettura non esiste più.",
+    "insightSparito": "Questo insight non esiste più.",
+    "libroSparito": "Questo libro non esiste più.",
+    "utenteSparito": "Questo utente non esiste più.",
+    "utenteInesistente": "Questo utente non esiste.",
+    "richiestaSparita": "Questa richiesta non esiste più.",
+    "collegamentoSparito": "Questo collegamento non esiste più.",
+    "libreriaChiusa": "Quella libreria non è più accessibile.",
+    "libreriaIrraggiungibile": "Questa libreria non è al momento raggiungibile."
+  },
+  "sessione": {
+    "scaduta": "La sessione è scaduta. Ricarica la pagina.",
+    "scadutaInvito": "La sessione è scaduta. Chiedi un nuovo invito al Manutentore.",
+    "accountIncompleto": "Il tuo account non risulta completato."
+  },
+  "attesa": {
+    "generica": "Un momento…",
+    "penso": "Ci penso…",
+    "cercoTemi": "Cerco temi…",
+    "cercoCataloghi": "cerco nei cataloghi…",
+    "aggiungo": "Aggiungo…",
+    "controlloInvito": "Controllo l’invito…"
+  }
+}

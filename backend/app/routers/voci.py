@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from app.core.lingua import lingua_interfaccia
 from app.core.security import get_current_user
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.voci import (
@@ -30,8 +31,9 @@ router = APIRouter(tags=["voci"])
 @router.get("/voci", response_model=list[VoceConLibroResponse])
 async def get_voci(
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+    lingua: str = Depends(lingua_interfaccia),  # noqa: B008
 ) -> list[dict[str, Any]]:
-    return await voci_service.elenco_libreria(current_user.access_token, current_user.id)
+    return await voci_service.elenco_libreria(current_user.access_token, current_user.id, lingua)
 
 
 @router.post("/voci", response_model=AggiungiVoceResponse)
@@ -61,8 +63,9 @@ async def post_voci(
 async def get_voce(
     voce_id: UUID,
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+    lingua: str = Depends(lingua_interfaccia),  # noqa: B008
 ) -> dict[str, Any]:
-    voce = await voci_service.dettaglio(current_user.access_token, voce_id, current_user.id)
+    voce = await voci_service.dettaglio(current_user.access_token, voce_id, current_user.id, lingua)
     if voce is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")
     return voce

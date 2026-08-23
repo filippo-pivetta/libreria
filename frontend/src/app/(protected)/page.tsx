@@ -1,8 +1,9 @@
 import { getVoci } from "@/lib/api/voci";
+import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { Scaffale } from "@/components/libreria/scaffale";
-import { SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Libreria (design doc §7): scaffale di dorsi, vista predefinita di
@@ -12,6 +13,7 @@ import { SESSIONE } from "@/messaggi/it";
  * senza refetch completo.
  */
 export default async function ProtectedHomePage() {
+  const t = await getTranslations();
   const supabase = await createClient();
   const {
     data: { session },
@@ -21,10 +23,10 @@ export default async function ProtectedHomePage() {
     // Il layout ha già verificato la sessione prima di renderizzare
     // questa pagina: se manca qui è una scadenza fra i due controlli,
     // non un errore di logica.
-    return <ErrorState message={SESSIONE.scaduta} />;
+    return <ErrorState message={t("sessione.scaduta")} />;
   }
 
-  const result = await getVoci(session.access_token);
+  const result = await getVoci(session.access_token, await accettaLinguaInoltrata());
 
   if (result.status === "error") {
     return <ErrorState message={result.message} />;

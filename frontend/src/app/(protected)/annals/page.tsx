@@ -1,8 +1,9 @@
 import { getMetriche } from "@/lib/api/metriche";
+import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { PaginaAnnali } from "@/components/annali/pagina-annali";
-import { ERRORI, SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Annali (design-frontend.md §14, issue #7): le proprie metriche di
@@ -13,16 +14,17 @@ import { ERRORI, SESSIONE } from "@/messaggi/it";
  * per il cambio d'anno successivo.
  */
 export default async function AnnalsPage() {
+  const t = await getTranslations();
   const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message={SESSIONE.scaduta} />;
+    return <ErrorState message={t("sessione.scaduta")} />;
   }
 
-  const result = await getMetriche(session.access_token);
+  const result = await getMetriche(session.access_token, undefined, await accettaLinguaInoltrata());
 
   if (result.status !== "ok") {
     return (
@@ -30,7 +32,7 @@ export default async function AnnalsPage() {
         message={
           result.status === "error"
             ? result.message
-            : ERRORI.metricheNonCaricate
+            : t("errori.metricheNonCaricate")
         }
       />
     );

@@ -5,6 +5,8 @@ import { QueryProvider } from "@/providers/query-provider";
 import { ToastProvider } from "@/providers/toast-provider";
 import { fontVariables } from "@/lib/fonts";
 import { cookies } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 
 import {
   COOKIE_LUCE,
@@ -73,10 +75,17 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const preferenza = preferenzaValida((await cookies()).get(COOKIE_LUCE)?.value);
   const light = lightAttrs(preferenza);
   const isNight = light["data-light"] === "notte";
+  // La lingua dell'interfaccia (issue #34): non ridedotta qui da
+  // `Accept-Language` — `getLocale()` di next-intl legge il valore già
+  // risolto una volta sola da `src/i18n/request.ts` per questa stessa
+  // richiesta, la stessa fonte che `NextIntlClientProvider` sotto userà
+  // per i messaggi. Serve solo a dichiarare `lang`, il valore vero per
+  // gli screen reader, non "it" fisso come prima.
+  const lingua = await getLocale();
 
   return (
     <html
-      lang="it"
+      lang={lingua}
       data-light={light["data-light"]}
       className={fontVariables}
       style={{ ...light.style, colorScheme: isNight ? "dark" : "light" } as CSSProperties}
@@ -89,9 +98,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <a href="#contenuto" className="skip-link">
           Vai al contenuto
         </a>
-        <QueryProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </QueryProvider>
+        <NextIntlClientProvider>
+          <QueryProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </QueryProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

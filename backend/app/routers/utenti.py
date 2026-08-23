@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.lingua import lingua_interfaccia
 from app.core.security import get_current_user
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.metriche import MetricheResponse
@@ -26,10 +27,11 @@ async def get_utenti(
 async def get_utente_voci(
     utente_id: UUID,
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+    lingua: str = Depends(lingua_interfaccia),  # noqa: B008
 ) -> dict[str, Any]:
     try:
         return await utenti_service.libreria_di(
-            current_user.access_token, current_user.id, utente_id
+            current_user.access_token, current_user.id, utente_id, lingua
         )
     except utenti_service.UtenteInesistenteError as error:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Questo utente non esiste.") from error
@@ -48,10 +50,11 @@ async def get_utente_metriche(
     utente_id: UUID,
     anno: int | None = Query(default=None),
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+    lingua: str = Depends(lingua_interfaccia),  # noqa: B008
 ) -> dict[str, Any]:
     try:
         return await utenti_service.metriche_di(
-            current_user.access_token, current_user.id, utente_id, anno
+            current_user.access_token, current_user.id, utente_id, anno, lingua
         )
     except utenti_service.UtenteInesistenteError as error:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Questo utente non esiste.") from error

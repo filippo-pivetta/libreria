@@ -1,9 +1,10 @@
 import { getVoci } from "@/lib/api/voci";
 import { getLibreriaCollegato } from "@/lib/api/utenti";
+import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { Scaffale } from "@/components/libreria/scaffale";
-import { ASSENZE, SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Scheda "Libreria" del contesto di un collegato (design doc §15): la
@@ -14,6 +15,7 @@ import { ASSENZE, SESSIONE } from "@/messaggi/it";
  */
 export default async function LibreriaCollegatoPage(props: PageProps<"/lettori/[id]">) {
   const { id } = await props.params;
+  const t = await getTranslations();
 
   const supabase = await createClient();
   const {
@@ -21,12 +23,13 @@ export default async function LibreriaCollegatoPage(props: PageProps<"/lettori/[
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message={SESSIONE.scaduta} />;
+    return <ErrorState message={t("sessione.scaduta")} />;
   }
 
+  const lingua = await accettaLinguaInoltrata();
   const [propria, collegato] = await Promise.all([
-    getVoci(session.access_token),
-    getLibreriaCollegato(session.access_token, id),
+    getVoci(session.access_token, lingua),
+    getLibreriaCollegato(session.access_token, id, lingua),
   ]);
 
   if (collegato.status !== "ok") {
@@ -35,7 +38,7 @@ export default async function LibreriaCollegatoPage(props: PageProps<"/lettori/[
     // richieste (es. interruzione nel frattempo), non un errore di
     // logica — un messaggio generico basta, il layout la intercetterà
     // al prossimo caricamento.
-    return <ErrorState message={ASSENZE.libreriaIrraggiungibile} />;
+    return <ErrorState message={t("assenze.libreriaIrraggiungibile")} />;
   }
 
   const libroIdPropri = new Set(propria.status === "ok" ? propria.data.map((v) => v.libroId) : []);

@@ -17,6 +17,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.cataloghi.errori import FonteNonRaggiungibileError
+from app.core.lingua import lingua_interfaccia
 from app.core.rate_limit import (
     LIMITE_CATALOGHI_ESTERNI,
     LIMITE_FUNZIONI_ASSISTITE,
@@ -44,10 +45,19 @@ una chiamata a un catalogo esterno."""
 @router.get("/ricerca/catalogo", response_model=list[RisultatoLocale])
 async def get_ricerca_catalogo(
     q: str = Query(min_length=1, max_length=200),
-    lingua: str = Query(default="it", max_length=8),
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+    lingua: str = Depends(lingua_interfaccia),  # noqa: B008
 ) -> list[dict[str, Any]]:
-    """Le schede già nel sistema. Nessuna rete, nessun limite di quota."""
+    """Le schede già nel sistema. Nessuna rete, nessun limite di quota.
+
+    `lingua` (issue #34/#40): prima un `Query` con default `"it"` mai
+    valorizzato dal frontend — la ricerca nel catalogo locale restava in
+    italiano anche a interfaccia in inglese, mentre ogni altro endpoint
+    bibliografico era già allineato su `Accept-Language`. Stessa
+    dipendenza degli altri, non un meccanismo a parte: chiamato solo
+    lato client (`lib/api/ricerca.ts::cercaNelCatalogo`), il browser
+    manda già da sé l'intestazione, nessuna modifica frontend necessaria.
+    """
     termine = q.strip()
     if len(termine) < _LUNGHEZZA_MINIMA:
         return []

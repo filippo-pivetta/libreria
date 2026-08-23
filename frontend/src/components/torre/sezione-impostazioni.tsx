@@ -25,7 +25,7 @@ import {
 import { Messaggio } from "@/components/ui/messaggio";
 import { SceltaLuce } from "@/components/torre/scelta-luce";
 import { type PreferenzaLuce } from "@/lib/light";
-import { ERRORI, SESSIONE } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * Sezione impostazioni della Torre (design doc §17): l'avviso di
@@ -65,6 +65,7 @@ export function SezioneImpostazioni({
   indiciStatoIniziale: IndiciStato;
 }) {
   const router = useRouter();
+  const t = useTranslations();
   const [consenso, setConsenso] = useState(consensoIniziale);
   const [indiciStato, setIndiciStato] = useState(indiciStatoIniziale);
   const [errore, setErrore] = useState<string | null>(null);
@@ -79,7 +80,7 @@ export function SezioneImpostazioni({
       if (result.status !== "ok") {
         throw new Error(
           result.status === "not_provisioned"
-            ? SESSIONE.accountIncompleto
+            ? t("sessione.accountIncompleto")
             : result.message,
         );
       }
@@ -98,7 +99,7 @@ export function SezioneImpostazioni({
     onError: (err: unknown, valore: boolean) => {
       setConsenso(!valore);
       setErrore(
-        err instanceof Error ? err.message : ERRORI.consensoNonCambiato,
+        err instanceof Error ? err.message : t("errori.consensoNonCambiato"),
       );
     },
   });
@@ -126,7 +127,7 @@ export function SezioneImpostazioni({
     },
     onError: (err: unknown) => {
       setErroreExport(
-        err instanceof Error ? err.message : ERRORI.fileNonScaricato,
+        err instanceof Error ? err.message : t("errori.fileNonScaricato"),
       );
     },
   });
@@ -140,7 +141,7 @@ export function SezioneImpostazioni({
           result.status === "conferma_non_corrispondente"
             ? "Il nome utente digitato non corrisponde."
             : result.status === "not_provisioned"
-              ? SESSIONE.accountIncompleto
+              ? t("sessione.accountIncompleto")
               : result.message,
         );
       }
@@ -160,7 +161,7 @@ export function SezioneImpostazioni({
     },
     onError: (err: unknown) => {
       setErroreCancellazione(
-        err instanceof Error ? err.message : ERRORI.accountNonCancellato,
+        err instanceof Error ? err.message : t("errori.accountNonCancellato"),
       );
     },
   });

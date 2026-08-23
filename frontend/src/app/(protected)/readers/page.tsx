@@ -2,7 +2,7 @@ import { getUtenti } from "@/lib/api/utenti";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { ElencoLettori } from "@/components/lettori/elenco-lettori";
-import { SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Lettori (design doc §16): l'elenco membri, con lo stato della
@@ -11,13 +11,14 @@ import { SESSIONE } from "@/messaggi/it";
  * di una richiesta) — stesso pattern di `page.tsx` per la libreria.
  */
 export default async function ReadersPage() {
+  const t = await getTranslations();
   const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message={SESSIONE.scaduta} />;
+    return <ErrorState message={t("sessione.scaduta")} />;
   }
 
   const result = await getUtenti(session.access_token);

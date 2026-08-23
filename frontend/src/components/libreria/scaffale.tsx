@@ -19,7 +19,7 @@ import { ErrorState } from "@/components/states/error-state";
 import { ScheletroScaffale } from "@/components/states/scheletri";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 const IN_CORSO = new Set(["in_lettura", "in_pausa"]);
 
@@ -55,6 +55,7 @@ export function Scaffale({
    * (Volume è già di sola lettura). */
   utenteCollegatoId?: string;
 }) {
+  const t = useTranslations();
   const [filtroTesto, setFiltroTesto] = useState("");
   const [statiEsclusi, setStatiEsclusi] = useState<Set<StatoVoce>>(() => new Set());
   const [containerRef, larghezza] = useContainerWidth<HTMLDivElement>();
@@ -67,14 +68,14 @@ export function Scaffale({
       if (utenteCollegatoId) {
         const result = await getLibreriaCollegato(token, utenteCollegatoId);
         if (result.status === "not_found") {
-          throw new Error(ASSENZE.utenteInesistente);
+          throw new Error(t("assenze.utenteInesistente"));
         }
         if (result.status === "non_collegato") {
           // Refetch in background (es. l'altro interrompe il
           // collegamento mentre si sta guardando la sua libreria):
           // ricade sull'ErrorState con lo stesso testo della pagina
           // (design doc §15, mai "sei stato rimosso"/"errore").
-          throw new Error(ASSENZE.libreriaChiusa);
+          throw new Error(t("assenze.libreriaChiusa"));
         }
         if (result.status === "error") {
           throw new Error(result.message);
@@ -140,7 +141,7 @@ export function Scaffale({
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : ERRORI.libreriaNonCaricata}
+        message={error instanceof Error ? error.message : t("errori.libreriaNonCaricata")}
         onRetry={() => void refetch()}
       />
     );

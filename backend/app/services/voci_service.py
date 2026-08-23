@@ -106,14 +106,14 @@ def firma_copertine(voci: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return voci
 
 
-async def elenco_libreria(access_token: str, utente_id: UUID) -> list[dict[str, Any]]:
+async def elenco_libreria(access_token: str, utente_id: UUID, lingua: str) -> list[dict[str, Any]]:
     client = get_user_client(access_token)
-    voci = await run_in_threadpool(voce_repository.list_con_libro, client, utente_id)
+    voci = await run_in_threadpool(voce_repository.list_con_libro, client, utente_id, lingua)
     return await run_in_threadpool(firma_copertine, voci)
 
 
 async def dettaglio(
-    access_token: str, voce_id: UUID, richiedente_id: UUID
+    access_token: str, voce_id: UUID, richiedente_id: UUID, lingua: str
 ) -> dict[str, Any] | None:
     """Oltre a Libro e storico delle Letture, compone recensione e insight
     (issue #5) con due query mirate invece di un embed PostgREST a più
@@ -130,7 +130,7 @@ async def dettaglio(
     di presentazione, non di accesso: chi non è né proprietario né
     collegato attivo non arriva fin qui, la RLS lo ferma prima."""
     client = get_user_client(access_token)
-    voce = await run_in_threadpool(voce_repository.get_dettaglio, client, voce_id)
+    voce = await run_in_threadpool(voce_repository.get_dettaglio, client, voce_id, lingua)
     if voce is None:
         return None
     voce["recensione"] = await run_in_threadpool(recensione_repository.get_by_voce, client, voce_id)

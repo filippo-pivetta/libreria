@@ -69,7 +69,7 @@ def authenticated(client: TestClient) -> Iterator[TestClient]:
 
 
 def test_get_voci_returns_list(authenticated: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _fake_elenco(access_token: str, utente_id: UUID) -> list[dict[str, Any]]:
+    async def _fake_elenco(access_token: str, utente_id: UUID, lingua: str) -> list[dict[str, Any]]:
         assert access_token == "test-token"
         # Il router passa esplicitamente l'id di chi chiama al service
         # (issue #3, fix del bug latente: GET /voci non deve mai
@@ -162,7 +162,7 @@ def test_get_voce_returns_detail(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_dettaglio(
-        access_token: str, voce_id: UUID, richiedente_id: UUID
+        access_token: str, voce_id: UUID, richiedente_id: UUID, lingua: str
     ) -> dict[str, Any] | None:
         assert voce_id == _VOCE_ID
         return {
@@ -204,7 +204,7 @@ def test_get_voce_returns_404_when_missing(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_dettaglio(
-        access_token: str, voce_id: UUID, richiedente_id: UUID
+        access_token: str, voce_id: UUID, richiedente_id: UUID, lingua: str
     ) -> dict[str, Any] | None:
         return None
 
@@ -232,7 +232,7 @@ _LETTURA_APERTA_ID = UUID("00000000-0000-0000-0000-0000000000c1")
 _LETTURA_CANCELLATA_ID = UUID("00000000-0000-0000-0000-0000000000c9")
 
 
-def _get_dettaglio_con_insight_spoiler(client: Any, voce_id: UUID) -> dict[str, Any]:
+def _get_dettaglio_con_insight_spoiler(client: Any, voce_id: UUID, lingua: str) -> dict[str, Any]:
     return {
         **_VOCE,
         "libro": _LIBRO,
@@ -319,7 +319,7 @@ def test_get_voce_dettaglio_espone_insight_senza_spoiler_per_intero(
     monkeypatch.setattr(
         voce_repository,
         "get_dettaglio",
-        lambda client, voce_id: {
+        lambda client, voce_id, lingua: {
             **_VOCE,
             "libro": _LIBRO,
             "letture": [
@@ -368,7 +368,7 @@ def test_get_voce_dettaglio_raggruppa_insight_senza_lettura(
     monkeypatch.setattr(
         voce_repository,
         "get_dettaglio",
-        lambda client, voce_id: {
+        lambda client, voce_id, lingua: {
             **_VOCE,
             "libro": _LIBRO,
             "letture": [
@@ -423,7 +423,7 @@ def test_get_voce_dettaglio_include_recensione_del_proprietario(
     monkeypatch.setattr(
         voce_repository,
         "get_dettaglio",
-        lambda client, voce_id: {**_VOCE, "libro": _LIBRO, "letture": []},
+        lambda client, voce_id, lingua: {**_VOCE, "libro": _LIBRO, "letture": []},
     )
     monkeypatch.setattr(
         recensione_repository,

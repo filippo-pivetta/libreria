@@ -12,14 +12,17 @@ import { SelettoreAnno } from "@/components/annali/selettore-anno";
 import { LibriInComune } from "@/components/annali/libri-in-comune";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroAnnali } from "@/components/states/scheletri";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
-function messaggioErrore(result: { status: string; message?: string }): string {
-  if (result.status === "non_collegato") return ASSENZE.libreriaChiusa;
-  if (result.status === "not_found") return ASSENZE.utenteInesistente;
+function messaggioErrore(
+  result: { status: string; message?: string },
+  t: (chiave: string) => string,
+): string {
+  if (result.status === "non_collegato") return t("assenze.libreriaChiusa");
+  if (result.status === "not_found") return t("assenze.utenteInesistente");
   if (result.status === "anno_futuro") return "Gli anni futuri non sono selezionabili.";
   if (result.status === "error" && result.message) return result.message;
-  return ERRORI.metricheSueNonCaricate;
+  return t("errori.metricheSueNonCaricate");
 }
 
 /**
@@ -46,6 +49,7 @@ export function PaginaAnnaliCollegato({
   vociProprie: VoceConLibro[];
   vociCollegato: VoceConLibro[];
 }) {
+  const t = useTranslations();
   const [anno, setAnno] = useState(metricheCollegatoIniziali.anno);
 
   const collegatoQuery = useQuery({
@@ -53,7 +57,7 @@ export function PaginaAnnaliCollegato({
     queryFn: async () => {
       const token = await getAccessToken();
       const result = await getMetricheCollegato(token, utenteId, anno);
-      if (result.status !== "ok") throw new Error(messaggioErrore(result));
+      if (result.status !== "ok") throw new Error(messaggioErrore(result, t));
       return result.data;
     },
     initialData: anno === metricheCollegatoIniziali.anno ? metricheCollegatoIniziali : undefined,
@@ -88,7 +92,7 @@ export function PaginaAnnaliCollegato({
         message={
           collegatoQuery.error instanceof Error
             ? collegatoQuery.error.message
-            : ERRORI.metricheSueNonCaricate
+            : t("errori.metricheSueNonCaricate")
         }
         onRetry={() => void collegatoQuery.refetch()}
       />

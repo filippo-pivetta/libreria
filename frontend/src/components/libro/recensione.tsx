@@ -14,7 +14,7 @@ import {
 } from "@/lib/api/recensioni";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * Recensione (design doc §9): un paragrafo Literata sulla pagina destra,
@@ -43,6 +43,7 @@ export function Recensione({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const t = useTranslations();
   const [aperta, setAperta] = useState(recensione !== null);
   const [testo, setTesto] = useState(recensione?.testo ?? "");
   const [visibilita, setVisibilita] = useState<Visibilita>(recensione?.visibilita ?? "condiviso");
@@ -58,7 +59,7 @@ export function Recensione({
       const result = await scriviRecensione(token, voceId, valori.testo, valori.visibilita);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
+          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
         );
       }
     },
@@ -68,7 +69,7 @@ export function Recensione({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : ERRORI.recensioneNonSalvata,
+        error instanceof Error ? error.message : t("errori.recensioneNonSalvata"),
       );
       setTesto(recensione?.testo ?? "");
     },
@@ -95,7 +96,7 @@ export function Recensione({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : ERRORI.recensioneNonCancellata,
+        error instanceof Error ? error.message : t("errori.recensioneNonCancellata"),
       );
       setTesto(recensione?.testo ?? "");
     },

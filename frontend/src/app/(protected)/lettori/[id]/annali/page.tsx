@@ -1,10 +1,11 @@
 import { getVoci } from "@/lib/api/voci";
 import { getLibreriaCollegato } from "@/lib/api/utenti";
 import { getMetriche, getMetricheCollegato } from "@/lib/api/metriche";
+import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collegato";
-import { ASSENZE, ERRORI, SESSIONE } from "@/messaggi/it";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Scheda "Annali" del contesto di un collegato (design doc §15, issue
@@ -22,6 +23,7 @@ import { ASSENZE, ERRORI, SESSIONE } from "@/messaggi/it";
  */
 export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id]/annali">) {
   const { id } = await props.params;
+  const t = await getTranslations();
 
   const supabase = await createClient();
   const {
@@ -29,20 +31,21 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message={SESSIONE.scaduta} />;
+    return <ErrorState message={t("sessione.scaduta")} />;
   }
 
+  const lingua = await accettaLinguaInoltrata();
   const [propria, collegato, metrichePropria, metricheCollegato] = await Promise.all([
-    getVoci(session.access_token),
-    getLibreriaCollegato(session.access_token, id),
-    getMetriche(session.access_token),
-    getMetricheCollegato(session.access_token, id),
+    getVoci(session.access_token, lingua),
+    getLibreriaCollegato(session.access_token, id, lingua),
+    getMetriche(session.access_token, undefined, lingua),
+    getMetricheCollegato(session.access_token, id, undefined, lingua),
   ]);
 
   if (collegato.status !== "ok") {
     // Corsa fra le richieste, non un errore di logica: il layout ha già
     // verificato l'accesso (stesso trattamento di ../page.tsx).
-    return <ErrorState message={ASSENZE.libreriaIrraggiungibile} />;
+    return <ErrorState message={t("assenze.libreriaIrraggiungibile")} />;
   }
   if (metricheCollegato.status !== "ok") {
     return (
@@ -50,7 +53,7 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
         message={
           metricheCollegato.status === "error"
             ? metricheCollegato.message
-            : ERRORI.metricheSueNonCaricate
+            : t("errori.metricheSueNonCaricate")
         }
       />
     );

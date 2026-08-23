@@ -23,11 +23,6 @@ from app.core.supabase import get_user_client
 from app.core.tempo import oggi_europa_centrale
 from app.repositories import metriche_repository
 
-_LINGUA_INTERFACCIA = "it"
-"""Stessa scelta di app/repositories/voce_repository.py: l'interfaccia
-bilingue è debito noto (AGENTS.md), i generi si mostrano sempre in
-italiano finché non è costruita."""
-
 
 class AnnoFuturoError(Exception):
     """`anno` è oltre l'anno corrente in Europa centrale (PRD, comportamento
@@ -38,17 +33,18 @@ def _anno(data_iso: str) -> int:
     return date.fromisoformat(data_iso).year
 
 
-def _etichetta_genere(genere: dict[str, Any]) -> str | None:
-    """L'etichetta nella lingua dell'interfaccia se c'è. `genere_etichetta`
-    copre ogni id dell'elenco chiuso in italiano (migrazione
-    20260821120000, stessa garanzia assunta da `voce_repository.
-    _appiattisci_generi`): il ripiego sulla prima etichetta disponibile
-    serve solo a non far sparire un genere davvero assegnato — e a non
-    farlo contare per errore nello scarto "senza genere" — se quella
-    garanzia venisse mai meno; non è il percorso atteso."""
+def _etichetta_genere(genere: dict[str, Any], lingua: str) -> str | None:
+    """L'etichetta nella lingua dell'interfaccia (issue #34) se c'è.
+    `genere_etichetta` copre ogni id dell'elenco chiuso in entrambe le
+    lingue (migrazione 20260821120000, stessa garanzia assunta da
+    `voce_repository._appiattisci_generi`): il ripiego sulla prima
+    etichetta disponibile serve solo a non far sparire un genere davvero
+    assegnato — e a non farlo contare per errore nello scarto "senza
+    genere" — se quella garanzia venisse mai meno; non è il percorso
+    atteso."""
     etichette: list[dict[str, Any]] = genere.get("genere_etichetta", [])
     for etichetta in etichette:
-        if etichetta.get("lingua") == _LINGUA_INTERFACCIA:
+        if etichetta.get("lingua") == lingua:
             return cast(str, etichetta["etichetta"])
     return cast(str, etichette[0]["etichetta"]) if etichette else None
 
@@ -101,7 +97,9 @@ def _classifica(pesi: dict[str, float], nomi: dict[str, str]) -> list[dict[str, 
     ]
 
 
-async def metriche_di(access_token: str, utente_id: UUID, anno: int | None) -> dict[str, Any]:
+async def metriche_di(
+    access_token: str, utente_id: UUID, anno: int | None, lingua: str
+) -> dict[str, Any]:
     # Controllato prima di qualunque lettura: un anno futuro è sempre
     # rifiutato, quindi non vale la pena spendere due andata-e-ritorno
     # verso Supabase per una richiesta che finirà comunque in errore.
@@ -172,7 +170,7 @@ async def metriche_di(access_token: str, utente_id: UUID, anno: int | None) -> d
         generi: list[tuple[str, str]] = []
         for riga in libro.get("libro_genere") or []:
             genere = riga.get("genere")
-            etichetta = genere and _etichetta_genere(genere)
+            etichetta = genere and _etichetta_genere(genere, lingua)
             if genere and etichetta:
                 generi.append((genere["id"], etichetta))
         if generi:

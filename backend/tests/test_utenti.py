@@ -103,7 +103,7 @@ def test_get_utente_voci_returns_dettaglio_con_utente_e_voci(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_libreria_di(
-        access_token: str, self_id: UUID, utente_id: UUID
+        access_token: str, self_id: UUID, utente_id: UUID, lingua: str
     ) -> dict[str, Any]:
         assert utente_id == _ALTRO_ID
         return {
@@ -125,7 +125,7 @@ def test_get_utente_voci_returns_404_when_utente_inesistente(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_libreria_di(
-        access_token: str, self_id: UUID, utente_id: UUID
+        access_token: str, self_id: UUID, utente_id: UUID, lingua: str
     ) -> dict[str, Any]:
         raise utenti_service.UtenteInesistenteError
 
@@ -140,7 +140,7 @@ def test_get_utente_voci_returns_403_when_non_collegato(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_libreria_di(
-        access_token: str, self_id: UUID, utente_id: UUID
+        access_token: str, self_id: UUID, utente_id: UUID, lingua: str
     ) -> dict[str, Any]:
         raise utenti_service.NonCollegatoError
 
@@ -178,7 +178,7 @@ def test_get_utente_metriche_returns_payload(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_metriche_di(
-        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None, lingua: str
     ) -> dict[str, Any]:
         assert self_id == _USER_ID
         assert utente_id == _ALTRO_ID
@@ -197,7 +197,7 @@ def test_get_utente_metriche_returns_404_when_utente_inesistente(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_metriche_di(
-        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None, lingua: str
     ) -> dict[str, Any]:
         raise utenti_service.UtenteInesistenteError
 
@@ -212,7 +212,7 @@ def test_get_utente_metriche_returns_403_when_non_collegato(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_metriche_di(
-        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None, lingua: str
     ) -> dict[str, Any]:
         raise utenti_service.NonCollegatoError
 
@@ -228,7 +228,7 @@ def test_get_utente_metriche_returns_422_on_anno_futuro(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_metriche_di(
-        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None
+        access_token: str, self_id: UUID, utente_id: UUID, anno: int | None, lingua: str
     ) -> dict[str, Any]:
         raise metriche_service.AnnoFuturoError
 

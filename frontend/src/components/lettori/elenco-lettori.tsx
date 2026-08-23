@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroElenco } from "@/components/states/scheletri";
 import { Messaggio } from "@/components/ui/messaggio";
-import { ASSENZE, ERRORI } from "@/messaggi/it";
+import { useTranslations } from "next-intl";
 
 /**
  * Lettori (design doc §16, emendamento 20 agosto 2026): due carte, non
@@ -24,6 +24,7 @@ import { ASSENZE, ERRORI } from "@/messaggi/it";
  */
 export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) {
   const queryClient = useQueryClient();
+  const t = useTranslations();
   const [errore, setErrore] = useState<{ utenteId: string; messaggio: string } | null>(null);
 
   const { data, isPending, isError, error, refetch } = useQuery({
@@ -46,7 +47,7 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
       if (result.status !== "ok") {
         throw new Error(
           result.status === "not_found"
-            ? ASSENZE.utenteSparito
+            ? t("assenze.utenteSparito")
             : result.status === "richiesta_a_se_stessi"
               ? "Non puoi collegarti a te stesso."
               : result.message,
@@ -64,7 +65,7 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
         messaggio:
           mutationError instanceof Error
             ? mutationError.message
-            : ERRORI.richiestaNonInviata,
+            : t("errori.richiestaNonInviata"),
       });
     },
   });
@@ -81,7 +82,7 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : ERRORI.lettoriNonCaricati}
+        message={error instanceof Error ? error.message : t("errori.lettoriNonCaricati")}
         onRetry={() => void refetch()}
       />
     );

@@ -12,7 +12,7 @@ import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { Messaggio } from "@/components/ui/messaggio";
-import { ATTESA, ERRORI } from "@/messaggi/it";
+import { useLocale, useTranslations } from "next-intl";
 
 const SOGLIA_APPUNTO = 200;
 
@@ -42,6 +42,7 @@ function libriDistinti(riferimenti: RiferimentoTema[]): { voceId: string; titolo
  * osservazione breve, non una didascalia.
  */
 function TemaCard({ tema }: { tema: Tema }) {
+  const lingua = useLocale();
   const [espanso, setEspanso] = useState(false);
   const libri = libriDistinti(tema.riferimenti);
   const testoLungo = tema.sintesi.length > SOGLIA_APPUNTO;
@@ -98,7 +99,7 @@ function TemaCard({ tema }: { tema: Tema }) {
               </p>
               <p className="t-meta mt-1">
                 {riferimento.tipo === "recensione" ? "Recensione" : "Insight"} ·{" "}
-                {formattaData(riferimento.data)}
+                {formattaData(riferimento.data, lingua)}
               </p>
             </li>
           ))}
@@ -132,6 +133,7 @@ function TemaCard({ tema }: { tema: Tema }) {
  */
 export function SintesiTematica() {
   const queryClient = useQueryClient();
+  const t = useTranslations();
   const [spenta, setSpenta] = useState(false);
   const [messaggioVuoto, setMessaggioVuoto] = useState<string | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
@@ -145,7 +147,7 @@ export function SintesiTematica() {
       const result = await getSintesi(token);
       if (result.status === "ok") return result.data;
       if (result.status === "not_found") return null;
-      throw new Error(ERRORI.sintesiNonLetta);
+      throw new Error(t("errori.sintesiNonLetta"));
     },
   });
 
@@ -195,7 +197,7 @@ export function SintesiTematica() {
       if (result.status === "error") throw new Error(result.message);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: chiave }),
-    onError: () => setErrore(ERRORI.sintesiNonCancellata),
+    onError: () => setErrore(t("errori.sintesiNonCancellata")),
   });
 
   const spentaDavvero = spenta || consenso === false;
@@ -227,7 +229,7 @@ export function SintesiTematica() {
                 onClick={() => genera.mutate()}
                 disabled={genera.isPending}
               >
-                {genera.isPending ? ATTESA.cercoTemi : "Genera di nuovo"}
+                {genera.isPending ? t("attesa.cercoTemi") :"Genera di nuovo"}
               </Button>
             )}
             <Button
@@ -253,7 +255,7 @@ export function SintesiTematica() {
           onClick={() => genera.mutate()}
           disabled={genera.isPending}
         >
-          {genera.isPending ? ATTESA.cercoTemi : "Genera una sintesi"}
+          {genera.isPending ? t("attesa.cercoTemi") :"Genera una sintesi"}
         </Button>
       )}
 

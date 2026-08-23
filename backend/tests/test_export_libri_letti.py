@@ -82,7 +82,7 @@ def authenticated(client: TestClient) -> Iterator[TestClient]:
 def test_get_export_restituisce_csv_scaricabile(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def _fake(access_token: str, utente_id: UUID) -> bytes:
+    async def _fake(access_token: str, utente_id: UUID, lingua: str) -> bytes:
         assert access_token == "test-token"
         assert utente_id == _USER_ID
         return "intestazione\n".encode("utf-8-sig")
@@ -109,7 +109,7 @@ def repository(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
 
 
 def test_nessun_libro_letto_produce_solo_intestazione(repository: list[dict[str, Any]]) -> None:
-    contenuto = _run(export_service.libri_letti_csv("t", _USER_ID))
+    contenuto = _run(export_service.libri_letti_csv("t", _USER_ID, "it"))
 
     righe = _righe_csv(contenuto)
     assert len(righe) == 1
@@ -117,7 +117,7 @@ def test_nessun_libro_letto_produce_solo_intestazione(repository: list[dict[str,
 
 
 def test_bom_utf8_in_testa_al_file(repository: list[dict[str, Any]]) -> None:
-    contenuto = _run(export_service.libri_letti_csv("t", _USER_ID))
+    contenuto = _run(export_service.libri_letti_csv("t", _USER_ID, "it"))
 
     assert contenuto.startswith(b"\xef\xbb\xbf")
 
@@ -127,7 +127,7 @@ def test_titolo_usa_la_variante_in_italiano_se_c_e(repository: list[dict[str, An
         _voce(libro=_libro(variante_titolo=[{"lingua": "it", "titolo": "Il Nome della Rosa"}]))
     )
 
-    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID)))
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
 
     assert righe[1][0] == "Il Nome della Rosa"
 
@@ -135,7 +135,7 @@ def test_titolo_usa_la_variante_in_italiano_se_c_e(repository: list[dict[str, An
 def test_titolo_ripiega_sul_canonico_senza_variante(repository: list[dict[str, Any]]) -> None:
     repository.append(_voce())
 
-    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID)))
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
 
     assert righe[1][0] == "Il nome della rosa"
 
@@ -152,7 +152,7 @@ def test_autori_uniti_nell_ordine_assegnato(repository: list[dict[str, Any]]) ->
         )
     )
 
-    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID)))
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
 
     assert righe[1][1] == "Prima Autrice; Seconda Autrice"
 
@@ -160,10 +160,41 @@ def test_autori_uniti_nell_ordine_assegnato(repository: list[dict[str, Any]]) ->
 def test_libro_senza_recensione_ne_voto_ha_campi_vuoti(repository: list[dict[str, Any]]) -> None:
     repository.append(_voce(voto=None, recensione=None))
 
-    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID)))
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
 
     assert righe[1][8] == ""  # voto
     assert righe[1][9] == ""  # recensione
+
+
+def test_titolo_e_generi_seguono_la_lingua_richiesta(repository: list[dict[str, Any]]) -> None:
+    """Issue #34: `lingua` non è più fissa a "it" — con l'inglese richiesto,
+    titolo e generi seguono la variante/etichetta inglese, non quella
+    italiana, anche se quest'ultima è elencata per prima nei dati."""
+    repository.append(
+        _voce(
+            libro=_libro(
+                variante_titolo=[
+                    {"lingua": "it", "titolo": "Il Nome della Rosa"},
+                    {"lingua": "en", "titolo": "The Name of the Rose"},
+                ],
+                libro_genere=[
+                    {
+                        "genere": {
+                            "genere_etichetta": [
+                                {"lingua": "it", "etichetta": "Classici"},
+                                {"lingua": "en", "etichetta": "Classics"},
+                            ]
+                        }
+                    }
+                ],
+            )
+        )
+    )
+
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "en")))
+
+    assert righe[1][0] == "The Name of the Rose"
+    assert righe[1][2] == "Classics"
 
 
 def test_esporta_la_lettura_conclusa_non_quella_ancora_aperta(
@@ -178,7 +209,7 @@ def test_esporta_la_lettura_conclusa_non_quella_ancora_aperta(
         )
     )
 
-    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID)))
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
 
     assert righe[1][6] == "2019-01-01"
     assert righe[1][7] == "2019-03-01"
