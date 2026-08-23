@@ -32,9 +32,9 @@ export default function GlobalError({
   return (
     <html lang="it" className={interTight.variable}>
       <body className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="font-display text-lg font-medium text-ink">Qualcosa è andato storto</p>
+        <p className="font-display text-lg font-medium text-ink">Qualcosa si è rotto</p>
         <p className="max-w-sm text-sm text-ink-soft">
-          Si è verificato un errore imprevisto. Riprova, o torna alla pagina precedente.
+          Riprova, o torna alla pagina precedente.
         </p>
         <button
           type="button"

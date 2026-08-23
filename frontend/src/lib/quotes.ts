@@ -13,9 +13,9 @@ export const QUOTES = [
   "Non insegniamo a vivere, insegniamo a discorrere.",
   "La cosa del mondo più certa è la sua incertezza.",
   "Il mio mestiere e la mia arte è vivere.",
-  "Non c'è desiderio più naturale del desiderio di conoscenza.",
+  "Non c’è desiderio più naturale del desiderio di conoscenza.",
   "La saggezza ha i suoi eccessi, e non ha meno bisogno di misura della follia.",
-  "Il viaggio mi sembra un esercizio utile: l'anima vi si tiene in continuo movimento.",
-  "Ogni uomo porta in sé la forma intera dell'umana condizione.",
+  "Il viaggio mi sembra un esercizio utile: l’anima vi si tiene in continuo movimento.",
+  "Ogni uomo porta in sé la forma intera dell’umana condizione.",
   "Non è mai finito e non è mai stato cominciato, il nostro apprendistato del vivere.",
 ] as const;

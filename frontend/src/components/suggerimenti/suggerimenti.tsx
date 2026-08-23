@@ -14,6 +14,8 @@ import {
   type Suggerimento,
 } from "@/lib/api/suggerimenti";
 import { useAggiungiRisultato } from "@/lib/hooks/use-aggiungi-risultato";
+import { Messaggio } from "@/components/ui/messaggio";
+import { ATTESA } from "@/messaggi/it";
 
 const MINIMA_LUNGHEZZA_TOKEN_AUTORE = 4;
 
@@ -147,9 +149,9 @@ function SuggerimentoRiga({ suggerimento }: { suggerimento: Suggerimento }) {
         </div>
       )}
       <div className="mt-2 flex flex-col gap-1">
-        {/* Solo "scoperta" si etichetta: "affine" è l'esito atteso e non
-            ha bisogno di dirlo, un'etichetta su ogni riga sarebbe rumore
-            (design doc, evitare un'informazione mostrata due volte). */}
+        {/* Solo "scoperta" si etichetta: "affine" è l’esito atteso e non
+            ha bisogno di dirlo, un’etichetta su ogni riga sarebbe rumore
+            (design doc, evitare un’informazione mostrata due volte). */}
         {suggerimento.tipo === "scoperta" && <span className="t-meta text-ink-soft">Scoperta</span>}
         {/* Stesso trattamento tipografico di un insight vero (§10): la
             motivazione non è più metadato, è una spiegazione elaborata
@@ -246,15 +248,15 @@ export function Suggerimenti() {
           onClick={() => genera.mutate()}
           disabled={genera.isPending}
         >
-          {genera.isPending ? "Ci penso…" : suggerimenti ? "Suggeriscimi altro" : "Suggeriscimi qualcosa"}
+          {genera.isPending ? ATTESA.penso : suggerimenti ? "Suggeriscimi altro" : "Suggeriscimi qualcosa"}
         </Button>
       </section>
 
-      {errore && <p className="t-meta">{errore}</p>}
+      <Messaggio>{errore}</Messaggio>
 
       {spenta && (
         <EmptyState
-          title="L'elaborazione assistita è spenta"
+          title="L’elaborazione assistita è spenta"
           description="I suggerimenti di lettura sono una delle funzioni che dipendono dal consenso. Riaccendilo dalle impostazioni nella Torre."
         />
       )}
@@ -262,7 +264,7 @@ export function Suggerimenti() {
       {suggerimenti && suggerimenti.length === 0 && !spenta && (
         <EmptyState
           title="Nessun suggerimento"
-          description="Non c'è ancora abbastanza storico per proporti qualcosa di onesto."
+          description="Non c’è ancora abbastanza storico per proporti qualcosa di onesto."
         />
       )}
 

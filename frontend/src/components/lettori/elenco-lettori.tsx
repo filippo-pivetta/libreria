@@ -11,7 +11,9 @@ import { iniziali } from "@/lib/iniziali";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
+import { ScheletroElenco } from "@/components/states/scheletri";
+import { Messaggio } from "@/components/ui/messaggio";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 /**
  * Lettori (design doc §16, emendamento 20 agosto 2026): due carte, non
@@ -44,7 +46,7 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
       if (result.status !== "ok") {
         throw new Error(
           result.status === "not_found"
-            ? "Questo utente non esiste più."
+            ? ASSENZE.utenteSparito
             : result.status === "richiesta_a_se_stessi"
               ? "Non puoi collegarti a te stesso."
               : result.message,
@@ -62,19 +64,24 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
         messaggio:
           mutationError instanceof Error
             ? mutationError.message
-            : "Non è stato possibile inviare la richiesta.",
+            : ERRORI.richiestaNonInviata,
       });
     },
   });
 
   if (isPending) {
-    return <LoadingState label="Caricamento dei lettori…" />;
+    return (
+      <div role="status" aria-busy>
+        <span className="sr-only">Un momento…</span>
+        <ScheletroElenco righe={5} />
+      </div>
+    );
   }
 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : "Impossibile caricare i lettori."}
+        message={error instanceof Error ? error.message : ERRORI.lettoriNonCaricati}
         onRetry={() => void refetch()}
       />
     );
@@ -156,7 +163,7 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
                     </span>
                   )}
                   {errore?.utenteId === membro.id && (
-                    <span className="text-xs text-ink-soft">{errore.messaggio}</span>
+                    <Messaggio className="text-right">{errore.messaggio}</Messaggio>
                   )}
                 </div>
               </div>

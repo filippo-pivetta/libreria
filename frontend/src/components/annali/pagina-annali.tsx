@@ -8,12 +8,13 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { CarteMetriche } from "@/components/annali/carte-metriche";
 import { SelettoreAnno } from "@/components/annali/selettore-anno";
 import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
+import { ScheletroAnnali } from "@/components/states/scheletri";
+import { ERRORI } from "@/messaggi/it";
 
 function messaggioErrore(result: { status: string; message?: string }): string {
   if (result.status === "anno_futuro") return "Gli anni futuri non sono selezionabili.";
   if (result.status === "error" && result.message) return result.message;
-  return "Non è stato possibile caricare le metriche.";
+  return ERRORI.metricheNonCaricate;
 }
 
 /**
@@ -38,11 +39,16 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
     initialData: anno === metricheIniziali.anno ? metricheIniziali : undefined,
   });
 
-  if (isPending) return <LoadingState label="Carico le metriche…" />;
+  if (isPending) return (
+      <div role="status" aria-busy>
+        <span className="sr-only">Un momento…</span>
+        <ScheletroAnnali />
+      </div>
+    );
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : "Qualcosa è andato storto."}
+        message={error instanceof Error ? error.message : ERRORI.metricheNonCaricate}
         onRetry={() => void refetch()}
       />
     );

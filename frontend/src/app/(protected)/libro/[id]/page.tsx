@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { Scheda } from "@/components/libro/scheda";
 import { NellaTuaLibreria } from "@/components/libro/nella-tua-libreria";
+import { ASSENZE, SESSIONE } from "@/messaggi/it";
 
 /**
  * Scheda del libro (design doc §9). `params` è una Promise in Next 16
@@ -24,7 +25,7 @@ export default async function LibroPage(props: PageProps<"/libro/[id]">) {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+    return <ErrorState message={SESSIONE.scaduta} />;
   }
 
   const result = await getVoceDettaglio(session.access_token, id);
@@ -33,7 +34,7 @@ export default async function LibroPage(props: PageProps<"/libro/[id]">) {
     // Nessuna corsa verso un componente not-found dedicato: un rifiuto
     // indistinguibile da un contenuto inesistente resta testo semplice
     // (PRD, casi limite), non un vicolo cieco di framework.
-    return <ErrorState title="Non trovata" message="Questa voce non esiste, o non è tua." />;
+    return <ErrorState title="Non trovata" message={ASSENZE.voceNonTua} />;
   }
   if (result.status === "error") {
     return <ErrorState message={result.message} />;

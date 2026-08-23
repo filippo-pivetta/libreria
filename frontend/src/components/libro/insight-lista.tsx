@@ -14,6 +14,7 @@ import type { Lettura } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { formattaData } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 // Soglia tra i due trattamenti tipografici (design doc §10): sotto,
 // "Sentenza" (opsz 32, senza troncamento); sopra, "Appunto" (opsz 12,
@@ -33,6 +34,7 @@ function UnSoloInsight({
   const { showError } = useToast();
   const [testoRivelato, setTestoRivelato] = useState<string | null>(null);
   const [espansa, setEspansa] = useState(false);
+  const [confermaCancella, setConfermaCancella] = useState(false);
 
   const mutazioneRivela = useMutation({
     mutationFn: async () => {
@@ -40,7 +42,7 @@ function UnSoloInsight({
       const result = await rivelaInsightTesto(token, insight.id);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questo insight non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.insightSparito : result.message,
         );
       }
       return result.testo;
@@ -48,7 +50,7 @@ function UnSoloInsight({
     onSuccess: (testo) => setTestoRivelato(testo),
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : "Non è stato possibile scoprire il testo.",
+        error instanceof Error ? error.message : ERRORI.insightNonScoperto,
       );
     },
   });
@@ -64,7 +66,7 @@ function UnSoloInsight({
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["voce", voceId] }),
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : "Non è stato possibile cancellare l'insight.",
+        error instanceof Error ? error.message : ERRORI.insightNonCancellato,
       );
     },
   });
@@ -112,15 +114,48 @@ function UnSoloInsight({
           </p>
         </>
       )}
+      {/* Cancellazione di un insight: due passaggi, non uno.
+
+          Il glifo "⋯" cancellava al primo tocco. Era l’unica azione
+          irreversibile dell’app senza attrito — la cancellazione di una
+          lettura (storico-letture.tsx) e quella di una Voce intera
+          (elimina-voce.tsx) ne hanno tre entrambe, e questo bersaglio da 13px
+          stava a due centimetri dal testo su cui si scorre con il pollice.
+          Ora rivela "Cancella davvero" / "Annulla" al posto suo, che è lo
+          stesso gesto già usato dallo storico delle letture. Restano due
+          passaggi e non tre: un insight è un testo breve e riscrivibile, non
+          una Voce con letture e avanzamenti appesi. */}
       {isOwner && (
-        <button
-          type="button"
-          onClick={() => mutazioneCancella.mutate()}
-          aria-label="Cancella l'insight"
-          className="t-meta absolute top-2 right-2 text-ink-soft hover:text-ink"
-        >
-          ⋯
-        </button>
+        <div className="absolute top-2 right-2">
+          {confermaCancella ? (
+            <span className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => mutazioneCancella.mutate()}
+                disabled={mutazioneCancella.isPending}
+                className="t-meta tocco-esteso text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink disabled:opacity-40"
+              >
+                Cancella davvero
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfermaCancella(false)}
+                className="t-meta tocco-esteso text-ink-soft underline decoration-line underline-offset-4 hover:decoration-ink"
+              >
+                Annulla
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfermaCancella(true)}
+              aria-label="Altre azioni sull’insight"
+              className="t-meta tocco-esteso text-ink-soft hover:text-ink"
+            >
+              ⋯
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -178,7 +213,7 @@ function InsightForm({ voceId }: { voceId: string }) {
       const result = await creaInsight(token, voceId, testo.trim(), spoiler, visibilita);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questa voce non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
         );
       }
     },
@@ -190,7 +225,7 @@ function InsightForm({ voceId }: { voceId: string }) {
       setAperto(false);
     },
     onError: (error: unknown) => {
-      showError(error instanceof Error ? error.message : "Non è stato possibile salvare l'insight.");
+      showError(error instanceof Error ? error.message : ERRORI.insightNonSalvato);
     },
   });
 
@@ -207,7 +242,7 @@ function InsightForm({ voceId }: { voceId: string }) {
   }
 
   return (
-    <div className="rounded-card border border-line bg-surface-2 p-4">
+    <div className="pannello rounded-card border border-line bg-surface-2 p-4">
       <textarea
         value={testo}
         onChange={(event) => setTesto(event.target.value)}

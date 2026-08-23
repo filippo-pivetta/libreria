@@ -7,6 +7,8 @@ import { useState } from "react";
 import { cancellaVoce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { Button } from "@/components/ui/button";
+import { Messaggio } from "@/components/ui/messaggio";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 type Passo = "chiuso" | "riepilogo";
 
@@ -58,7 +60,7 @@ export function EliminaVoce({
       const result = await cancellaVoce(token, voceId);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questa voce non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
         );
       }
     },
@@ -69,7 +71,7 @@ export function EliminaVoce({
     },
     onError: (error: unknown) => {
       setErrore(
-        error instanceof Error ? error.message : "Non è stato possibile cancellare la voce.",
+        error instanceof Error ? error.message : ERRORI.voceNonCancellata,
       );
     },
   });
@@ -114,7 +116,7 @@ export function EliminaVoce({
 
   return (
     <div className="mt-8 border-t border-line pt-5">
-      <div className="plane-2 grain flex flex-col gap-3 rounded-card p-4">
+      <div className="pannello plane-2 grain flex flex-col gap-3 rounded-card p-4">
         <p className="t-meta">
           Cancella «{titoloLibro}» dalla tua libreria, insieme a {parti.join(", ")} ed
           eventuali pareri generati. Non tocca il libro nel catalogo né le copie di altri. Non è
@@ -138,7 +140,7 @@ export function EliminaVoce({
             Annulla
           </Button>
         </div>
-        {errore && <p className="t-meta">{errore}</p>}
+        <Messaggio>{errore}</Messaggio>
       </div>
     </div>
   );

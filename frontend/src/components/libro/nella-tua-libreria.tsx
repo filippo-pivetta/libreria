@@ -7,6 +7,7 @@ import { aggiungiVoce, type Voce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 const ETICHETTA_STATO: Record<string, string> = {
   da_leggere: "Da leggere",
@@ -51,7 +52,7 @@ export function NellaTuaLibreria({
       const result = await aggiungiVoce(token, libroId);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questo libro non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.libroSparito : result.message,
         );
       }
     },
@@ -59,7 +60,7 @@ export function NellaTuaLibreria({
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
     onError: (error: unknown) =>
-      showError(error instanceof Error ? error.message : "Non è stato possibile aggiungere il libro."),
+      showError(error instanceof Error ? error.message : ERRORI.libroNonAggiunto),
   });
 
   return (

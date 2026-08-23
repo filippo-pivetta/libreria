@@ -39,7 +39,7 @@ export function Chrome({
   return (
     <>
       <ProtectedNav userName={userName} receivedRequestCount={receivedRequestCount} />
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">{children}</main>
+      <main id="contenuto" className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-3 text-ink sm:p-6">{children}</main>
     </>
   );
 }

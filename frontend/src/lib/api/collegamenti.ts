@@ -39,7 +39,7 @@ function toCollegamento(body: CollegamentoBody): Collegamento {
 function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "NEXT_PUBLIC_API_BASE_URL non è configurato." };
+    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
   }
   return { baseUrl };
 }
@@ -61,11 +61,11 @@ export async function getCollegamenti(accessToken: string): Promise<Collegamenti
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const body = (await response.json()) as CollegamentoBody[];
@@ -100,7 +100,7 @@ export async function inviaRichiesta(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 404) {
@@ -110,7 +110,7 @@ export async function inviaRichiesta(
     return { status: "richiesta_a_se_stessi" };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   const body = (await response.json()) as { collegamento: CollegamentoBody; already_existed: boolean };
@@ -138,14 +138,14 @@ export async function accettaCollegamento(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   return { status: "ok", data: toCollegamento((await response.json()) as CollegamentoBody) };
@@ -174,14 +174,14 @@ export async function terminaCollegamento(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il backend non è raggiungibile." };
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
   return { status: "ok" };

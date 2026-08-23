@@ -9,10 +9,11 @@ import type { Lettura, VoceDettaglio } from "@/lib/api/voci";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CampoData } from "@/components/ui/campo-data";
+import { ASSENZE } from "@/messaggi/it";
 
 const MESSAGGI_ERRORE: Record<string, string> = {
   avanzamento_data_futura: "La data non può essere nel futuro.",
-  avanzamento_data_regressiva: "La data precede l'ultimo avanzamento registrato.",
+  avanzamento_data_regressiva: "La data precede l’ultimo avanzamento registrato.",
   avanzamento_pagina_regressiva: "La pagina è inferiore a quella già raggiunta.",
   avanzamento_pagina_supera_successivo: "La pagina supera un avanzamento successivo.",
   avanzamento_data_supera_successivo: "La data supera un avanzamento successivo.",
@@ -134,7 +135,7 @@ export function SegnalibroAvanzamento({
           result.status === "non_valido"
             ? (MESSAGGI_ERRORE[result.errorCode] ?? result.message)
             : result.status === "not_found"
-              ? "La lettura non esiste più."
+              ? ASSENZE.letturaSparita
               : result.message;
         throw new Error(messaggio);
       }
@@ -225,7 +226,7 @@ export function SegnalibroAvanzamento({
             aria-valuetext={`pagina ${paginaFinale} di ${massimo}`}
             onPointerDown={onPointerDown}
             onKeyDown={onKeyDownSegnalibro}
-            className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none rounded-full border-2 border-surface-1 bg-accent shadow-plane-2 outline-none focus-visible:ring-3 focus-visible:ring-accent/40 active:cursor-grabbing"
+            className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none rounded-full border-2 border-surface-1 bg-accent shadow-plane-2 active:cursor-grabbing"
             style={{ left: `${percentoOra}%` }}
           />
         </div>
@@ -258,7 +259,7 @@ export function SegnalibroAvanzamento({
           </div>
         </div>
         <CampoData
-          ariaLabel="Data dell'avanzamento"
+          ariaLabel="Data dell’avanzamento"
           value={data}
           min={dataMinima}
           max={oggiISO()}

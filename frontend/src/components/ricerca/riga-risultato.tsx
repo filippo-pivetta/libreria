@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { Risultato } from "@/lib/api/ricerca";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Messaggio } from "@/components/ui/messaggio";
+import { ATTESA } from "@/messaggi/it";
 
 /**
  * Una riga dei risultati di ricerca.
@@ -98,12 +100,12 @@ export function RigaRisultato({
           </Link>
         ) : (
           <Button variant="outline" size="sm" disabled={inCorso} onClick={onAggiungi}>
-            {inCorso ? "Aggiungo…" : "Aggiungi"}
+            {inCorso ? ATTESA.aggiungo : "Aggiungi"}
           </Button>
         )}
         {/* Errore per riga e non un avviso in cima: in una lista un
             messaggio staccato non dice a quale riga si riferisce. */}
-        {errore && <span className="max-w-56 text-right text-xs text-ink-soft">{errore}</span>}
+        <Messaggio className="max-w-56 text-right">{errore}</Messaggio>
       </div>
     </div>
   );

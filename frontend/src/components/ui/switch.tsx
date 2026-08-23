@@ -24,10 +24,13 @@ function Switch({ className, ...props }: SwitchPrimitive.Root.Props) {
       data-slot="switch"
       className={cn(
         "group/switch relative inline-flex h-5 w-9 shrink-0 items-center rounded-full",
-        "border border-line-strong bg-surface-2 outline-none transition-colors",
+        "border border-line-strong bg-surface-2 outline-none transition-colors duration-(--dur-micro)",
         "data-[checked]:border-transparent data-[checked]:bg-accent",
-        "focus-visible:ring-3 focus-visible:ring-accent/40",
         "disabled:pointer-events-none disabled:opacity-50",
+        // 20x36 è la misura giusta da vedere e sbagliata da toccare. Lo
+        // pseudo-elemento allarga il bersaglio a --tap senza toccare il
+        // disegno né spostare ciò che sta intorno.
+        "before:absolute before:top-1/2 before:left-1/2 before:size-[max(var(--tap),100%)] before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']",
         className
       )}
       {...props}

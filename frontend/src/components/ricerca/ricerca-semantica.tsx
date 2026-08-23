@@ -9,6 +9,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
+import { Messaggio } from "@/components/ui/messaggio";
 
 const SOGLIA_APPUNTO = 200;
 
@@ -58,7 +59,7 @@ export function RicercaSemantica() {
       }
       setEsito(result.data);
     },
-    onError: () => setErrore("Non è stato possibile cercare. Riprova."),
+    onError: () => setErrore("La ricerca non è arrivata. Riprova."),
   });
 
   function invia(evento: FormEvent) {
@@ -95,11 +96,11 @@ export function RicercaSemantica() {
         </Button>
       </form>
 
-      {errore && <p className="t-meta">{errore}</p>}
+      <Messaggio>{errore}</Messaggio>
 
       {spenta && (
         <EmptyState
-          title="L'elaborazione assistita è spenta"
+          title="L’elaborazione assistita è spenta"
           description="La ricerca semantica è una delle funzioni che dipendono dal consenso. Riaccendilo dalle impostazioni nella Torre e gli indici si ricostruiscono da soli."
         />
       )}

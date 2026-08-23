@@ -2,6 +2,7 @@ import { getVoci } from "@/lib/api/voci";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { Scaffale } from "@/components/libreria/scaffale";
+import { SESSIONE } from "@/messaggi/it";
 
 /**
  * Libreria (design doc §7): scaffale di dorsi, vista predefinita di
@@ -20,7 +21,7 @@ export default async function ProtectedHomePage() {
     // Il layout ha già verificato la sessione prima di renderizzare
     // questa pagina: se manca qui è una scadenza fra i due controlli,
     // non un errore di logica.
-    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+    return <ErrorState message={SESSIONE.scaduta} />;
   }
 
   const result = await getVoci(session.access_token);

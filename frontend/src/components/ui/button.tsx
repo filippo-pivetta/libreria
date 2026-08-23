@@ -10,9 +10,34 @@ import { cn } from "@/lib/utils"
  * the whole app, the request counter next to Tower — never on a danger
  * button. Even account deletion stays plain-toned (design doc §17): the
  * command there is "secondary" or "outline".
+ *
+ * Due correzioni della sessione UI:
+ *
+ * 1. Il fuoco era doppio. `tokens.css` ha già una regola `:focus-visible`
+ *    per tutta l'app (contorno in `accent-strong`, 2px, con scostamento);
+ *    qui c'erano in più `focus-visible:ring-3` e `focus-visible:border-ink`,
+ *    quindi da tastiera comparivano insieme un contorno e un alone, con due
+ *    raggi diversi. Il ring è stato tolto: l'anello dell'app è uno solo, e
+ *    sta in un posto solo.
+ * 2. La pressione ora si sente. `translate-y-px` da solo è quasi invisibile
+ *    su uno schermo piccolo; insieme a una scala di 0.985 il pulsante "cede"
+ *    sotto il dito. Restano due trasformazioni, quindi il lavoro resta sul
+ *    compositore. Sono escluse le linguette che aprono un menù
+ *    (`aria-haspopup`), che non si premono: si aprono.
+ *
+ *    La lista di `transition-[...]` nomina `translate` e `scale`, non
+ *    `transform`: Tailwind v4 compila `translate-y-px` e `scale-[…]` nelle
+ *    proprietà singole (`translate:`, `scale:`), non in una `transform:`
+ *    composta. Scrivere `transform` lì dentro non avrebbe dato errore —
+ *    semplicemente il ritorno dopo il rilascio sarebbe stato secco, ed è
+ *    il tipo di svista che non si vede finché non la si cerca.
+ *
+ * Le altezze non cambiano: la densità del desktop è una scelta del
+ * documento. Sotto il dito ci pensa la regola `@media (pointer: coarse)` in
+ * `tokens.css`, che porta ogni `[data-slot="button"]` a `--tap` (44px).
  */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-field border border-transparent font-ui text-sm font-medium whitespace-nowrap transition-[transform,opacity] outline-none select-none focus-visible:border-ink focus-visible:ring-3 focus-visible:ring-accent/40 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center gap-1.5 rounded-field border border-transparent font-ui text-sm font-medium whitespace-nowrap transition-[translate,scale,opacity,background-color,color] duration-(--dur-micro) ease-(--ease-rise) outline-none select-none active:not-aria-[haspopup]:translate-y-px active:not-aria-[haspopup]:scale-[0.985] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

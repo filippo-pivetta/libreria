@@ -8,6 +8,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CampoData } from "@/components/ui/campo-data";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 type Transizione = { stato: StatoVoce; etichetta: string; chiedeData?: boolean };
 
@@ -97,7 +98,7 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
           result.status === "conflitto"
             ? result.message
             : result.status === "not_found"
-              ? "Questa voce non esiste più."
+              ? ASSENZE.voceSparita
               : result.message;
         throw new Error(messaggio);
       }
@@ -109,7 +110,7 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
     onError: (error: unknown) => {
-      showError(error instanceof Error ? error.message : "Non è stato possibile cambiare stato.");
+      showError(error instanceof Error ? error.message : ERRORI.statoNonCambiato);
     },
   });
 

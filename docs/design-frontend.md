@@ -61,9 +61,28 @@ pulsanti, 14px sulle carte. Niente sopra i 14px, che dà l'aria di applicazione 
 ## 3. Luce
 
 **Una stanza sola.** Non esiste un tema chiaro e non esiste un tema scuro: esiste una
-superficie che dal mattino alla notte si scurisce e cambia calore. Non c'è interruttore,
-non c'è scelta, la parola "notte" non compare nelle impostazioni. È la conseguenza dell'ora,
+superficie che dal mattino alla notte si scurisce e cambia calore. È la conseguenza dell'ora,
 come lo scaffale è la conseguenza della libreria.
+
+**Emendamento (sessione UI).** Questa sezione diceva anche "non c'è interruttore, non c'è
+scelta, la parola notte non compare nelle impostazioni", e più sotto nominava il costo di
+quella scelta come "accettato": *chi ha una sensibilità alla luce non può forzare la stanza
+scura di giorno*. Il costo era accettato ma non mitigato — le due mitigazioni promesse
+(`prefers-contrast` e la modalità a colori forzati) non erano costruite, e
+`prefers-color-scheme` non veniva letto da nessuna parte.
+
+Oggi la Torre porta un comando a tre stati — **Segui l'ora / Chiara / Scura** — e le due
+mitigazioni esistono (`tokens.css`). L'idea non è stata sostituita, è diventata il valore
+predefinito: chi non tocca nulla continua a vedere la stanza seguire l'ora, e due collegati
+che non hanno espresso preferenze vedono la stessa stanza allo stesso momento. Resta invariato
+tutto il resto del meccanismo — calcolo lato server, cambio solo al cambio pagina, nessun
+timer nel browser — perché la preferenza viaggia in un cookie `httpOnly` letto dal layout
+radice, non in `localStorage` con uno script anti-lampeggio.
+
+Fissare una preferenza fissa un ancoraggio (`giorno` o `notte`) senza interpolare: sono
+scelte, non momenti, e un valore intermedio non vorrebbe dire nulla. Non introduce rischi di
+contrasto, perché entrambi sono già fra i quattro punti che `scripts/check-contrast.mts`
+verifica.
 
 Quattro ancoraggi: alba, giorno, tramonto, notte. L'ora corrente sta sempre fra due e i
 colori si interpolano.
@@ -142,9 +161,11 @@ delle richieste ricevute accanto a Torre, perché è l'unica cosa che chiede un'
 sugli errori, che sono testuali. Non sulla cancellazione dell'account. Non sui nastri, che
 hanno un rosso proprio di stato.
 
-**Costo accettato.** Senza interruttore, chi ha una sensibilità alla luce non può forzare la
-stanza scura di giorno. Si mitiga rispettando `prefers-contrast` e la modalità a colori
-forzati del sistema, che restano gli unici comandi esterni onorati.
+**Costo, e come è stato risolto.** Senza interruttore, chi ha una sensibilità alla luce non
+poteva forzare la stanza scura di giorno: è la ragione del comando a tre stati descritto
+sopra. Restano onorati anche `prefers-contrast` e la modalità a colori forzati del sistema,
+ora davvero costruiti in `tokens.css` — chi alza il contrasto di sistema lo vuole in entrambe
+le stanze, quindi il comando in Torre non li rende superflui.
 
 ---
 
@@ -198,6 +219,22 @@ Tower.
 
 La barra sta sul piano 0, non su una carta: non è contenuto, è la stanza. La voce attiva si
 segnala con l'inchiostro pieno e un filetto, non con un riempimento.
+
+**Due barre, non una resa elastica (sessione UI).** Da 640px in su la barra sta in cima ed è
+fissa allo scorrimento — le due barre contestuali (§15) lo erano già, e quella di casa propria
+no. Sotto i 640px le stesse quattro voci diventano una barra in fondo allo schermo, dove sta
+la navigazione di un'app e dove arriva il pollice; nome utente ed "Esci" escono da lì e
+passano in Torre, che è la loro sede naturale. Lo scambio è in CSS, non in JavaScript, quindi
+non c'è un istante in cui compare la barra sbagliata.
+
+Prima era una riga sola, senza `flex-wrap` e senza un solo breakpoint, identica a 320px e a
+1440px: su un telefono non ci stava, e non si vedeva perché `overflow-x: hidden` sul body la
+tagliava in silenzio. I bersagli erano alti ~14px.
+
+**Senza icone, di proposito.** Una barra in fondo di solito le ha, ma in tutta l'app non
+esiste un vocabolario di icone — due chevron in un selettore d'anno e qualche glifo
+tipografico. Inventarne quattro qui aprirebbe un linguaggio visivo nuovo per un componente
+solo. Quattro parole corte bastano, e la voce attiva si legge dal filetto come in alto.
 
 Il contatore delle richieste ricevute sta accanto a Torre ed è l'unico elemento in `alert` di
 tutta l'app: il PRD non ha notifiche, e senza contatore una richiesta resterebbe invisibile
@@ -313,9 +350,20 @@ dove il colore è un dato.
 
 **Ricerca semantica separata**, sui propri insight, dipendente dal consenso. **Non va fusa
 nel campo sopra**: revocare il consenso lascerebbe l'utente senza il modo di trovare un libro.
-Pagina a sé, §25: qui resta solo la porta, un
-collegamento discreto in fondo alla riga dei filtri ("Cerca nei tuoi insight", variante `ghost`
-accanto a "Aggiungi un libro"). Un collegamento e non un secondo campo — due campi di ricerca
+Pagina a sé, §25: qui resta solo la porta.
+
+**Un ingresso solo per le tre funzioni assistite (sessione UI).** §7, §25 e §26 hanno aggiunto
+ciascuna a suo tempo il proprio collegamento "accanto ad Aggiungi un libro", e nessuno le ha
+mai viste tutte e tre insieme: la riga dei filtri era diventata campo di ricerca + cinque
+pastiglie + conteggio + **quattro** collegamenti-pulsante di pari peso, misurati in 380 pixel
+di comandi prima del primo libro su un telefono da 360px — metà schermata di chrome davanti al
+contenuto — con l'azione principale dell'app in tono minore, ultima di quattro.
+
+Oggi sono tre fasce: il titolo con "Aggiungi un libro" in evidenza (pulsante pieno, è il gesto
+con cui la libreria esiste); il filtro; e un disclosure "Chiedi alla libreria" che raccoglie
+ricerca semantica, suggerimenti e sintesi. La ragione di tenerle fuori dalla navigazione a
+quattro voci resta valida — dipendono da un interruttore, e una voce di menu che può essere
+spenta è una voce sbagliata — ma la conseguenza no. Un collegamento e non un secondo campo — due campi di ricerca
 affiancati sulla stessa riga si sbagliano, e questo costa una chiamata al modello mentre quello
 accanto non costa nulla. Nascosto sulla libreria di un collegato: si cerca solo nei propri testi.
 
@@ -343,6 +391,16 @@ miglioramento successivo su una libreria molto grande.
 
 Mobile pari a desktop, con il mobile come riferimento nei casi di dubbio. Ogni schermata si
 progetta e si verifica mobile-first, mai il contrario.
+
+**Com'era davvero, prima della sessione UI.** Questa riga era un'intenzione, non una
+descrizione: 66 file su 73 non avevano un solo breakpoint, il controllo più alto del sistema
+era 36px, la navigazione andava in overflow a 360px, e `env(safe-area-inset-*)` non compariva
+da nessuna parte. Quello che regge oggi, misurato in Chrome a 360px: nessun overflow
+orizzontale, nessun bersaglio sotto i 44px, barra in fondo con area di sicurezza.
+
+Il tocco non si risolve componente per componente: una regola sola in `tokens.css`, dietro
+`@media (pointer: coarse)`, porta ogni bersaglio a `--tap`. La densità del desktop resta quella
+scelta qui, e non si dimentica al prossimo componente scritto.
 
 **Scaffale a più mensole:** volumi (§7) che vanno a capo su ripiani impacchettati sulla
 larghezza reale, copertina ridotta a `96 × 144`, scorrimento verticale, tocco che apre. Il
@@ -753,9 +811,16 @@ niente carte vuote fra le due.
 Una superficie sola, due sezioni. Sopra i collegamenti (richieste ricevute, inviate, attivi con
 interruzione), sotto le impostazioni.
 
-Le impostazioni contengono quattro cose e basta: l'avviso di visibilità, il consenso
-all'elaborazione assistita, l'esportazione dei libri letti, la cancellazione dell'account. Nessun
-comando sulla luce, che non è una preferenza ma una conseguenza dell'ora.
+Le impostazioni contengono cinque cose e basta: l'avviso di visibilità, **la luce della
+stanza**, il consenso all'elaborazione assistita, l'esportazione dei libri letti, la
+cancellazione dell'account.
+
+La luce è arrivata dopo (sessione UI, §3): la riga precedente diceva "nessun comando sulla
+luce, che non è una preferenza ma una conseguenza dell'ora", e resta vero come *comportamento
+predefinito* — "Segui l'ora" è il valore che nessuno deve scegliere per averlo. Ma la
+conseguenza dell'ora, senza scampo, era anche il costo che §3 dichiarava di accettare per chi
+ha una sensibilità alla luce. Sta per prima fra le cinque perché è la sola che non riguarda i
+dati: cambia come si vede l'app, non cosa l'app fa dei tuoi testi.
 
 **Interrompere un collegamento: azione immediata, senza dialogo di conferma, con un annulla che
 resta per qualche secondo.** Interrompere non è simmetricamente reversibile: tu interrompi da
@@ -858,10 +923,52 @@ Mai "con successo", mai "per favore", nessun punto esclamativo, nessun "ops". Gl
 cosa è successo e cosa fare. Verbo prima nei comandi. Un comando mantiene lo stesso nome per
 tutto il flusso.
 
-Nessun modale, nessun avviso che si sovrappone: solo pannelli in pagina. Unica eccezione, gli
-errori di scrittura sui dati di lettura (avanzamento, cambio di stato, correzione delle
-pagine, cancellazione di una Lettura) compaiono come un toast transitorio in fondo alla
-pagina invece che come testo sotto il campo. Resta fermo tutto il resto della regola: nessun
+**La forma di un errore (sessione UI).** La regola "cosa è successo e cosa fare" era la meno
+rispettata di tutte: diciannove messaggi su quaranta cominciavano con *"Non è stato possibile"*
+seguito da un infinito. Impersonale, modale e infinito — tre strati di distanza fra chi legge e
+il fatto — e nessuno dei due pezzi che la regola chiede: non dicevano cosa fosse successo, solo
+che qualcosa non era riuscito, e quasi mai cosa fare.
+
+La forma adottata: **il soggetto è la cosa**, e segue il passo successivo.
+
+> prima "Non è stato possibile salvare la recensione."
+> dopo &nbsp;"La recensione non è stata salvata. Il testo è ancora qui."
+
+Dove il testo dell'Utente è ancora nel campo, il messaggio lo dice: è la regola 25 del PRD resa
+visibile, ed è l'informazione che più serve a chi ha appena scritto trecento parole.
+
+Sono spariti anche i termini da idraulica che arrivavano fino allo schermo — *"Il backend non è
+raggiungibile"*, *"Il backend ha risposto con stato 500"*, e persino il nome di una variabile
+d'ambiente — e il titolo predefinito *"Qualcosa è andato storto"*, che compariva sopra ogni
+errore dell'app senza aggiungere nulla ed è la stessa specie di "ops" che questa sezione vieta.
+
+**Una voce sola per l'attesa.** Ce n'erano sette. Ora la prima persona vale solo dove l'app sta
+davvero lavorando per te, quasi sempre con il modello ("Ci penso…", "Cerco temi…"); altrove
+nessuna etichetta, perché uno scheletro con la forma del contenuto dice già cosa sta arrivando.
+
+**L'apostrofo è quello tipografico (`’`), mai quello dritto.** Ce n'erano 248 dritti e nessuno
+tipografico: in un'app che serve Fraunces e Literata con l'asse `opsz`, `'` è una tacca da
+macchina da scrivere in mezzo alle grazie, ed era il difetto tipografico più visibile del
+codice. Le stringhe vivono in `src/messaggi/it.ts`, primo passo verso l'interfaccia bilingue
+(issue #34): chiavi stabili, ancora senza framework né seconda lingua.
+
+**Tre canali, non cinque (sessione UI).** Ne convivevano cinque per dire le stesse cose —
+toast, testo in linea con `useState` locale in otto componenti, testo per riga in quattro
+altri, `ErrorState`, e il caso a sé del login — e il successo non ne aveva nessuno:
+`"Salvato."` era copiato a mano in tre componenti, ciascuno con il proprio timer, e nessuno
+dei tre lo puliva allo smontaggio né lo annunciava a un lettore di schermo.
+
+| Canale | Quando | Dove |
+|---|---|---|
+| **In linea** (`ui/messaggio.tsx`) | il caso normale: il comando è ancora sotto gli occhi | accanto al comando, `aria-live="polite"` |
+| **Toast** (`providers/toast-provider.tsx`) | il bersaglio può essere già scorso via, o la scrittura è ottimistica e l'errore arriva dopo che l'interfaccia si è mossa | in fondo alla pagina, `role="alert"` |
+| **`ErrorState` / `EmptyState`** | fallisce o è vuota una regione intera | al posto della regione |
+
+Un toast in fondo alla pagina non dice a quale riga di un elenco si riferisce: è la ragione
+per cui il primo canale è il predefinito e il secondo l'eccezione, non il contrario.
+
+Nessun modale, nessun avviso che si sovrappone: solo pannelli in pagina. Il toast è l'unica
+deviazione, e resta tale. Resta fermo tutto il resto della regola: nessun
 modale, nessuna sfocatura, il rosso (`alert`) non compare mai su un errore neppure nel toast,
 che è testo su una carta di piano 2 come ogni altro pannello. Vedi §12 per il dettaglio
 sull'avanzamento.
@@ -908,9 +1015,18 @@ Next.js App Router su Vercel, come impone il PRD.
 | **Query `scroll-state`** | Sollevare il volume agganciato al centro su mobile |
 | **`@starting-style`** | Ingresso dei pannelli senza JavaScript |
 
-**Si animano solo `transform` e `opacity`.** `box-shadow` non è compositabile: ogni transizione
-di piano passa da uno pseudo-elemento con l'ombra superiore a cui si anima `opacity`. Tutto
-dietro `prefers-reduced-motion`.
+**Mai il layout, mai `box-shadow`.** La regola diceva "si animano solo `transform` e
+`opacity`", ed era violata in nove componenti che usavano `transition-colors` — correttamente,
+perché `color` e `background-color` passano dal paint e non dal layout, e sono la cosa giusta
+per uno stato al passaggio del mouse. La regola vera è quella qui sopra: `box-shadow` non è
+compositabile e ogni transizione di piano passa da uno pseudo-elemento a cui si anima
+`opacity`; larghezze, altezze e margini non si animano mai. Tutto dietro
+`prefers-reduced-motion`.
+
+**Niente Motion, niente GSAP (sessione UI).** Questa sezione li dava per adottati; non sono mai
+stati installati, e nulla di ciò che l'app fa li richiede. L'ingresso dei pannelli in pagina usa
+`@starting-style` — che questa stessa sezione prevedeva e che non era stato costruito — e le
+durate passano dai token `--dur-*`, che esistevano da sempre e non usava nessuno.
 
 **Niente Rive e niente Lottie.** Sono strumenti per animazioni disegnate in un editor esterno, e
 questa app non ne ha nemmeno una: tutto ciò che si muove è una transizione di stato, quindi CSS e

@@ -66,6 +66,31 @@ sotto prefers-reduced-motion dalla regola globale già in tokens.css. */
   animation: toast-in var(--dur-panel) var(--ease-rise);
 }
 
+/* L'uscita, che prima non c'era: il toast entrava con un'animazione e
+spariva di colpo. Lo stesso percorso al contrario (design doc §7: "se
+qualcosa scompare in un modo, ce lo aspettiamo riemergere da dove è
+venuto") — scende degli stessi 8px da cui era salito, invece di
+svanire sul posto.
+
+`forwards` è necessario: senza, all'ultimo fotogramma l'elemento
+tornerebbe opaco per l'istante che separa la fine dell'animazione dalla
+rimozione dal DOM, e si vedrebbe un lampo. La durata deve restare
+allineata a DURATA_USCITA_MS in providers/toast-provider.tsx. */
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.toast-in[data-uscita] {
+  animation: toast-out var(--dur-panel) var(--ease-settle) forwards;
+}
+
 /* Campo data (components/ui/campo-data.tsx): niente riquadro nativo con
 l'icona di sistema, design doc §9 — appearance: none non basta da solo a
 nascondere l'icona del calendario nei browser Chromium/WebKit, serve

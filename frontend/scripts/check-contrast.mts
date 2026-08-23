@@ -11,28 +11,13 @@
  * una fascia oraria che nessuno guarda mai.
  * ========================================================================== */
 
-import { currentPalette, type Oklch } from "../src/lib/light.js";
+// `oklchToSrgb` vive in light.ts accanto alla palette, non qui: serve anche a
+// `themeColorHex()`, che deve emettere un esadecimale per <meta name="theme-color">.
+// Due copie della stessa matrice sarebbero derivate in silenzio.
+import { currentPalette, oklchToSrgb, type Oklch } from "../src/lib/light.js";
 
 const MIN_BODY = 4.5;   // AA su testo normale
 const MIN_LARGE = 3.0;  // AA su testo grande
-
-function oklchToSrgb({ l: L, c: C, h: H }: Oklch): [number, number, number] {
-  const h = (H * Math.PI) / 180;
-  const a = C * Math.cos(h);
-  const b = C * Math.sin(h);
-  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-  const l3 = l_ ** 3, m3 = m_ ** 3, s3 = s_ ** 3;
-  const r = 4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3;
-  const g = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3;
-  const bl = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3;
-  const enc = (x: number) => {
-    const v = Math.max(0, Math.min(1, x));
-    return v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055;
-  };
-  return [enc(r), enc(g), enc(bl)];
-}
 
 function relativeLuminance(rgb: [number, number, number]): number {
   const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);

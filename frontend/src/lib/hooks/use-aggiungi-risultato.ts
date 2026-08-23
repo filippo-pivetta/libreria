@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { aggiungiDaCatalogo, type Risultato, type VoceDelRisultato } from "@/lib/api/ricerca";
 import { aggiungiVoce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
+import { ASSENZE } from "@/messaggi/it";
 
 export type EsitoAggiunta = { chiave: string; libroId: string; voce: VoceDelRisultato };
 
@@ -37,7 +38,7 @@ export function useAggiungiRisultato(opzioni?: {
       if (risultato.origine === "locale" || risultato.libroId !== null) {
         const libroId = risultato.origine === "locale" ? risultato.libroId : risultato.libroId!;
         const esito = await aggiungiVoce(token, libroId);
-        if (esito.status === "not_found") throw new Error("Questo libro non esiste più.");
+        if (esito.status === "not_found") throw new Error(ASSENZE.libroSparito);
         if (esito.status !== "ok") throw new Error(esito.message);
         return {
           chiave: risultato.chiave,
@@ -75,7 +76,7 @@ export function useAggiungiRisultato(opzioni?: {
     },
     onError: (errore: unknown, risultato) => {
       opzioni?.onError?.(
-        errore instanceof Error ? errore : new Error("Non è stato possibile aggiungere."),
+        errore instanceof Error ? errore : new Error("Il libro non è stato aggiunto. Riprova."),
         risultato,
       );
     },

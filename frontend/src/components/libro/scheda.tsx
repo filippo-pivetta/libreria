@@ -9,7 +9,7 @@ import { formattaLingua } from "@/lib/formato";
 import { RIBBON } from "@/lib/ribbon";
 import { coloreDorso } from "@/lib/spine-color";
 import { ErrorState } from "@/components/states/error-state";
-import { LoadingState } from "@/components/states/loading-state";
+import { ScheletroScheda } from "@/components/states/scheletri";
 import { TransizioniStato } from "@/components/libro/transizioni-stato";
 import { SegnalibroAvanzamento } from "@/components/libro/segnalibro-avanzamento";
 import { CorreggiPagine } from "@/components/libro/correggi-pagine";
@@ -20,6 +20,7 @@ import { Recensione } from "@/components/libro/recensione";
 import { PreviewPersonalizzata } from "@/components/libro/preview-personalizzata";
 import { InsightLista } from "@/components/libro/insight-lista";
 import { EliminaVoce } from "@/components/libro/elimina-voce";
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 const ETICHETTA_STATO: Record<string, string> = {
   da_leggere: "Da leggere",
@@ -59,7 +60,7 @@ export function Scheda({
       const token = await getAccessToken();
       const result = await getVoceDettaglio(token, voceIniziale.id);
       if (result.status !== "ok") {
-        throw new Error(result.status === "not_found" ? "Voce non trovata." : result.message);
+        throw new Error(result.status === "not_found" ? ASSENZE.voceSparita : result.message);
       }
       return result.data;
     },
@@ -67,13 +68,18 @@ export function Scheda({
   });
 
   if (isPending) {
-    return <LoadingState label="Caricamento del libro…" />;
+    return (
+      <div role="status" aria-busy>
+        <span className="sr-only">Un momento…</span>
+        <ScheletroScheda />
+      </div>
+    );
   }
 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : "Impossibile caricare il libro."}
+        message={error instanceof Error ? error.message : ERRORI.libroNonCaricato}
         onRetry={() => void refetch()}
       />
     );
@@ -99,10 +105,10 @@ export function Scheda({
     // (storico e insight), che deve attenuarsi allo stesso modo.
     <div {...(!isOwner ? { "data-guest": "" } : {})}>
       {/* Le due pagine, separate da un vuoto di 2px sul piano 0 (design
-          doc §9). Stesso ordine su ogni breakpoint: l'opera prima (sopra
+          doc §9). Stesso ordine su ogni breakpoint: l’opera prima (sopra
           su mobile, a sinistra da tablet in su), la copia dopo. */}
       <div className="flex flex-col gap-0.5 md:flex-row">
-        <section className="plane-1 pagina-opera grain min-h-[420px] flex-1 p-6 md:min-h-[640px]">
+        <section className="plane-1 pagina-opera grain flex-1 p-5 sm:p-6 md:min-h-[640px]">
           <div className="cover mb-4 h-48 w-32" style={{ backgroundColor: colore }}>
             {data.libro.copertinaGrandeUrl && (
               // <img> piano, non next/image: come sullo scaffale
@@ -171,11 +177,11 @@ export function Scheda({
           )}
 
           {data.libro.descrizione && (
-            <p className="t-meta mt-4 leading-relaxed">{data.libro.descrizione}</p>
+            <p className="t-appunto mt-4 text-ink-soft">{data.libro.descrizione}</p>
           )}
         </section>
 
-        <section className="plane-1 pagina-copia grain relative min-h-[420px] flex-1 p-6 md:min-h-[640px]">
+        <section className="plane-1 pagina-copia grain relative flex-1 p-5 sm:p-6 md:min-h-[640px]">
           {ribbon && (
             // Altezza fissa e corta, indipendente dallo stato: sulla
             // scheda c'è un nastro solo (nessun bisogno di differenziare
@@ -192,7 +198,7 @@ export function Scheda({
           <p className="t-label mb-4">{ETICHETTA_STATO[data.stato]}</p>
 
           {/* Su un libro da leggere "me lo consigli?" prende il posto dei
-              dati di lettura (design doc §9): non c'è nulla da
+              dati di lettura (design doc §9): non c’è nulla da
               registrare, e la domanda è quella. Solo sulla propria copia:
               una preview è privata per costruzione (regola 23). */}
           {isOwner && data.stato === "da_leggere" && (

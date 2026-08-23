@@ -4,6 +4,7 @@ import { getLibreriaCollegato } from "@/lib/api/utenti";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { BarraContesto } from "@/components/lettori/barra-contesto";
+import { ASSENZE, SESSIONE } from "@/messaggi/it";
 
 /**
  * Layout del contesto di un collegato (design doc §15, emendamento 20
@@ -26,8 +27,8 @@ export default async function LibreriaCollegatoLayout(
 
   if (!session) {
     return (
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">
-        <ErrorState message="La sessione è scaduta. Ricarica la pagina." />
+      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
+        <ErrorState message={SESSIONE.scaduta} />
       </main>
     );
   }
@@ -36,20 +37,20 @@ export default async function LibreriaCollegatoLayout(
 
   if (result.status === "not_found") {
     return (
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">
-        <ErrorState title="Non trovato" message="Questo utente non esiste." />
+      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
+        <ErrorState title="Non trovato" message={ASSENZE.utenteInesistente} />
       </main>
     );
   }
   if (result.status === "non_collegato") {
     return (
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">
+      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
         <div className="flex flex-col items-start gap-3">
           {/* Non "sei stato rimosso", non "errore": una stanza chiusa
               (design doc §15). */}
           <ErrorState
             title="Non più accessibile"
-            message="Quella libreria non è più accessibile."
+            message={ASSENZE.libreriaChiusa}
           />
           <Link
             href="/readers"
@@ -63,7 +64,7 @@ export default async function LibreriaCollegatoLayout(
   }
   if (result.status === "error") {
     return (
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">
+      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
         <ErrorState message={result.message} />
       </main>
     );
@@ -72,7 +73,7 @@ export default async function LibreriaCollegatoLayout(
   return (
     <div data-guest className="flex flex-1 flex-col">
       <BarraContesto utenteId={id} nomeUtente={result.utente.nomeUtente} />
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6 text-ink">{props.children}</main>
+      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">{props.children}</main>
     </div>
   );
 }

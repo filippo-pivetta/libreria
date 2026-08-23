@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import { QUOTES } from "@/lib/quotes";
+import { traduciErroreAuth } from "@/lib/errori-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ATTESA } from "@/messaggi/it";
 
 // No real subscription: only here to satisfy useSyncExternalStore's signature.
 function noSubscription() {
@@ -55,7 +57,10 @@ export default function LoginPage() {
     setIsSubmitting(false);
 
     if (signInError) {
-      setError(signInError.message);
+      // Mai la stringa grezza del fornitore (design doc §6): finora qui
+      // compariva "Invalid login credentials", in inglese, sotto un campo
+      // etichettato in italiano.
+      setError(traduciErroreAuth(signInError));
       return;
     }
 
@@ -77,13 +82,13 @@ export default function LoginPage() {
         <p className="t-display text-center text-[clamp(2.75rem,7vw,5.5rem)] text-ink">
           Montaigne
         </p>
-        {/* The quote disappears under 600px of height: it's the first thing to give. */}
+        {/* The quote disappears under 600px of height: it’s the first thing to give. */}
         <p className="t-sentenza max-w-xs text-center text-ink-soft [@media(max-height:600px)]:hidden">
           “{QUOTES[quoteIndex]}”
         </p>
       </div>
 
-      {/* The module isn't a rectangle sitting on a background: a full
+      {/* The module isn’t a rectangle sitting on a background: a full
           field of paper, no border and no shadow — the boundary between
           the two planes is the luminance jump alone (design doc §6). No
           .plane-1 here: that utility carries a border and a double
@@ -104,7 +109,7 @@ export default function LoginPage() {
                   placeholder="nome@esempio.it"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base focus-visible:ring-0"
+                  className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base"
                 />
               </div>
               <div className="flex flex-col gap-0.5 border-b border-line-strong pb-1 transition-colors focus-within:border-ink">
@@ -118,7 +123,7 @@ export default function LoginPage() {
                   placeholder="la tua password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base focus-visible:ring-0"
+                  className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base"
                 />
               </div>
               {/* Design doc §6: the sign-in error is text in `ink` under the field, not a red box. */}
@@ -130,7 +135,7 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" size="lg" disabled={isSubmitting} className="mt-1">
-              {isSubmitting ? "Un momento…" : "Entra"}
+              {isSubmitting ? ATTESA.generica : "Entra"}
             </Button>
           </form>
         </div>

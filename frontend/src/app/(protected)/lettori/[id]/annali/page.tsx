@@ -4,6 +4,7 @@ import { getMetriche, getMetricheCollegato } from "@/lib/api/metriche";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collegato";
+import { ASSENZE, ERRORI, SESSIONE } from "@/messaggi/it";
 
 /**
  * Scheda "Annali" del contesto di un collegato (design doc §15, issue
@@ -28,7 +29,7 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return <ErrorState message="La sessione è scaduta. Ricarica la pagina." />;
+    return <ErrorState message={SESSIONE.scaduta} />;
   }
 
   const [propria, collegato, metrichePropria, metricheCollegato] = await Promise.all([
@@ -41,7 +42,7 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
   if (collegato.status !== "ok") {
     // Corsa fra le richieste, non un errore di logica: il layout ha già
     // verificato l'accesso (stesso trattamento di ../page.tsx).
-    return <ErrorState message="Questa libreria non è al momento raggiungibile." />;
+    return <ErrorState message={ASSENZE.libreriaIrraggiungibile} />;
   }
   if (metricheCollegato.status !== "ok") {
     return (
@@ -49,7 +50,7 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
         message={
           metricheCollegato.status === "error"
             ? metricheCollegato.message
-            : "Non è stato possibile caricare le sue metriche."
+            : ERRORI.metricheSueNonCaricate
         }
       />
     );

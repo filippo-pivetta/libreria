@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+
+import { useConfermaEffimera } from "@/lib/hooks/use-conferma-effimera";
+import { Messaggio } from "@/components/ui/messaggio";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -11,8 +14,7 @@ import {
 } from "@/lib/api/recensioni";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-
-const DURATA_CONFERMA_MS = 2200;
+import { ASSENZE, ERRORI } from "@/messaggi/it";
 
 /**
  * Recensione (design doc §9): un paragrafo Literata sulla pagina destra,
@@ -44,7 +46,7 @@ export function Recensione({
   const [aperta, setAperta] = useState(recensione !== null);
   const [testo, setTesto] = useState(recensione?.testo ?? "");
   const [visibilita, setVisibilita] = useState<Visibilita>(recensione?.visibilita ?? "condiviso");
-  const [salvato, setSalvato] = useState(false);
+  const conferma = useConfermaEffimera();
 
   function invalida() {
     void queryClient.invalidateQueries({ queryKey: ["voce", voceId] });
@@ -56,18 +58,17 @@ export function Recensione({
       const result = await scriviRecensione(token, voceId, valori.testo, valori.visibilita);
       if (result.status !== "ok") {
         throw new Error(
-          result.status === "not_found" ? "Questa voce non esiste più." : result.message,
+          result.status === "not_found" ? ASSENZE.voceSparita : result.message,
         );
       }
     },
     onSuccess: () => {
       invalida();
-      setSalvato(true);
-      setTimeout(() => setSalvato(false), DURATA_CONFERMA_MS);
+      conferma.mostra();
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : "Non è stato possibile salvare la recensione.",
+        error instanceof Error ? error.message : ERRORI.recensioneNonSalvata,
       );
       setTesto(recensione?.testo ?? "");
     },
@@ -94,7 +95,7 @@ export function Recensione({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : "Non è stato possibile cancellare la recensione.",
+        error instanceof Error ? error.message : ERRORI.recensioneNonCancellata,
       );
       setTesto(recensione?.testo ?? "");
     },
@@ -136,7 +137,7 @@ export function Recensione({
       <button
         type="button"
         onClick={() => setAperta(true)}
-        className="t-meta mb-5 self-start underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+        className="t-meta tocco-esteso mb-5 block w-fit underline decoration-line-strong underline-offset-4 hover:decoration-ink"
       >
         Scrivi una recensione
       </button>
@@ -144,7 +145,7 @@ export function Recensione({
   }
 
   return (
-    <div className="mb-5 rounded-card border border-line bg-surface-2 p-4">
+    <div className="pannello mb-5 rounded-card border border-line bg-surface-2 p-4">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="t-label">Recensione</p>
         <button
@@ -163,7 +164,7 @@ export function Recensione({
         placeholder="Cosa ne pensi?"
         className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
       />
-      {salvato && <p className="t-meta mt-2">Salvato.</p>}
+      <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? "Salvato." : ""}</Messaggio>
     </div>
   );
 }

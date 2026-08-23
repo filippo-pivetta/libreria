@@ -29,7 +29,7 @@ export function CartaQuestAnno({
           <p className="t-meta mt-1">
             {libriFiniti === 1 ? "libro finito" : "libri finiti"}
             {riletture > 0 &&
-              ` · di cui ${riletture} ${riletture === 1 ? "rilettura" : "riletture"}: l'unità è la Lettura, non il Libro`}
+              ` · di cui ${riletture} ${riletture === 1 ? "rilettura" : "riletture"}: l’unità è la Lettura, non il Libro`}
           </p>
         </div>
         <div>

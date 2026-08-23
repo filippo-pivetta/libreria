@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { ErrorState } from "@/components/states/error-state";
+import { ERRORI } from "@/messaggi/it";
 
 /**
  * Corpo condiviso dei confini d'errore di rotta (issue #11): un errore
@@ -33,7 +34,7 @@ export function RouteError({
 
   return (
     <ErrorState
-      message="Si è verificato un errore imprevisto. Riprova, o torna alla pagina precedente."
+      message={ERRORI.imprevisto}
       onRetry={retry}
     />
   );
