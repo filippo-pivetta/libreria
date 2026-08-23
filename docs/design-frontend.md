@@ -440,6 +440,19 @@ comando, e il comando stesso rivela "Cancella davvero" / "Annulla" al posto dell
 di agire al primo tocco. Tre livelli di attrito deliberati per un'azione irreversibile che
 tocca lo storico di lettura.
 
+**Cancellazione dell'intera Voce (issue #33).** In fondo alla pagina della copia, in tono
+piano — stesso trattamento della cancellazione dell'account (§17): non un pulsante rosso,
+nessun allarme grafico. Stessi tre livelli della cancellazione di una lettura (menù "⋯" →
+comando → "Cancella davvero"/"Annulla"), ma ciò che il comando rivela non è la sola coppia di
+bottoni: è un riepilogo di cosa sta per sparire insieme alla voce (le letture, gli insight, la
+recensione, la nota di intenzione, con i conteggi reali) prima di "Cancella davvero"/"Annulla".
+L'attrito maggiore, dovuto alla gravità dell'azione — irreversibile e su più dati insieme
+(letture, avanzamenti, voto, recensione, insight, nota di intenzione, preview personalizzata,
+indici semantici derivati, tutti cancellati dalla cascata dello schema dietro un'unica
+`DELETE /voci/{id}`) — sta nel contenuto del passo finale, non in un passo in più. Nessun campo
+da digitare: quel livello resta riservato alla cancellazione dell'intero account, l'unica
+azione dell'app a chiedere una conferma testuale.
+
 ### Su mobile
 
 Le due pagine si impilano nello stesso ordine di desktop: l'opera resta sopra, la copia sotto.

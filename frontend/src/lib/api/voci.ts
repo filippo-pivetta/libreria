@@ -468,3 +468,39 @@ export function correggiNotaIntenzione(
     nota_intenzione: notaIntenzione,
   });
 }
+
+export type CancellaVoceResult =
+  | { status: "ok" }
+  | { status: "not_found" }
+  | { status: "error"; message: string };
+
+/** DELETE /voci/{id}: cancella l'intera Voce — letture, avanzamenti,
+ * voto, recensione, insight, nota di intenzione, preview personalizzata e
+ * indici semantici derivati (issue #33). Stesso schema di risposta di
+ * `cancellaLettura` (lib/api/letture.ts). */
+export async function cancellaVoce(
+  accessToken: string,
+  voceId: string,
+): Promise<CancellaVoceResult> {
+  const config = baseUrlOrError();
+  if ("status" in config) return config;
+
+  let response: Response;
+  try {
+    response = await fetch(`${config.baseUrl}/voci/${voceId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+  } catch {
+    return { status: "error", message: "Il backend non è raggiungibile." };
+  }
+
+  if (response.status === 404) {
+    return { status: "not_found" };
+  }
+  if (!response.ok) {
+    return { status: "error", message: `Il backend ha risposto con stato ${response.status}.` };
+  }
+  return { status: "ok" };
+}

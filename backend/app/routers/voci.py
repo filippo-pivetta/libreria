@@ -1,7 +1,7 @@
-"""Route di `/voci`: la libreria personale e il ciclo di stato di una
-Voce (issue #2). Nessuna ricerca sui cataloghi qui: `POST /voci` accetta
-solo un `libro_id` già presente in `public.libro` — la ricerca esterna
-che lo popola è l'issue #4, separata.
+"""Route di `/voci`: la libreria personale, il ciclo di stato di una Voce
+(issue #2) e la sua cancellazione intera (issue #33). Nessuna ricerca sui
+cataloghi qui: `POST /voci` accetta solo un `libro_id` già presente in
+`public.libro` — la ricerca esterna che lo popola è l'issue #4, separata.
 """
 
 from typing import Any
@@ -131,6 +131,23 @@ async def patch_voce_voto(
     if voce is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")
     return voce
+
+
+@router.delete("/voci/{voce_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_voce(
+    voce_id: UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+) -> None:
+    """Cancella l'intera Voce e tutto ciò che le appartiene — letture,
+    avanzamenti, voto, recensione, insight, nota di intenzione, preview
+    personalizzata, indici semantici derivati (issue #33, PRD: "cancellare
+    ... la Voce intera") — via la cascata dello schema, non riga per riga.
+    Non tocca il Libro né le Voci di altri Utenti sullo stesso Libro."""
+    cancellata = await voci_service.cancella(current_user.access_token, voce_id)
+    if not cancellata:
+        # Non trovata o non di proprietà: stessa risposta, RLS le rende
+        # indistinguibili (PRD, casi limite) — come DELETE /letture/{id}.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.")
 
 
 @router.patch("/voci/{voce_id}/nota-intenzione", response_model=VoceResponse)

@@ -742,3 +742,37 @@ def test_patch_nota_intenzione_requires_authentication(client: TestClient) -> No
     response = client.patch(f"/voci/{_VOCE_ID}/nota-intenzione", json={"nota_intenzione": "x"})
 
     assert response.status_code == 401
+
+
+def test_delete_voce_returns_204(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_cancella(access_token: str, voce_id: UUID) -> bool:
+        assert access_token == "test-token"
+        assert voce_id == _VOCE_ID
+        return True
+
+    monkeypatch.setattr(voci_service, "cancella", _fake_cancella)
+
+    response = authenticated.delete(f"/voci/{_VOCE_ID}")
+
+    assert response.status_code == 204
+
+
+def test_delete_voce_returns_404_when_missing(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_cancella(access_token: str, voce_id: UUID) -> bool:
+        return False
+
+    monkeypatch.setattr(voci_service, "cancella", _fake_cancella)
+
+    response = authenticated.delete(f"/voci/{_VOCE_ID}")
+
+    assert response.status_code == 404
+
+
+def test_delete_voce_requires_authentication(client: TestClient) -> None:
+    response = client.delete(f"/voci/{_VOCE_ID}")
+
+    assert response.status_code == 401

@@ -181,6 +181,15 @@ async def correggi_voto(
     return await run_in_threadpool(voce_repository.update_voto, client, voce_id, voto)
 
 
+async def cancella(access_token: str, voce_id: UUID) -> bool:
+    """Cancellazione dell'intera Voce (issue #33). Nessuna orchestrazione
+    da fare qui oltre a passare l'identità dell'utente: la cascata dello
+    schema copre da sola tutto ciò che appartiene alla Voce (vedi
+    `voce_repository.delete`)."""
+    client = get_user_client(access_token)
+    return await run_in_threadpool(voce_repository.delete, client, voce_id)
+
+
 async def correggi_nota_intenzione(
     access_token: str, utente_id: UUID, voce_id: UUID, nota_intenzione: str | None
 ) -> dict[str, Any] | None:
