@@ -19,6 +19,7 @@ import { NotaIntenzione } from "@/components/libro/nota-intenzione";
 import { Recensione } from "@/components/libro/recensione";
 import { PreviewPersonalizzata } from "@/components/libro/preview-personalizzata";
 import { InsightLista } from "@/components/libro/insight-lista";
+import { EliminaVoce } from "@/components/libro/elimina-voce";
 
 const ETICHETTA_STATO: Record<string, string> = {
   da_leggere: "Da leggere",
@@ -35,7 +36,8 @@ const ETICHETTA_STATO: Record<string, string> = {
  * (unico dato bibliografico che l'Utente può correggere, quindi sta coi
  * fatti dell'opera e non nel pannello dell'avanzamento). A destra la tua
  * copia: stato, registrazione dell'avanzamento, transizioni, voto,
- * recensione, nota di intenzione. Sotto le due pagine, a piena
+ * recensione, nota di intenzione e, in fondo, la cancellazione
+ * dell'intera Voce (issue #33). Sotto le due pagine, a piena
  * larghezza: storico delle letture e insight raggruppati per lettura
  * (design doc §9, "Sotto le due pagine" — issue #5).
  *
@@ -237,6 +239,17 @@ export function Scheda({
               su un libro già cominciato non è più la cosa principale. */}
           {isOwner && data.stato !== "da_leggere" && (
             <PreviewPersonalizzata voceId={data.id} inEvidenza={false} />
+          )}
+
+          {isOwner && (
+            <EliminaVoce
+              voceId={data.id}
+              titoloLibro={data.libro.titoloCanonico}
+              numeroLetture={data.letture.length}
+              numeroInsight={data.numeroInsight}
+              haRecensione={data.haRecensione}
+              haNotaIntenzione={data.notaIntenzione !== null}
+            />
           )}
         </section>
       </div>

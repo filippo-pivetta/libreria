@@ -310,6 +310,25 @@ def update_nota_intenzione(
     )
 
 
+def delete(client: Client, voce_id: UUID) -> bool:
+    """Cancella l'intera Voce (issue #33, PRD: "cancellare... la Voce
+    intera"). True se una riga è stata cancellata, False se non trovata o
+    non di proprietà (RLS la rende indistinguibile, stesso trattamento di
+    `lettura_repository.delete`).
+
+    Nessuna cancellazione esplicita di letture/avanzamenti/recensione/
+    insight/nota di intenzione/preview/indici semantici qui: la cascata
+    dello schema (`voce_di_libreria_id_utente_id` referenziata con
+    `on delete cascade` da ogni tabella figlia, transitiva fino a
+    `indice_semantico` via `insight`/`recensione`) la fa da sola —
+    esattamente la stessa cascata già collaudata da `fondi_libro` e da
+    `me_service.elimina_account`. Nessuna migrazione nuova serviva: RLS
+    (`voce_di_libreria_delete_owner`) e cascata esistevano già."""
+    response = client.table("voce_di_libreria").delete().eq("id", str(voce_id)).execute()
+    rows = cast("list[dict[str, Any]]", response.data)
+    return len(rows) > 0
+
+
 def cambia_stato(
     client: Client, voce_id: UUID, nuovo_stato: str, data: date | None
 ) -> dict[str, Any]:
