@@ -22,4 +22,3 @@ gesto va ridisegnato da zero. Oggi il volume è solo un link alla scheda.
 - Cancellazione della Voce di libreria intera — [#33](https://github.com/filippo-pivetta/libreria/issues/33)
 - Interfaccia bilingue italiano/inglese — [#34](https://github.com/filippo-pivetta/libreria/issues/34)
 - Rito di apertura (View Transitions) — [#35](https://github.com/filippo-pivetta/libreria/issues/35)
-- Indice a lettere fisso sullo scaffale — [#36](https://github.com/filippo-pivetta/libreria/issues/36)

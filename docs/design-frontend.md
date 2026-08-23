@@ -380,10 +380,9 @@ tocco lungo su mobile): nella stesura precedente il dorso sollevato aveva spazio
 due gesti. Con la copertina vera lo spazio libero sul volume è minore; resta un miglioramento
 da valutare, non ancora costruito — oggi il volume è solo un link alla scheda.
 
-**Indice a lettere sul bordo** come elemento a sé (l'unghiatura delle rubriche): sostituito
-dalle tacche fra i volumi (regola 6), che risolvono lo stesso problema senza un elemento
-separato; un indice fisso sul bordo per saltare direttamente a una lettera resta un possibile
-miglioramento successivo su una libreria molto grande.
+**Indice a lettere sul bordo** come elemento a sé (l'unghiatura delle rubriche): scartato. Le
+tacche fra i volumi (regola 6) risolvono lo stesso problema senza un elemento separato, e non
+si vuole aggiungere uno scroller a lettere.
 
 ---
 
