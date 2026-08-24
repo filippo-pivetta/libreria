@@ -27,6 +27,29 @@ import { PortaProfilo } from "@/components/layout/porta-profilo";
  * non nella segnaletica interna".
  *
  * ---------------------------------------------------------------------------
+ * E POI QUATTRO, CON QUADERNI (agosto 2026).
+ *
+ * Non è il ritorno della Torre. La quarta voce di prima era un contenitore di
+ * impostazioni aperto una volta al mese; questa è il posto dove sta ciò che
+ * l'Utente ha scritto — insight, recensioni, e i temi che li attraversano —
+ * cioè metà della materia dell'app, che fino a ieri viveva in tre pagine
+ * senza ingresso (/cerca, /sintesi, /suggerimenti), raggiungibili solo da un
+ * <details> chiuso in mezzo ai filtri della Libreria.
+ *
+ * §22/§23/§24 le tenevano fuori dalla barra con una frase sola — "la
+ * navigazione ha quattro voci e restano quattro" — che è un argomento sulla
+ * barra usato per decidere una collocazione: dice dove una funzione NON va,
+ * non dove va. E l'altra obiezione, "una voce di menu che può essere spenta è
+ * una voce sbagliata", vale per una funzione, non per una materia: i tuoi
+ * scritti esistono anche a consenso revocato, ed è solo il modo di
+ * interrogarli che si spegne — la pagina lo dichiara, invece di sparire.
+ *
+ * "Quaderni" sta nel registro di "Annali": una parola piana, non una
+ * metafora, che nomina la cosa e non il meccanismo che la produce. Una voce
+ * chiamata "Assistente" o "Chiedi" sarebbe stata il cassetto di prima con una
+ * linguetta più grande.
+ *
+ * ---------------------------------------------------------------------------
  * DUE BARRE, NON UNA RESA ELASTICA.
  *
  * Da 640px in su la barra sta in cima ed è fissa allo scorrimento. Sotto i
@@ -47,6 +70,7 @@ import { PortaProfilo } from "@/components/layout/porta-profilo";
  */
 const NAV_ITEMS = [
   { href: "/", label: "Libreria" },
+  { href: "/quaderni", label: "Quaderni" },
   { href: "/annals", label: "Annali" },
   { href: "/readers", label: "Lettori" },
 ] as const;

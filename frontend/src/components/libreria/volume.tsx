@@ -7,7 +7,7 @@ import type { VoceConLibro } from "@/lib/api/voci";
 import { nomiAutori } from "@/lib/autori";
 import { RIBBON } from "@/lib/ribbon";
 import { coloreDorso } from "@/lib/spine-color";
-import { spessoreCosta } from "@/lib/shelf-pack";
+import { spessoreGrezzo } from "@/lib/shelf-pack";
 
 /**
  * Il volume: costa (spessore = pagine) + copertina vera 2:3 rivolta a chi
@@ -31,14 +31,14 @@ import { spessoreCosta } from "@/lib/shelf-pack";
  * aperta (backend/app/repositories/voce_repository.py).
  */
 export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFascia?: boolean }) {
-  const senzaPagine = voce.pagineAdottate == null;
+  const pagine = voce.pagineAdottate;
+  const senzaPagine = pagine == null;
   const ribbon = RIBBON[voce.stato];
   const autori = nomiAutori(voce.libro.autori);
   const etichetta = autori ? `${voce.libro.titoloCanonico} · ${autori}` : voce.libro.titoloCanonico;
   const ripiego = coloreDorso(voce.libro.id);
   const colore = voce.libro.copertinaColoreDominante ?? ripiego;
   const coloreScuro = voce.libro.copertinaColoreDominanteScuro ?? ripiego;
-  const spessore = spessoreCosta(voce.pagineAdottate);
   const immagine = voce.libro.copertinaMiniaturaUrl;
 
   const percentuale =
@@ -57,7 +57,11 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
         {
           "--cover-color": colore,
           "--cover-color-notte": coloreScuro,
-          "--spine-w": `${spessore}px`,
+          // Solo lo spessore grezzo: i due estremi li taglia la clamp di
+          // `.volume__spine`, e il tetto scende da solo sotto i 640px. Senza
+          // pagine adottate non si scrive affatto, così la mediana di
+          // `.volume[data-no-pages]` non deve battersi con uno style inline.
+          ...(pagine == null ? {} : { "--spine-w": `${spessoreGrezzo(pagine)}px` }),
         } as CSSProperties
       }
     >

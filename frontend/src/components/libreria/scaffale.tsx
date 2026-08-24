@@ -9,7 +9,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { nomiAutori } from "@/lib/autori";
 import { RIBBON } from "@/lib/ribbon";
 import { costruisciElementi, impacchetta, type ShelfItem } from "@/lib/shelf-pack";
-import { useContainerWidth, useCoverWidth } from "@/lib/use-container-width";
+import { useContainerWidth, useMisureScaffale } from "@/lib/use-container-width";
 import Link from "next/link";
 
 import { Volume } from "@/components/libreria/volume";
@@ -32,17 +32,35 @@ const STATI: { valore: StatoVoce; etichetta: string }[] = [
 ];
 
 /**
- * La Libreria: vista unica (design-frontend.md §7, riscritta il 20 agosto
- * 2026 — non esiste più un dorso da solo né una vista a elenco). Uno
- * scaffale di copertine con la costa, mensole che si riempiono sulla
- * larghezza reale, fascia delle letture in corso in cima. Filtro testuale
- * su titolo/autore e filtro per stato, entrambi "gratuiti", nessuna
- * chiamata esterna. La ricerca semantica sui propri insight vive su una
- * pagina a sé (/cerca, issue #6), raggiunta dal collegamento qui
- * accanto: il design doc §7 vieta di fonderla in questo campo, perché
- * revocare il consenso lascerebbe l'Utente senza il modo di trovare un
- * libro. L'indice a lettere è la tacca fra un volume e l'altro
- * (lib/shelf-pack.ts), non un elemento separato sul bordo.
+ * La Libreria: vista unica (design-frontend.md §7). Uno scaffale di copertine
+ * con la costa, mensole che si riempiono sulla larghezza reale, fascia delle
+ * letture in corso in cima. Filtro testuale su titolo/autore e filtro per
+ * stato, entrambi "gratuiti", nessuna chiamata esterna.
+ *
+ * ---------------------------------------------------------------------------
+ * LA TESTATA, RISCRITTA (sessione UI di agosto 2026).
+ *
+ * Sopra lo scaffale c'erano quattro fasce di comandi: il titolo di pagina con
+ * l'azione primaria, il campo col conteggio appeso in coda, cinque pastiglie,
+ * e un <details> chiuso — "Chiedi alla libreria" — che teneva dentro ricerca
+ * semantica, suggerimenti e sintesi. Misurate, facevano 232 px su desktop e
+ * 307 su un telefono: mezza schermata di comandi prima del primo libro.
+ *
+ * Ora sono tre righe, e ognuna fa un mestiere solo:
+ *
+ *   1. il campo, che sale in cima e prende la riga che il titolo lasciava
+ *      libera, con l'azione primaria accanto. "La tua libreria" non c'è più:
+ *      lo dice la voce accesa in barra, e su telefono la linguetta in fondo;
+ *   2. le pastiglie, ADDITIVE invece che a sottrazione, col conteggio in fondo
+ *      alla stessa riga — che è esattamente ciò che le pastiglie decidono;
+ *   3. lo scaffale, che finalmente ha anche lui un'intestazione: prima ce
+ *      l'aveva solo la fascia in cima.
+ *
+ * Il cassetto è sparito: la ricerca dentro i propri scritti e i temi vivono
+ * in **Quaderni** (§22), che è una voce di navigazione e non un disclosure di
+ * 13 px; i suggerimenti stanno in "Aggiungi un libro" (§13), dove il bisogno
+ * è lo stesso — voglio un libro nuovo.
+ * ---------------------------------------------------------------------------
  */
 export function Scaffale({
   vociIniziali,
@@ -57,9 +75,10 @@ export function Scaffale({
 }) {
   const t = useTranslations();
   const [filtroTesto, setFiltroTesto] = useState("");
-  const [statiEsclusi, setStatiEsclusi] = useState<Set<StatoVoce>>(() => new Set());
+  // Additivo: l'insieme vuoto vuole dire "tutti", non "nessuno".
+  const [statiInclusi, setStatiInclusi] = useState<Set<StatoVoce>>(() => new Set());
   const [containerRef, larghezza] = useContainerWidth<HTMLDivElement>();
-  const coverWidth = useCoverWidth();
+  const [sondaRef, misure] = useMisureScaffale();
 
   const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: utenteCollegatoId ? ["utente-voci", utenteCollegatoId] : ["voci"],
@@ -103,22 +122,22 @@ export function Scaffale({
   const filtrate = useMemo(() => {
     const testo = filtroTesto.trim().toLowerCase();
     return data.filter((voce) => {
-      if (statiEsclusi.has(voce.stato)) return false;
+      if (statiInclusi.size > 0 && !statiInclusi.has(voce.stato)) return false;
       if (!testo) return true;
       const dentroTitolo = voce.libro.titoloCanonico.toLowerCase().includes(testo);
       const dentroAutore = nomiAutori(voce.libro.autori).toLowerCase().includes(testo);
       return dentroTitolo || dentroAutore;
     });
-  }, [data, filtroTesto, statiEsclusi]);
+  }, [data, filtroTesto, statiInclusi]);
 
-  function classePillStato(stato: StatoVoce, attivo: boolean): string {
+  function classePillStato(attivo: boolean): string {
     return attivo
       ? "border-transparent bg-ink/9 text-ink font-medium"
       : "border-line text-ink-soft hover:text-ink hover:border-line-strong";
   }
 
   function toggleStato(stato: StatoVoce) {
-    setStatiEsclusi((precedente) => {
+    setStatiInclusi((precedente) => {
       const successivo = new Set(precedente);
       if (successivo.has(stato)) {
         successivo.delete(stato);
@@ -173,77 +192,71 @@ export function Scaffale({
   // distinti, non due viste sugli stessi dati (design doc §7).
   const inCorso = filtrate.filter((voce) => IN_CORSO.has(voce.stato));
   const restoScaffale = filtrate.filter((voce) => !IN_CORSO.has(voce.stato));
-  const righe = impacchetta(costruisciElementi(restoScaffale), larghezza, coverWidth);
+  const righe = impacchetta(costruisciElementi(restoScaffale), larghezza, misure);
+  const filtroAttivo = filtrate.length !== data.length;
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      {/* --------------------------------------------------------------------
-          I COMANDI DELLA LIBRERIA (riscritti nella sessione UI)
+      {/* Sonda alta zero, larga `--cover-w`: è così che l'impacchettamento
+          legge dai token la larghezza che il CSS sta davvero applicando,
+          invece di ricopiarne la formula in JavaScript
+          (lib/use-container-width.ts). */}
+      <div ref={sondaRef} aria-hidden className="h-0 w-(--cover-w) overflow-hidden" />
 
-          Prima erano tutti dentro un unico `flex flex-wrap`: campo di ricerca,
-          cinque pastiglie di stato, il conteggio, e quattro
-          collegamenti-pulsante di pari peso. Misurato su un telefono da 360px:
-          380 pixel di comandi prima del primo libro, cioè metà schermata di
-          chrome davanti al contenuto — e l’azione principale dell’app,
-          "Aggiungi un libro", era l’ultima di quattro e in tono minore.
-
-          Ora sono tre fasce con tre mestieri distinti:
-            1. il titolo della pagina e l’azione primaria, sulla stessa riga;
-            2. il filtro (campo + pastiglie + conteggio), che agisce su ciò che
-               si vede sotto;
-            3. le tre funzioni assistite, raccolte sotto un ingresso solo.
-          -------------------------------------------------------------------- */}
-
-      {/* 1. Azione primaria.
-          "Aggiungi un libro" passa da `outline size="sm"` a pulsante pieno: è
-          il gesto con cui la libreria esiste, e competeva ad armi pari con tre
-          collegamenti che portano a funzioni occasionali. */}
-      {!utenteCollegatoId && (
-        <div className="flex items-center justify-between gap-4">
-          <p className="t-label">La tua libreria</p>
-          <Link href="/aggiungi" className={cn(buttonVariants({ size: "sm" }))}>
+      {/* 1. IL CAMPO E L'AZIONE, SULLA STESSA RIGA.
+          Sulla libreria di un collegato l'azione non c'è (non si aggiunge un
+          libro a casa d'altri) e il campo prende tutta la riga da solo. */}
+      <div className="flex items-end gap-4">
+        <input
+          type="search"
+          placeholder="Titolo o autore"
+          value={filtroTesto}
+          onChange={(event) => setFiltroTesto(event.target.value)}
+          aria-label="Cerca per titolo o autore"
+          className="field-line min-w-0 flex-1 border-0 border-b border-line bg-transparent px-0 py-2.5 font-ui text-base text-ink outline-none placeholder:text-ink-soft"
+        />
+        {!utenteCollegatoId && (
+          <Link href="/aggiungi" className={cn(buttonVariants({ size: "lg" }))}>
             Aggiungi un libro
           </Link>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 2. Il filtro. */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-          <input
-            type="search"
-            placeholder="Titolo o autore"
-            value={filtroTesto}
-            onChange={(event) => setFiltroTesto(event.target.value)}
-            aria-label="Cerca per titolo o autore"
-            className="field-line min-w-0 flex-1 border-0 border-b border-line bg-transparent px-0 py-2 font-ui text-sm text-ink outline-none placeholder:text-ink-soft sm:max-w-sm sm:flex-none"
-          />
-          {/* Il conteggio dice ciò che si vede, non ciò che c’è.
-              Prima era sempre `data.length`, cioè il totale della libreria,
-              anche con un filtro attivo che ne nascondeva la metà: un numero
-              che non corrispondeva a nulla di visibile sullo schermo. Quando
-              un filtro è attivo lo dichiara, così resta chiaro perché lo
-              scaffale è più corto. */}
-          <span className="t-meta shrink-0 sm:ml-auto">
-            {filtrate.length === data.length
-              ? `${data.length} ${data.length === 1 ? "volume" : "volumi"}`
-              : `${filtrate.length} di ${data.length}`}
-            {inCorso.length > 0 ? ` · ${inCorso.length} in lettura` : ""}
-          </span>
-        </div>
+      {/* 2. LE PASTIGLIE, ADDITIVE — e il conteggio in fondo alla riga.
 
+          Erano cinque e nascevano tutte accese: si spegneva per escludere.
+          Cinque bersagli accesi che nessuno ha toccato dicono "cinque filtri
+          applicati" quando non ne è applicato nessuno, e `aria-pressed`
+          raccontava all'assistente vocale l'inverso di quel che l'Utente
+          crede di fare. Ora nessuna nasce accesa, "Tutti" è lo stato di
+          partenza dichiarato invece che dedotto, e le accese si sommano.
+
+          Il conteggio dice ciò che si vede, non ciò che c'è: con un filtro
+          attivo mette per primo il numero cambiato e tiene il totale accanto
+          per dare la scala. */}
+      <div className="flex items-center gap-3 sm:gap-4">
         {/* Le pastiglie scorrono in orizzontale sotto i 640px invece di andare
-            a capo su due righe: cinque etichette che si impilano rubavano una
-            riga intera allo scaffale. `-mx-4 px-4` fa sì che la prima e
-            l’ultima non restino incollate al bordo dello schermo mentre
-            scorrono. */}
+            a capo: cinque etichette impilate rubavano una riga intera allo
+            scaffale. Il conteggio sta FUORI dallo scorrimento, in fondo alla
+            stessa riga, così non se ne va via con loro — rubare larghezza a un
+            nastro che scorre non costa niente, perché scorre. `-ml-4 pl-4` fa
+            sì che la prima pastiglia non resti incollata al bordo dello
+            schermo mentre si scorre indietro. */}
         <div
-          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+          className="-ml-4 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pb-0 sm:pl-0"
           role="group"
           aria-label="Filtra per stato"
         >
+          <button
+            type="button"
+            aria-pressed={statiInclusi.size === 0}
+            onClick={() => setStatiInclusi(new Set())}
+            className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 font-ui text-xs transition-colors duration-(--dur-micro) ${classePillStato(statiInclusi.size === 0)}`}
+          >
+            Tutti
+          </button>
           {STATI.map(({ valore, etichetta }) => {
-            const attivo = !statiEsclusi.has(valore);
+            const attivo = statiInclusi.has(valore);
             const ribbon = RIBBON[valore];
             return (
               <button
@@ -251,7 +264,7 @@ export function Scaffale({
                 type="button"
                 aria-pressed={attivo}
                 onClick={() => toggleStato(valore)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-ui text-xs transition-colors duration-(--dur-micro) ${classePillStato(valore, attivo)}`}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-ui text-xs transition-colors duration-(--dur-micro) ${classePillStato(attivo)}`}
               >
                 <span
                   aria-hidden
@@ -262,46 +275,23 @@ export function Scaffale({
             );
           })}
         </div>
+        <span className="t-meta t-num shrink-0">
+          {filtroAttivo
+            ? `${filtrate.length} di ${data.length}`
+            : `${data.length} ${data.length === 1 ? "volume" : "volumi"}`}
+          {inCorso.length > 0 ? ` · ${inCorso.length} in lettura` : ""}
+        </span>
       </div>
 
-      {/* 3. Le tre funzioni assistite, sotto un ingresso solo.
-
-          Deviazione dichiarata da §7/§25/§26: ciascuna delle tre sezioni ha
-          aggiunto a suo tempo il proprio collegamento "accanto ad Aggiungi un
-          libro", e nessuno le ha mai viste tutte e tre insieme. La ragione di
-          tenerle fuori dalla navigazione a quattro voci resta valida — sono
-          funzioni che dipendono da un interruttore, e una voce di menu che
-          può essere spenta è una voce sbagliata — ma la conseguenza, tre
-          collegamenti di pari peso in mezzo ai filtri, no.
-
-          Un <details> e non un menu a comparsa: è già il modello usato per
-          "Altro" nelle transizioni di stato e per lo storico delle letture,
-          funziona al tocco senza dipendere dal passaggio del mouse, e non ha
-          bisogno di JavaScript per aprirsi. */}
-      {!utenteCollegatoId && (
-        <details className="group/assistite">
-          <summary className="t-meta inline-flex cursor-pointer list-none items-center gap-1.5 rounded-field text-ink-soft hover:text-ink">
-            Chiedi alla libreria
-            <span aria-hidden className="text-[9px] transition-transform duration-(--dur-micro) group-open/assistite:rotate-180">
-              ▾
-            </span>
-          </summary>
-          <div className="mt-2 flex flex-wrap gap-1">
-            <Link href="/cerca" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-              Cerca nei tuoi insight
-            </Link>
-            <Link href="/suggerimenti" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-              Suggerimenti di lettura
-            </Link>
-            <Link href="/sintesi" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-              Sintesi dei tuoi temi
-            </Link>
-          </div>
-        </details>
-      )}
-
       {inCorso.length === 0 && righe.length === 0 ? (
-        <EmptyState title="Nessun libro trovato" description="Nessuna voce corrisponde al filtro." />
+        <EmptyState
+          title={
+            filtroTesto.trim()
+              ? `Nessun libro con “${filtroTesto.trim()}” nel titolo o nell’autore`
+              : "Nessun libro con questo stato"
+          }
+          description="Il tuo scaffale resta intero: hai filtrato, non perso niente."
+        />
       ) : (
         <div ref={containerRef} className="flex flex-col gap-10">
           {inCorso.length > 0 && (
@@ -316,24 +306,32 @@ export function Scaffale({
             </section>
           )}
 
-          <section aria-label="Tutta la libreria" className="flex flex-col gap-7">
-            {righe.map((riga, indice) => (
-              <div key={indice} className="flex flex-col gap-0">
-                <div className="flex flex-wrap items-end gap-3 pb-3">
-                  {riga.map((item: ShelfItem) =>
-                    item.type === "tick" ? (
-                      <div key={item.key} className="shelf-tick" aria-hidden>
-                        {item.letter}
-                      </div>
-                    ) : (
-                      <Volume key={item.key} voce={item.voce} />
-                    ),
-                  )}
-                </div>
-                <div className="shelf-board" />
+          {/* Prima solo la fascia in cima portava la sua etichetta, e le
+              mensole sotto — cioè la libreria — non ne avevano nessuna
+              visibile: due sezioni sorelle, una annunciata e una no. */}
+          {righe.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <p className="t-label">Tutta la libreria</p>
+              <div className="flex flex-col gap-7">
+                {righe.map((riga, indice) => (
+                  <div key={indice} className="flex flex-col gap-0">
+                    <div className="shelf-row">
+                      {riga.map((item: ShelfItem) =>
+                        item.type === "tick" ? (
+                          <div key={item.key} className="shelf-tick" aria-hidden>
+                            <span>{item.letter}</span>
+                          </div>
+                        ) : (
+                          <Volume key={item.key} voce={item.voce} />
+                        ),
+                      )}
+                    </div>
+                    <div className="shelf-board" />
+                  </div>
+                ))}
               </div>
-            ))}
-          </section>
+            </section>
+          )}
         </div>
       )}
     </div>

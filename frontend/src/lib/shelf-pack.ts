@@ -1,22 +1,33 @@
 import type { VoceConLibro } from "@/lib/api/voci";
 import { chiaveOrdinamentoAutore } from "@/lib/autori";
 
-/**
- * Spessore della costa (design doc §7, riscritto il 20 agosto 2026):
- * "lo spessore è il numero di pagine. Non l'altezza". `clamp(6px, pagine /
- * 22, 28px)`. Le voci senza pagine adottate prendono uno spessore mediano,
- * coerente col trattamento "l'assenza di dato si dichiara" (bordo
- * tratteggiato, nessun riempimento — vedi .volume[data-no-pages] in
- * tokens.css).
- */
-const SPINE_MIN = 6;
-const SPINE_MAX = 28;
-const SPINE_PER_PAGE = 22;
-const SPINE_MEDIANA = (SPINE_MIN + SPINE_MAX) / 2;
+import type { MisureScaffale } from "@/lib/use-container-width";
 
-export function spessoreCosta(pagineAdottate: number | null): number {
-  if (pagineAdottate == null) return SPINE_MEDIANA;
-  return Math.round(Math.min(SPINE_MAX, Math.max(SPINE_MIN, pagineAdottate / SPINE_PER_PAGE)));
+/**
+ * Spessore grezzo della costa (design doc §7): "lo spessore è il numero di
+ * pagine. Non l'altezza". Il taglio ai due estremi — `--spine-min` e
+ * `--spine-max` — lo fa la `clamp()` di `.volume__spine` in tokens.css, e non
+ * più questa funzione: il tetto scende sotto i 640px (14px invece di 28) e un
+ * componente non deve sapere su che schermo sta per disegnare una costa.
+ *
+ * Le voci senza pagine adottate non passano di qui: `Volume` non scrive
+ * affatto `--spine-w`, e la mediana arriva da `.volume[data-no-pages]`.
+ */
+const SPINE_PER_PAGE = 22;
+
+export function spessoreGrezzo(pagineAdottate: number): number {
+  return Math.round(pagineAdottate / SPINE_PER_PAGE);
+}
+
+/**
+ * Lo stesso spessore *dopo* la clamp, che è ciò di cui ha bisogno chi
+ * impacchetta: qui i limiti servono per forza, perché il conto va fatto prima
+ * che il browser disegni. Arrivano letti dai token (`useMisureScaffale`), mai
+ * ricopiati come costanti.
+ */
+export function spessoreCosta(pagineAdottate: number | null, misure: MisureScaffale): number {
+  if (pagineAdottate == null) return (misure.costaMin + misure.costaMax) / 2;
+  return Math.min(misure.costaMax, Math.max(misure.costaMin, spessoreGrezzo(pagineAdottate)));
 }
 
 export type VoceItem = { type: "volume"; voce: VoceConLibro; key: string };
@@ -53,12 +64,15 @@ export function costruisciElementi(voci: VoceConLibro[]): ShelfItem[] {
   return elementi;
 }
 
-const TICK_WIDTH = 18;
-const GAP = 12; // --sp3
-
-function larghezzaElemento(item: ShelfItem, coverWidth: number): number {
-  if (item.type === "tick") return TICK_WIDTH + GAP;
-  return spessoreCosta(item.voce.pagineAdottate) + coverWidth + GAP;
+/**
+ * La tacca non occupa più larghezza: sta dentro il gap che già separava i due
+ * volumi (`.shelf-tick` in tokens.css, larghezza zero e margini negativi di
+ * mezzo gap). Costava trenta pixel — un quarto di volume su un telefono — ed
+ * era la ragione per cui una mensola ne teneva due invece di tre.
+ */
+function larghezzaElemento(item: ShelfItem, misure: MisureScaffale): number {
+  if (item.type === "tick") return 0;
+  return spessoreCosta(item.voce.pagineAdottate, misure) + misure.copertina + misure.gap;
 }
 
 /**
@@ -71,14 +85,14 @@ function larghezzaElemento(item: ShelfItem, coverWidth: number): number {
 export function impacchetta(
   items: ShelfItem[],
   larghezzaDisponibile: number,
-  coverWidth: number,
+  misure: MisureScaffale,
 ): ShelfItem[][] {
   if (larghezzaDisponibile <= 0) return items.length > 0 ? [items] : [];
   const righe: ShelfItem[][] = [];
   let corrente: ShelfItem[] = [];
   let usato = 0;
   for (const item of items) {
-    const larghezza = larghezzaElemento(item, coverWidth);
+    const larghezza = larghezzaElemento(item, misure);
     if (usato + larghezza > larghezzaDisponibile && corrente.length > 0) {
       righe.push(corrente);
       corrente = [];

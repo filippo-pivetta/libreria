@@ -215,13 +215,36 @@ ogni numero di metrica, sempre, altrimenti le colonne ballano al cambio d'anno. 
 
 ## 5. Navigazione
 
-Tre voci: **Libreria, Annali, Lettori.** In inglese: Library, Annals, Readers.
+Quattro voci: **Libreria, Quaderni, Annali, Lettori.** In inglese: Library,
+Notebooks, Annals, Readers.
 
 | Voce | Contenuto |
 |---|---|
-| Libreria | Scaffale, filtri, ricerca |
+| Libreria | Scaffale, filtri |
+| Quaderni | Ciò che hai scritto: ricerca per significato e temi trasversali |
 | Annali | Metriche per anno |
 | Lettori | Le persone e il rapporto con loro |
+
+**Quaderni non è il ritorno della Torre.** La quarta voce di prima era un
+contenitore di impostazioni che si apriva una volta al mese; questa è il posto
+dove sta ciò che l'Utente ha scritto — insight, recensioni, e i temi che li
+attraversano — cioè metà della materia dell'app, che fino ad agosto 2026 viveva
+in tre pagine senza ingresso (`/cerca`, `/sintesi`, `/suggerimenti`) raggiungibili
+solo da un disclosure chiuso in mezzo ai filtri della Libreria.
+
+Le due obiezioni che le tenevano fuori dalla barra — scritte nelle sezioni che
+quelle tre pagine descrivevano — vanno tolte, non aggirate. La prima — «la navigazione ha quattro voci e restano
+quattro» — è un argomento sulla barra usato per decidere una collocazione: dice
+dove una funzione *non* va, non dove va. La seconda — «una voce di menu che può
+essere spenta è una voce sbagliata» — vale per una funzione, non per una materia:
+i propri scritti esistono anche a consenso revocato, ed è solo il modo di
+interrogarli che si spegne, cosa che la pagina dichiara invece di sparire.
+
+Il nome sta nel registro di «Annali»: una parola piana che nomina la cosa, non il
+meccanismo che la produce. Una voce chiamata «Assistente» o «Chiedi» sarebbe stato
+il cassetto di prima con una linguetta più grande, e avrebbe violato la regola di
+questo stesso paragrafo — il rimando letterario sta nell'insegna, non nella
+segnaletica interna.
 
 **Erano quattro, e la quarta era "Torre".** Conteneva i collegamenti e le impostazioni, e ne è
 uscita per due ragioni indipendenti. La prima è la frequenza: le altre tre si aprono ogni giorno,
@@ -240,24 +263,24 @@ il PRD usa per questa superficie ("Interruttore nel profilo dell'Utente", "una s
 nel profilo"), mentre riserva "impostazioni" alle azioni sui dati — che sono infatti i titoli
 delle sezioni là dentro.
 
-Guadagno secondario, non l'obiettivo: con tre linguette in fondo invece di quattro ciascuna
-guadagna un terzo di larghezza, e l'etichetta resta nel maiuscoletto pieno di §4 senza doverne
-stringere la spaziatura per farla stare.
+Con l'arrivo di Quaderni le linguette in fondo tornano quattro, e l'etichetta resta nel
+maiuscoletto pieno di §4 senza stringerne la spaziatura: la più lunga, «QUADERNI», misura
+una sessantina di pixel su una linguetta che a 320px ne ha ottanta.
 
 La barra sta sul piano 0, non su una carta: non è contenuto, è la stanza. La voce attiva si
 segnala con l'inchiostro pieno e un filetto, non con un riempimento.
 
 **Due barre, non una resa elastica.** Da 640px in su la barra sta in cima ed è fissa allo
 scorrimento, con le proprie iniziali e il nome utente in fondo a destra. Sotto i 640px le stesse
-tre voci diventano una barra in fondo allo schermo, dove sta la navigazione di un'app e dove
+voci diventano una barra in fondo allo schermo, dove sta la navigazione di un'app e dove
 arriva il pollice; le iniziali passano in cima al contenuto, allineate a destra sopra il titolo
 di pagina, perché lassù non c'è più una barra che le ospiti. "Esci" non sta in nessuna delle due:
 è nel Profilo, prima sezione. Lo scambio è in CSS, non in JavaScript, quindi non c'è un istante
 in cui compare la barra sbagliata.
 
 **Senza icone, di proposito.** In tutta l'app non esiste un vocabolario di icone — due chevron
-in un selettore d'anno e qualche glifo tipografico. Tre parole corte bastano, e la voce attiva si
-legge dal filetto come in alto. Le iniziali non fanno eccezione: sono già il modo in cui l'app
+in un selettore d'anno e qualche glifo tipografico. Quattro parole corte bastano, e la voce attiva
+si legge dal filetto come in alto. Le iniziali non fanno eccezione: sono già il modo in cui l'app
 rappresenta una persona (§16, §15), non un'icona nuova, e non portano il filetto della voce
 attiva nemmeno sul Profilo — non sono una destinazione fra le altre, sono chi sei.
 
@@ -325,8 +348,11 @@ condizione per entrare, quindi non è un avviso da scacciare, è una porta.
    impacchettano i volumi finché entrano nella larghezza del contenitore, poi si chiude la
    mensola e se ne apre una successiva; si ricalcola al ridimensionamento (`ResizeObserver`,
    debounce ~150ms).
-6. **La lettera dell'autore è una tacca fra un volume e l'altro**, larga 18px, con un filetto di
-   10px che scende sulla mensola. Non è un ripiano a sé.
+6. **La lettera dell'autore è una tacca fra un volume e l'altro**, con un filetto di 10px che
+   scende sulla mensola. Non è un ripiano a sé, e **non occupa larghezza**: sta dentro il gap che
+   separava già i due volumi (larghezza zero, margini negativi di mezzo gap). Era un elemento in
+   flusso di 18px più il proprio gap — trenta pixel di mensola per una lettera, che su un telefono
+   sono un quarto di volume, ed erano la ragione per cui una riga ne teneva due invece di tre.
 7. **Ordinamento alfabetico per cognome dell'autore, stabile.** A parità di cognome, per titolo.
    Un libro con più autori si ordina sul primo. Uno scaffale stabile permette alla memoria
    spaziale di formarsi: ordinare per attività recente riordinerebbe la fila a ogni avanzamento.
@@ -352,27 +378,52 @@ ancoraggi (ancoraggio `shelf` in `src/lib/light.ts`, verificato da `scripts/chec
 con l'ombra doppia rivolta verso il basso. È l'unico elemento dell'app che allude a un mobile:
 niente montanti, niente cornice, niente parete.
 
-### Filtri e ricerca
+### La testata: tre righe, e non di più
 
-**Filtro testuale** su titoli e autori, sempre disponibile, che non chiama nessun modello: un
-campo con la sola riga inferiore, non una scatola arrotondata, `aria-label` esplicita.
+Sopra lo scaffale c'erano quattro fasce di comandi — titolo di pagina con l'azione primaria,
+campo col conteggio appeso in coda, cinque pastiglie, e un disclosure "Chiedi alla libreria" —
+che misurate facevano **232px su desktop e 307 su un telefono**: mezza schermata di comandi
+prima del primo libro, sulla pagina più visitata dell'app. Da agosto 2026 sono tre righe, 176px
+e 252, e ognuna fa un mestiere solo.
 
-**Filtro per stato**, gratuito perché i nastri sono già un codice colore: pastiglie in contorno
-con un quadratino di colore di 7px e l'etichetta in `ink-soft`. Attive: nessun bordo, fondo
-`ink` al 9%, testo in `ink`. Non pastiglie piene colorate: i libri restano l'unico posto dell'app
-dove il colore è un dato.
+**1. Il campo, e accanto l'azione primaria.** Il titolo di pagina non c'è: «La tua libreria» stava
+sotto una linguetta accesa che diceva già «Libreria», nel carattere più piccolo della pagina.
+La riga che lascia libera la prende il **filtro testuale** su titoli e autori — sempre disponibile,
+nessuna chiamata a nessun modello, campo con la sola riga inferiore e `aria-label` esplicita — che
+smette così di sembrare un accessorio del conteggio. Accanto, «Aggiungi un libro» a pulsante pieno
+e 44px: è il gesto con cui la libreria esiste, e da lì si arriva anche ai suggerimenti di lettura
+(§13). Sulla libreria di un collegato l'azione non c'è e il campo prende la riga da solo.
 
-**Ricerca semantica separata**, sui propri insight, dipendente dal consenso. Non è fusa nel
-campo sopra: revocare il consenso lascerebbe l'utente senza il modo di trovare un libro. Pagina
-a sé, §22: qui resta solo la porta.
+Un campo di ricerca e un'azione primaria sulla stessa riga si distinguono da sé: il campo è una
+riga di inchiostro senza riquadro, il pulsante un oggetto pieno del piano 2, e l'etichetta dice
+«Aggiungi», non «Cerca».
 
-**Un ingresso solo per le tre funzioni assistite.** Tre fasce: il titolo con "Aggiungi un libro"
-in evidenza (pulsante pieno, è il gesto con cui la libreria esiste); il filtro; e un disclosure
-"Chiedi alla libreria" che raccoglie ricerca semantica, suggerimenti e sintesi — tenute fuori
-dalla navigazione a quattro voci perché dipendono da un interruttore, e una voce di menu che può
-essere spenta è una voce sbagliata. Un collegamento e non un secondo campo: due campi di ricerca
-affiancati sulla stessa riga si sbagliano, e uno dei due costa una chiamata al modello mentre
-l'altro no. Nascosto sulla libreria di un collegato: si cerca solo nei propri testi.
+**2. Le pastiglie di stato, additive, col conteggio in fondo alla riga.** Gratuito perché i nastri
+sono già un codice colore: pastiglie in contorno con un quadratino di colore di 7px e l'etichetta
+in `ink-soft`; attive senza bordo, fondo `ink` al 9%, testo in `ink`. Non pastiglie piene colorate:
+i libri restano l'unico posto dell'app dove il colore è un dato.
+
+**Additive, non a sottrazione.** Nascevano tutte e cinque accese e si spegnevano per escludere:
+cinque bersagli accesi che nessuno ha toccato dicono «cinque filtri applicati» quando non ne è
+applicato nessuno, e `aria-pressed` raccontava all'assistente vocale l'inverso di ciò che l'Utente
+crede di fare. Ora nessuna nasce accesa, le accese si sommano, e una sesta pastiglia — **«Tutti»** —
+rende lo stato di partenza dichiarato invece che dedotto.
+
+Il conteggio chiude la stessa riga perché dice esattamente ciò che le pastiglie decidono: quanti
+volumi si stanno vedendo. Con un filtro attivo mette per primo il numero cambiato e tiene il totale
+accanto per dare la scala («38 di 124»).
+
+**3. L'intestazione dello scaffale.** Prima solo la fascia in cima portava la sua etichetta e le
+mensole sotto non ne avevano nessuna visibile: due sezioni sorelle, una annunciata e una no. Ora
+sotto «In lettura» c'è «Tutta la libreria».
+
+**Niente cassetto.** Il disclosure "Chiedi alla libreria" teneva chiuse, in 13px di inchiostro
+tenue e sopra il contenuto, le tre funzioni più caratteristiche dell'app: un contenitore intitolato
+al meccanismo che lo riempie, cioè il posto in cui una funzione va a non essere trovata. Le tre sono
+andate dove nasce il loro bisogno — ricerca per significato e temi in **Quaderni** (§5, §22),
+suggerimenti in **«Aggiungi un libro»** (§13) — e la ricerca semantica resta comunque **fuori da
+questo campo**, per la ragione di sempre: revocare il consenso lascerebbe l'Utente senza il modo di
+trovare un libro.
 
 ### Accessibilità
 
@@ -410,9 +461,29 @@ gerarchia, non al pollice.
 nuova deve chiedersi da dove si esce.
 
 **Scaffale a più mensole:** volumi (§7) che vanno a capo su ripiani impacchettati sulla larghezza
-reale, copertina ridotta a `96 × 144`, scorrimento verticale, tocco che apre. Il sollevamento non
-serve: il dito è già il puntatore. Ogni mensola porta la sua ombra doppia, ed è la ripetizione
-delle ombre a dare la profondità che su desktop dà il sollevamento.
+reale, scorrimento verticale, tocco che apre. Il sollevamento non serve: il dito è già il
+puntatore. Ogni mensola porta la sua ombra doppia, ed è la ripetizione delle ombre a dare la
+profondità che su desktop dà il sollevamento.
+
+**Tre volumi per mensola, non due.** Su 390px la colonna di contenuto è 358, e con i numeri del
+desktop una mensola ne teneva due. Quattro misure cambiano — nessuna tocca il disegno del volume,
+tutte stanno in `tokens.css`, e `shelf-pack.ts` le **legge** invece di ricopiarle:
+
+- la tacca dell'autore passa a larghezza zero (§7, regola 6) e vale anche su desktop, dove
+  guadagna trenta pixel a ogni cambio di iniziale;
+- `--shelf-gap` scende di un passo della scala, da `--sp3` a `--sp2`;
+- `--spine-max` passa da 28px a 14: la stessa `clamp` con un tetto più basso, esattamente come già
+  fa la copertina — lo spessore continua a dire le pagine, su una scala compressa;
+- `--cover-w` diventa `clamp(84px, (100vw − 88px) / 3, 96px)`, cioè si adatta perché tre volumi
+  stiano in riga su **ogni** telefono e non solo su quelli da 390: a 390 dà i 96 di prima, a 360
+  dà 90, sotto si ferma a 84.
+
+Caso peggiore, tre mattoni da mille pagine: 3×96 + 3×14 + 2×8 = 346 su 358.
+
+`--cover-w` è una `clamp()` e non si può leggere con `getPropertyValue`, che di una proprietà
+personalizzata non registrata restituisce il testo della formula e non il risultato: lo scaffale
+misura quindi una sonda alta zero e larga `var(--cover-w)`, ed è il browser stesso a dire quanto
+sta applicando.
 
 **Fascia orizzontale con aggancio solo per le letture in corso** (§7, punto 8): su due o tre
 libri il centro dello schermo fa da puntatore naturale; con più libri il gesto diventa oneroso,
@@ -750,6 +821,13 @@ l'app abbia inventato un dato.
 
 Un campo solo, placeholder "Titolo o autore". Il PRD è netto: non esistono altre vie d'ingresso,
 né codice digitato né scansione. Nessun selettore di modalità.
+
+**Due corsie in pagina, un mestiere solo.** Sopra il catalogo, per chi un titolo ce l'ha già;
+sotto, separati da un filetto, i **suggerimenti di lettura** (§23) per chi non ce l'ha. Non sono
+una seconda funzione appiccicata: il bisogno è lo stesso — voglio un libro nuovo — e prima
+vivevano su una pagina orfana che si raggiungeva solo da un disclosure chiuso in mezzo ai filtri
+della Libreria. Il consenso governa solo la seconda corsia; quando è spento la prima non se ne
+accorge.
 
 Risultati da schede esistenti e cataloghi esterni presentati insieme, senza distinzione, come
 impone il PRD. Ma i libri già in libreria cambiano verbo:
@@ -1354,18 +1432,31 @@ descrizione.
 
 ---
 
-## 22. Ricerca semantica
+## 22. Quaderni
 
-**Una pagina a sé, `/cerca`.** Non un secondo campo sullo scaffale: revocare il consenso
-lascerebbe l'utente senza il modo di trovare un libro, e i due campi farebbero un mestiere
-diverso con lo stesso aspetto. Ci si arriva da un collegamento in fondo alla riga dei filtri
-della Libreria — dove nasce il bisogno — e non da una voce di menu: la navigazione ha quattro
-voci (§5) e restano quattro.
+**Una voce di navigazione (§5), non tre pagine dietro un cassetto.** Fino ad agosto 2026 la
+ricerca semantica stava su `/cerca` e la sintesi tematica su `/sintesi`: due pagine con lo stesso
+identico impianto — titolo, paragrafo di spiegazione, un comando, un elenco — che nascevano
+entrambe vuote e si raggiungevano solo da un disclosure chiuso in mezzo ai filtri della Libreria.
+Non sono due funzioni diverse: sono la stessa materia — ciò che hai scritto — interrogata oppure
+vista da lontano. Da qui la fusione.
+
+**Un campo, e sotto una regione sola.** L'intestazione della regione dice sempre cosa contiene: a
+riposo «I temi che tornano», dopo una domanda «7 risultati per “tempo”» con «‹ Torna ai temi»
+accanto. I risultati **prendono il posto** dei temi e non si accodano sotto: una pagina con i
+risultati di una domanda e sotto un elenco di temi che non c'entrano è un elenco di troppo.
+Svuotare il campo fa la stessa cosa del ritorno, ma un campo da svuotare non è una via d'uscita
+che si vede — per questo il ritorno è scritto.
+
+Effetto secondario che vale da solo: la pagina non nasce più vuota. Chi entra senza una domanda
+in testa trova i propri temi, non un campo e un'istruzione.
+
+### La ricerca
 
 **Non cerca mentre si digita**, a differenza del filtro dello scaffale e della ricerca sui
 cataloghi (§13). Ogni interrogazione costa una chiamata al fornitore, e una domanda in linguaggio
-naturale si finisce di scrivere prima di volerla porre. Campo con la sola riga inferiore come
-ogni altro campo dell'app, `aria-label` esplicita, e un pulsante "Cerca" accanto.
+naturale si finisce di scrivere prima di volerla porre. Campo con la sola riga inferiore come ogni
+altro campo dell'app, `aria-label` esplicita, e un pulsante "Cerca" accanto.
 
 **Un risultato è l'insight, con accanto il libro da cui viene**, come stabilisce §10: prima il
 titolo e l'autore in `t-meta` come collegamento alla scheda, poi il testo nel suo trattamento
@@ -1373,8 +1464,8 @@ tipografico normale (sentenza o appunto secondo la lunghezza), poi la data e il 
 
 **Uno spoiler compare in chiaro qui**, a differenza di ogni altro elenco: la regola protegge da
 uno spoiler *altrui*, e in questa pagina ogni risultato è già del richiedente, mai di un
-collegato (la ricerca non attraversa mai i contenuti condivisi, §7). Il contrassegno resta
-comunque leggibile accanto a data e tipo, come promemoria di ciò che si è marcato per gli altri.
+collegato (la ricerca non attraversa mai i contenuti condivisi). Il contrassegno resta comunque
+leggibile accanto a data e tipo, come promemoria di ciò che si è marcato per gli altri.
 
 **I risultati passano un filtro di pertinenza minima**, non solo un limite di quantità:
 `cerca_semantico` scarta chi è oltre una certa distanza dalla domanda, invece di riempire sempre
@@ -1382,12 +1473,12 @@ fino a un tetto fisso. Senza quel filtro, una libreria piccola restituirebbe sem
 ha, semplicemente riordinato. La soglia è tarata sui dati e resta rivedibile in un punto solo
 (commento sulla RPC, `supabase/migrations/`).
 
-### I tre stati che non vanno confusi
+#### I tre stati che non vanno confusi
 
 | Stato | Cosa si mostra |
 |---|---|
 | Nessuna corrispondenza | "Non hai ancora scritto nulla che somigli a questa domanda." |
-| Consenso revocato | Uno stato vuoto che dice che la funzione è spenta e rimanda alla Torre |
+| Consenso revocato | Uno stato vuoto che dice che la funzione è spenta e rimanda al Profilo |
 | Indici in ricostruzione | I risultati che ci sono, più una riga che dichiara che sono incompleti |
 
 Un elenco vuoto direbbe la cosa falsa più credibile che esista — che non hai scritto nulla al
@@ -1398,13 +1489,52 @@ deve sapere perché è corto prima di concludere che è tutto.
 Nessuno dei tre è un errore, e nessuno dei tre è un riquadro rosso: sono testo, come ogni altro
 messaggio dell'app (§19).
 
+### I temi che tornano
+
+Un elenco di temi, ciascuno con le prove attaccate — non un paragrafo unico: un tema verificabile
+e collegato ai libri da cui viene serve, un riassunto in prosa della libreria no.
+
+**Un tema è una carta**, su piano 1 con grana, non una riga di elenco: nome del tema in
+`t-label` (stesso trattamento delle intestazioni di gruppo negli insight, §10), poi la frase che
+lo descrive in `t-sentenza`/`t-appunto` a seconda della lunghezza — un'osservazione breve, non
+una didascalia generata. Sotto, i libri distinti da cui viene il tema, ciascuno un collegamento
+alla propria scheda. Un comando testuale, "Mostra gli insight", apre l'elenco degli insight e
+delle recensioni veri che hanno prodotto il tema, con lo stesso trattamento dei risultati di
+ricerca: titolo del libro come collegamento, testo, poi tipo e data.
+
+**Nessun tema debole.** Un tema sostenuto da un solo libro non è trasversale, e non compare — non
+attenuato, non segnalato come incerto, assente. Se dopo il filtro non resta alcun tema, la
+sintesi non si genera né sostituisce quella esistente: meglio nessuna carta che una carta vuota o
+un pattern su un libro solo. Due testi distinti per i due modi in cui questo succede: non hai
+ancora scritto nulla ("Scrivi qualche insight o recensione prima di chiedere una sintesi"), oppure
+hai scritto ma nulla si collega ancora fra libri diversi ("Non emerge ancora un tema che
+attraversi libri diversi. Continua a scrivere e a leggere, poi riprova").
+
+**Sostituisce, non si accumula** — a differenza della preview (§9), che accumula apposta perché un
+parere per ogni rilettura ha senso. Esiste al più una sintesi tematica per utente: generarne una
+nuova cancella la precedente, mai prima di avere quella nuova pronta. Il comando lo dice: "Genera
+una sintesi" la prima volta, "Genera di nuovo" quando ce n'è già una, e sta nell'intestazione
+della regione insieme a "Cancella", non in fondo all'elenco.
+
+**Lo stesso avviso della preview**: il campo della risposta che dichiara la generazione — non una
+frase dentro un testo — sopra l'elenco dei temi, valido per l'intero risultato e non ripetuto su
+ogni carta.
+
+**Come per la preview**: a consenso revocato la sintesi già generata resta leggibile e cancellabile
+dal proprietario, temi e insight collegati compresi; solo il comando di generazione sparisce,
+sostituito da un rimando al Profilo.
+
 ---
 
 ## 23. Suggerimenti di lettura
 
-**Una pagina a sé, `/suggerimenti`.** Stessa ragione di `/cerca`: dipende dal consenso, e la
-navigazione (§5) resta a quattro voci. Ci si arriva da un collegamento in fondo alla riga dei
-filtri della Libreria, accanto a "Cerca nei tuoi insight".
+**Seconda corsia di «Aggiungi un libro» (§13), non una pagina a sé.** Stavano su
+`/suggerimenti`, una pagina che nasceva vuota e si raggiungeva solo dal disclosure chiuso della
+Libreria. Il bisogno è identico a quello del catalogo che sta sopra — voglio un libro nuovo — solo
+senza un titolo già in testa: a monte il catalogo, che sa già cosa cerchi, sotto il modello, che
+prova a indovinarlo. Ci si arriva dall'unica azione primaria della Libreria, cioè dal pulsante più
+visibile della pagina più visitata dell'app. Un filetto separa le due corsie; il consenso governa
+solo la seconda.
 
 **Effimeri.** A differenza della preview e della sintesi tematica, un suggerimento non è un
 `artefatto_generato`: ogni pressione del pulsante "Suggeriscimi qualcosa" (poi "Suggeriscimi
@@ -1426,12 +1556,11 @@ Trattamento tipografico di un insight vero (`t-sentenza`/`t-appunto`, §10), ste
 otto righe e "Mostra tutto".
 
 **Una preferenza per questa sola richiesta**, facoltativa e sempre visibile — mai dietro un "più
-opzioni" — un campo a riga sola sopra il pulsante, stesso trattamento del campo di ricerca
-semantica (§22). Non salvata, non un artefatto, non un insight: vive nel corpo della singola
-richiesta e sparisce con lei. Il backend la tratta come una preferenza da considerare insieme al
-profilo, mai come un'istruzione che sostituisce le regole di generazione — un tentativo di
-cambiare argomento (rivelare le istruzioni del modello, farlo comportare diversamente) viene
-ignorato in silenzio: i suggerimenti arrivano lo stesso, senza tenerne conto.
+opzioni" — un campo a riga sola sopra il pulsante. Non salvata, non un artefatto, non un insight:
+vive nel corpo della singola richiesta e sparisce con lei. Il backend la tratta come una preferenza
+da considerare insieme al profilo, mai come un'istruzione che sostituisce le regole di generazione
+— un tentativo di cambiare argomento (rivelare le istruzioni del modello, farlo comportare
+diversamente) viene ignorato in silenzio: i suggerimenti arrivano lo stesso, senza tenerne conto.
 
 **Il profilo distingue tre gruppi con ruoli diversi**, non uno storico piatto: i libri amati
 (voto alto, di qualsiasi età), le letture più recenti (qualsiasi voto), i libri non piaciuti o
@@ -1443,48 +1572,9 @@ leggi ora) o "scoperta" (stesso territorio, un passo di lato). Solo "scoperta" s
 pagina, in `t-meta`, accanto alla motivazione.
 
 **Nessun badge "sintesi generata"**: a differenza della preview e della sintesi tematica, qui non
-c'è un singolo testo in prosa la cui origine vada dichiarata — la pagina stessa, con il suo
-titolo e la sua introduzione, dice già che si tratta di proposte del modello.
+c'è un singolo testo in prosa la cui origine vada dichiarata — l'intestazione della corsia, con la
+sua introduzione, dice già che si tratta di proposte del modello.
 
 Due stati vuoti, entrambi testo e non un riquadro rosso: consenso revocato ("L'elaborazione
-assistita è spenta", con rimando alla Torre) e profilo insufficiente (nessun libro amato, nessuna
+assistita è spenta", con rimando al Profilo) e profilo insufficiente (nessun libro amato, nessuna
 lettura conclusa, nessun deluso).
-
----
-
-## 24. Sintesi tematica
-
-Un elenco di temi, ciascuno con le prove attaccate — non un paragrafo unico: un tema verificabile
-e collegato ai libri da cui viene serve, un riassunto in prosa della libreria no.
-
-**Una pagina a sé, `/sintesi`.** Stessa ragione di §22/§23: dipende dal consenso, quattro voci di
-navigazione restano quattro, si arriva da un collegamento nella riga dei filtri della Libreria.
-
-**Un tema è una carta**, su piano 1 con grana, non una riga di elenco: nome del tema in
-`t-label` (stesso trattamento delle intestazioni di gruppo negli insight, §10), poi la frase che
-lo descrive in `t-sentenza`/`t-appunto` a seconda della lunghezza — un'osservazione breve, non
-una didascalia generata. Sotto, i libri distinti da cui viene il tema, ciascuno un collegamento
-alla propria scheda. Un comando testuale, "Mostra gli insight", apre l'elenco degli insight e
-delle recensioni veri che hanno prodotto il tema, con lo stesso trattamento della ricerca
-semantica (§22): titolo del libro come collegamento, testo, poi tipo e data.
-
-**Nessun tema debole.** Un tema sostenuto da un solo libro non è trasversale, e non compare — non
-attenuato, non segnalato come incerto, assente. Se dopo il filtro non resta alcun tema, la
-sintesi non si genera né sostituisce quella esistente: meglio nessuna carta che una carta vuota o
-un pattern su un libro solo. Due testi distinti per i due modi in cui questo succede: non hai
-ancora scritto nulla ("Scrivi qualche insight o recensione prima di chiedere una sintesi"), oppure
-hai scritto ma nulla si collega ancora fra libri diversi ("Non emerge ancora un tema che
-attraversi libri diversi. Continua a scrivere e a leggere, poi riprova").
-
-**Sostituisce, non si accumula** — a differenza della preview (§9), che accumula apposta perché un
-parere per ogni rilettura ha senso. Esiste al più una sintesi tematica per utente: generarne una
-nuova cancella la precedente, mai prima di avere quella nuova pronta. Il pulsante lo dice: "Genera
-una sintesi" la prima volta, "Genera di nuovo" quando ce n'è già una.
-
-**Lo stesso avviso della preview**: badge "Sintesi generata", campo della risposta e non frase
-dentro un testo, sopra l'elenco dei temi — vale per l'intero risultato, non ripetuto su ogni
-carta.
-
-**Come per la preview**: a consenso revocato la sintesi già generata resta leggibile e cancellabile
-dal proprietario, temi ed insight collegati compresi; solo il pulsante "Genera di nuovo" sparisce,
-sostituito da un rimando alla Torre.

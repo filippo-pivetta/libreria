@@ -178,8 +178,16 @@ function SuggerimentoRiga({ suggerimento }: { suggerimento: Suggerimento }) {
 }
 
 /**
- * Suggerimenti di lettura (design doc §26, issue #27): titoli proposti a
- * partire dal solo storico personale, mai da quello dei collegati.
+ * Suggerimenti di lettura (design doc §13, era §23 quando aveva una pagina
+ * sua): titoli proposti a partire dal solo storico personale, mai da quello
+ * dei collegati.
+ *
+ * **Non è più una pagina.** Stava su `/suggerimenti`, raggiungibile solo da
+ * un disclosure chiuso in mezzo ai filtri della Libreria, e nasceva vuota.
+ * Ora è la seconda corsia di "Aggiungi un libro": a monte il catalogo, che sa
+ * già cosa cerchi, qui il modello, che prova a indovinarlo. Ci si arriva
+ * dall'unica azione primaria della Libreria — il pulsante più visibile della
+ * pagina più visitata dell'app — invece che da un cassetto.
  *
  * Effimeri per scelta di prodotto: nessuna persistenza, ogni pressione
  * del pulsante ne genera di nuovi. `POST /suggerimenti` costa una
@@ -218,15 +226,19 @@ export function Suggerimenti() {
   });
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
-        <h1 className="t-title">Suggerimenti di lettura</h1>
+        {/* Seconda corsia di "Aggiungi un libro", non più una pagina a sé: il
+            bisogno è identico a quello della corsia sopra — voglio un libro
+            nuovo — solo senza un titolo già in testa. Da qui l'intestazione
+            di sezione invece del titolo di pagina. */}
+        <p className="t-section">Non sai cosa leggere?</p>
         <p className="t-meta max-w-prose">
           Titoli proposti a partire dal tuo storico e da ciò che hai scritto sulle tue letture.
-          Mai a partire da quello dei tuoi collegati.
+          Mai a partire da quello dei tuoi collegati, e mai un libro che hai già.
         </p>
         {/* Facoltativo, sempre visibile — mai dietro un "più opzioni":
-            stessa riga sola del campo di ricerca semantica (§25), non
+            stessa riga sola del campo di ricerca dei Quaderni (§22), non
             un modulo a sé. Una preferenza per questa sola richiesta, mai
             salvata: il backend la ignora se assomiglia a un tentativo di
             cambiare le regole invece che a un gusto di lettura. */}
