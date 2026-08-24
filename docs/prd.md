@@ -1,8 +1,10 @@
 # Nome dell'app: Montaigne
 
-> ⚠️ STATUS: DRAFT / BOZZA EVOLUTIVA
-> Linee guida di business, non prescrizioni tecniche. Usa questo documento
-> per capire l'INTENTO; proponi architetture migliori dove le vedi.
+Questo documento descrive l'intento di prodotto e la struttura di dominio di Montaigne: chi
+usa l'app, cosa può fare, quali entità la compongono e come si comportano. È un punto di
+riferimento condiviso per capire il sistema, non una specifica tecnica immutabile: si aggiorna
+quando la comprensione del prodotto cambia, e le architetture descritte sono migliorabili dove
+se ne vedono di migliori.
 
 ## Obiettivo
 
@@ -22,11 +24,11 @@ Montaigne è una web app dove un gruppo di lettori registra i libri letti e da l
 **Manutentore (fuori dal prodotto)**
 - Non è un ruolo dell'app: tutti gli Utenti dentro Montaigne hanno gli stessi poteri.
 - Fuori dall'app, sulla piattaforma dati: invita nuovi membri per email; corregge i generi; mantiene l'elenco chiuso; crea a mano le schede dei libri assenti da entrambi i cataloghi; fonde le schede duplicate. Nessuna di queste operazioni ha un'interfaccia nel prodotto.
-- L'istanza resta chiusa: si entra solo da un invito che il Manutentore ha creato (ADR 0013). Modalità di ingresso diverse sono rinviate.
+- L'istanza resta chiusa: si entra solo da un invito che il Manutentore ha creato. Modalità di ingresso diverse sono rinviate.
 - È titolare del trattamento dei dati dei membri. Nel prodotto non esiste alcun account privilegiato; sulla piattaforma dati ha però accesso tecnico a tutto, note di intenzione comprese. La riservatezza delle note è garantita dall'app, non dall'infrastruttura, ed è una condizione che i membri devono conoscere.
 
 **Accesso**
-Si entra da un invito che il Manutentore crea sulla piattaforma di autenticazione e manda per email, fuori dall'app (ADR 0013). Aprendo il link, il membro completa l'account in un'unica schermata: imposta la propria password, sceglie il proprio nome utente — univoco, non più modificabile una volta scritto — e accetta l'informativa, la cui accettazione è registrata come dato dell'Utente insieme allo stato del consenso all'elaborazione assistita. Da quel momento in poi si accede con email e password. La sessione è persistente e si rinnova da sola; quando scade durante la scrittura, la riautenticazione avviene nella stessa pagina, senza ricaricarla e senza perdere il testo. Il recupero delle credenziali passa dal Manutentore, fuori dall'app.
+Si entra da un invito che il Manutentore crea sulla piattaforma di autenticazione e manda per email, fuori dall'app. Aprendo il link, il membro completa l'account in un'unica schermata: imposta la propria password, sceglie il proprio nome utente — univoco, non più modificabile una volta scritto — e accetta l'informativa, la cui accettazione è registrata come dato dell'Utente insieme allo stato del consenso all'elaborazione assistita. Da quel momento in poi si accede con email e password. La sessione è persistente e si rinnova da sola; quando scade durante la scrittura, la riautenticazione avviene nella stessa pagina, senza ricaricarla e senza perdere il testo. Il recupero delle credenziali passa dal Manutentore, fuori dall'app.
 
 **Utente non autenticato**
 - Nessun accesso oltre alla schermata di accesso.
@@ -36,16 +38,16 @@ Si entra da un invito che il Manutentore crea sulla piattaforma di autenticazion
 **Libro**
 Una sola scheda per opera, mai per edizione. L'identità della scheda è l'identificativo dell'opera del catalogo canonico, risolto a partire dall'ISBN dell'edizione trovata o, in mancanza, da titolo e autore; quando nemmeno quello esiste, la scheda nasce con un identificativo proprio e resta segnalata come non canonicalizzata. Il riconoscimento di una scheda già esistente avviene su quell'identificativo, mai sul titolo. Due Utenti che aggiungono la stessa opera partendo da volumi diversi ricadono quindi sulla stessa scheda; se i due volumi risolvono su identificativi diversi, nascono due schede e il caso rientra nella deduplicazione. Porta autori, generi, lingua originale, anno di prima pubblicazione e un titolo canonico che serve a identificare l'opera, non a essere mostrato.
 L'anno è quello della prima pubblicazione dell'opera, mai la data dell'edizione letta: per un classico ristampato l'anno dell'edizione sarebbe plausibile e sbagliato, e l'errore passerebbe inosservato. La lingua è quella in cui l'opera è stata scritta, che non coincide con la nazionalità dell'autore e non è la lingua dell'edizione. La nazionalità dell'autore non viene registrata.
-Quando il catalogo primario non fornisce anno o lingua, si consulta Wikidata come fonte bibliografica di ripiego, prima di ricorrere alla deduzione: `P407` (lingua originale) e `P577` (data di pubblicazione) sono dato di fonte, non dedotto, e non richiedono la marcatura sotto. Solo quando nemmeno Wikidata li ha, il valore viene dedotto dal modello e conservato come dedotto, distinguibile da quello proveniente dalla fonte. Entrambi i campi sono conservati ma non alimentano alcuna metrica in questa versione. Dato condiviso tra tutti gli utenti.
+Quando il catalogo primario non fornisce anno o lingua, si consulta Wikidata come fonte bibliografica di ripiego, prima di ricorrere alla deduzione: `P407` (lingua originale) e `P577` (data di pubblicazione) sono dato di fonte, non dedotto, e non richiedono marcatura. Solo quando nemmeno Wikidata li ha, il valore viene dedotto dal modello e conservato come dedotto, distinguibile da quello proveniente dalla fonte. Entrambi i campi sono conservati ma non alimentano alcuna metrica in questa versione. Dato condiviso tra tutti gli utenti.
 
 **Copertina**
-Immagine dell'opera, recuperata alla nascita della scheda preferendo la fonte con la qualità migliore e ricorrendo all'altra solo se la prima non ne ha, e conservata dal sistema in due formati, una miniatura per gli elenchi e una versione più grande per la scheda del libro. Le immagini sono compresse con perdita non percepibile, non bit per bit: sulle copertine la compressione senza perdita guadagna poco. Miniatura con lato lungo di 400 pixel (sullo scaffale la copertina è larga 120px, che su schermo a doppia densità sono 240 pixel reali: una miniatura più piccola risulterebbe visibilmente morbida, la lamentela più diffusa contro le app del settore — docs/design-frontend.md §7), versione grande di 600, in un formato moderno a qualità alta.
+Immagine dell'opera, recuperata alla nascita della scheda preferendo la fonte con la qualità migliore e ricorrendo all'altra solo se la prima non ne ha, e conservata dal sistema in due formati, una miniatura per gli elenchi e una versione più grande per la scheda del libro. Le immagini sono compresse con perdita non percepibile, non bit per bit: sulle copertine la compressione senza perdita guadagna poco. Miniatura con lato lungo di 400 pixel (sullo scaffale la copertina è larga 120px, che su schermo a doppia densità sono 240 pixel reali), versione grande di 600, in un formato moderno a qualità alta.
 Recuperata una volta, la copertina non dipende più dalla fonte: l'app la mostra anche se il catalogo cambia indirizzo o non risponde. Se la fonte non ne fornisce alcuna, compare un segnaposto con titolo e autore.
 Sono immagini editoriali di terzi conservate sul sistema. L'esposizione è contenuta dal fatto che l'app non è accessibile senza autenticazione e non è indicizzabile, quindi le copertine non sono raggiungibili pubblicamente: uso interno a una cerchia chiusa, con la conservazione preferita alla dipendenza da un servizio esterno.
 
 **Descrizione**
-Il riassunto dell'opera in una lingua, stessa forma della Variante di titolo: nessun campo fisso per lingua, ogni descrizione è una voce a sé che dichiara la propria lingua e la propria fonte, aggiungibile senza toccare la struttura. Recuperata da una fonte editoriale o enciclopedica al momento della nascita della scheda, mai generata da zero: se nessuna fonte ha una descrizione dell'opera, il campo resta vuoto, coerente con "nessuna invenzione di dati se l'opera non è in nessuna delle due fonti". Il testo mostrato si sceglie con lo stesso ordine della Variante di titolo: la lingua dell'interfaccia, altrimenti nessuna — non esiste un ripiego su un'altra lingua per la descrizione, a differenza del titolo, perché una trama letta nella lingua sbagliata non assolve alla stessa funzione di un titolo. Quando la fonte ha termini d'uso che richiedono attribuzione, la scheda la mostra insieme al testo.
-Quando una fonte ha scritto il testo in una sola delle due lingue dell'interfaccia, il modello traduce quel testo verso l'altra invece di lasciare il campo vuoto: sempre a partire dal testo sorgente reale, mai una generazione — la stessa regola "nessuna invenzione di dati" applicata alla lingua invece che alla presenza del testo. Se nessuna fonte ha il testo in nessuna delle due lingue, il campo resta vuoto come già previsto sopra.
+Il riassunto dell'opera in una lingua, stessa forma della Variante di titolo: nessun campo fisso per lingua, ogni descrizione è una voce a sé che dichiara la propria lingua e la propria fonte, aggiungibile senza toccare la struttura. Recuperata da una fonte editoriale o enciclopedica al momento della nascita della scheda, mai generata da zero: se nessuna fonte ha una descrizione dell'opera, il campo resta vuoto, coerente con l'idea che nessun dato viene inventato se l'opera non è in nessuna delle due fonti. Il testo mostrato si sceglie con lo stesso ordine della Variante di titolo: la lingua dell'interfaccia, altrimenti nessuna — non esiste un ripiego su un'altra lingua per la descrizione, a differenza del titolo, perché una trama letta nella lingua sbagliata non assolve alla stessa funzione di un titolo. Quando la fonte ha termini d'uso che richiedono attribuzione, la scheda la mostra insieme al testo.
+Quando una fonte ha scritto il testo in una sola delle due lingue dell'interfaccia, il modello traduce quel testo verso l'altra invece di lasciare il campo vuoto: sempre a partire dal testo sorgente reale, mai una generazione. Se nessuna fonte ha il testo in nessuna delle due lingue, il campo resta vuoto come già previsto sopra.
 
 **Variante di titolo**
 Il titolo di un'opera in una lingua. Non esiste alcun campo fisso per lingua: ogni variante è una voce a sé che dichiara la propria lingua, e un'opera ne ha quante ne fornisce il catalogo, anche nessuna. È un dato che le fonti forniscono in modo parziale e disomogeneo: la maggior parte delle opere avrà una sola variante, e il ripiego sul titolo canonico sarà frequente. Aggiungere o togliere una lingua supportata non modifica la struttura, aggiunge o toglie varianti.
@@ -53,7 +55,7 @@ Il titolo mostrato si sceglie in quest'ordine: la variante nella lingua dell'int
 
 **Genere**
 Elenco chiuso definito dal Manutentore fuori dall'app, dell'ordine di venticinque-trenta voci, tutte sullo stesso piano. Ogni genere ha un'identità stabile che non è una parola: il Libro punta a quella, mai all'etichetta. Le parole che l'utente legge sono etichette separate, una per lingua, modificabili senza toccare alcun libro e senza invalidare le metriche degli anni passati. Non contiene formati (ebook, graphic novel) né il livello superiore narrativa/saggistica, che sporcherebbe la metrica facendo ricadere lo stesso libro in due voci sovrapposte. Le etichette vanno scelte vicine alle categorie di primo livello della fonte bibliografica, così la mappatura automatica ricorre al modello il meno possibile. Riferimenti del settore: 58 generi su StoryGraph mantenuti da bibliotecari, circa trenta in evidenza su Goodreads, categorie derivate dallo standard editoriale BISAC su Google Books. Il genere appartiene al Libro, è universale e uguale per tutti, e non è correggibile localmente. Un'opera ne porta da uno a tre: costringere "Sapiens" a scegliere tra storia e scienza produrrebbe una classificazione arbitraria. Nelle metriche il peso si ripartisce tra i generi assegnati, come per gli autori, così un libro vale sempre uno. Si assegnano una volta sola alla nascita della scheda, mappando i soggetti dei cataloghi esterni sull'elenco e ricorrendo al modello linguistico dove la mappatura non decide. Se nessuna delle due vie è sufficiente, l'opera resta "non classificato", visibile a tutti come tale. Nessun Utente può correggerlo, e nel prodotto non esiste alcuna via per segnalarlo: gli errori si comunicano fuori dall'app e si correggono sulla piattaforma dati.
-L'elenco è fissato e non cambia nell'MVP: nessuna procedura di modifica o di riclassificazione in blocco fa parte di questa versione. Le correzioni puntuali su singole schede avvengono fuori banda e si riflettono immediatamente per tutti.
+L'elenco resta fissato nell'MVP: nessuna procedura di modifica o di riclassificazione in blocco fa parte di questa versione. Le correzioni puntuali su singole schede avvengono fuori banda e si riflettono immediatamente per tutti.
 
 **Pagine adottate**
 Il numero di pagine non appartiene al Libro ma alla Voce di libreria, perché varia legittimamente da edizione a edizione: due Utenti che leggono la stessa opera in edizioni diverse hanno totali diversi, ed è corretto. Arriva precompilato con un valore rappresentativo, cioè la mediana delle edizioni per cui il catalogo dichiara un conteggio pagine, senza chiedere all'Utente quale edizione abbia letto, e l'Utente può correggerlo sulla propria copia. La correzione è necessaria quando il dato ereditato è sbagliato, come negli audiolibri le cui ore finiscono nel campo delle pagine, oppure quando la sua edizione differisce sensibilmente da quella rappresentativa.
@@ -87,7 +89,7 @@ Transizioni ammesse:
 - letto o abbandonato → da leggere: ammesso, non chiude né apre nulla; serve solo a rimettere in coda un libro.
 - in lettura o in pausa → da leggere: annulla la Lettura aperta e i suoi avanzamenti, ed è l'unico modo per disfare una Lettura aperta per errore.
 - Da "da leggere" non si passa direttamente a letto o abbandonato: senza una Lettura aperta non c'è nulla da chiudere.
-Le transizioni non elencate sono vietate. Cancellando una Lettura, la Voce assume lo stato che deriva dalle Letture rimaste: quello dell'ultima chiusa, oppure "da leggere" se non ne resta nessuna. Gli insight legati a una Lettura cancellata restano sulla Voce, senza più alcuna Lettura associata.
+Le transizioni non elencate non sono previste. Cancellando una Lettura, la Voce assume lo stato che deriva dalle Letture rimaste: quello dell'ultima chiusa, oppure "da leggere" se non ne resta nessuna. Gli insight legati a una Lettura cancellata restano sulla Voce, senza più alcuna Lettura associata.
 
 **Voto** Da 1 a 5 stelle, a scatti di mezza stella (1, 1,5, 2, ... 5), uno per Voce. Una rilettura non lo azzera: resta quello finché l'Utente non lo cambia. Segue la Voce: sempre visibile ai collegati, non ha visibilità propria.
 
@@ -133,7 +135,7 @@ Le richieste hanno una superficie dedicata nel profilo, che mostra sia quelle ri
 
 **Elenco dei membri**
 Elenco dei nomi utente visibile a tutti gli autenticati, unico strumento per trovare qualcuno e inviargli una richiesta. Accanto a ciascun nome compare lo stato della relazione con chi guarda, cioè assente, in attesa o attiva, perché altrimenti si invierebbero richieste alla cieca; non espone le relazioni tra terzi, né libri, metriche o contenuti.
-Il nome utente è scelto dall'Utente completando l'invito del Manutentore (ADR 0013), è univoco, non modificabile una volta scritto, e deve essere riconoscibile dagli altri membri, altrimenti l'elenco non serve a trovare nessuno.
+Il nome utente è scelto dall'Utente completando l'invito del Manutentore, è univoco, non modificabile una volta scritto, e deve essere riconoscibile dagli altri membri, altrimenti l'elenco non serve a trovare nessuno.
 
 ## Ownership dei dati
 
@@ -159,9 +161,9 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 
 ## Comportamento
 
-1. Il Manutentore invita il futuro membro per email dalla piattaforma dati (ADR 0013). Aprendo il link, il membro imposta la propria password, sceglie il proprio nome utente e accetta l'informativa sull'invio dei propri contenuti al fornitore di modelli, tutto nella stessa schermata. Nessun collegamento nasce da questo passaggio: tutte le relazioni si creano da richiesta e accettazione.
+1. Il Manutentore invita il futuro membro per email dalla piattaforma dati. Aprendo il link, il membro imposta la propria password, sceglie il proprio nome utente e accetta l'informativa sull'invio dei propri contenuti al fornitore di modelli, tutto nella stessa schermata. Nessun collegamento nasce da questo passaggio: tutte le relazioni si creano da richiesta e accettazione.
 2. L'Utente consulta l'elenco dei membri e invia richieste di collegamento. Finché la richiesta non è accettata, nessuno dei due vede nulla dell'altro.
-3. L'Utente cerca l'opera per titolo o autore. La ricerca interroga prima le schede già esistenti nel sistema, comprese quelle create a mano fuori banda, e poi i cataloghi esterni; i risultati sono presentati insieme, senza distinzione. non esistono altre vie d'ingresso, né codice digitato né scansione. Nasce una Voce con stato "da leggere", con il numero di pagine precompilato a un valore rappresentativo che l'Utente può correggere. Se il Libro è già in libreria, l'app non lo duplica: se la Voce è in "letto" o "abbandonato" propone di aprire una nuova Lettura, altrimenti si limita a portare l'Utente sulla Voce esistente.
+3. L'Utente cerca l'opera per titolo o autore. La ricerca interroga prima le schede già esistenti nel sistema, comprese quelle create a mano fuori banda, e poi i cataloghi esterni; i risultati sono presentati insieme, senza distinzione. Non esistono altre vie d'ingresso, né codice digitato né scansione. Nasce una Voce con stato "da leggere", con il numero di pagine precompilato a un valore rappresentativo che l'Utente può correggere. Se il Libro è già in libreria, l'app non lo duplica: se la Voce è in "letto" o "abbandonato" propone di aprire una nuova Lettura, altrimenti si limita a portare l'Utente sulla Voce esistente.
 4. L'Utente può allegare una nota di intenzione privata.
 5. Se il numero di pagine ereditato è sbagliato o assente, l'Utente lo corregge sulla propria copia.
 6. All'inizio della lettura lo stato passa a "in lettura" e si apre una Lettura.
@@ -173,90 +175,17 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 12. L'Utente consulta le metriche scegliendo un anno tra il primo in cui ha dati e quello corrente, estremi inclusi; gli anni futuri non sono selezionabili, e un anno intermedio senza letture mostra zeri, non un errore.
 13. L'Utente apre la libreria di un collegato e ne vede libri, stati, avanzamenti, voti, metriche e contenuti condivisi.
 14. Per rileggere, riporta la Voce a "in lettura": nasce una seconda Lettura e lo storico resta. Voto e recensione restano quelli della lettura precedente finché l'Utente non li cambia.
-14bis. In qualsiasi momento l'Utente può esportare in CSV, dalle impostazioni, i libri con stato "letto": titolo, autori, generi, anno di prima pubblicazione, lingua originale, pagine adottate, date di inizio e fine dell'ultima lettura conclusa, voto, recensione. Non include insight né nota di intenzione, e non richiede alcuna conferma: è un'azione non distruttiva, disponibile indipendentemente da qualunque altra (ADR 0011).
+14bis. In qualsiasi momento l'Utente può esportare in CSV, dalle impostazioni, i libri con stato "letto": titolo, autori, generi, anno di prima pubblicazione, lingua originale, pagine adottate, date di inizio e fine dell'ultima lettura conclusa, voto, recensione. Non include insight né nota di intenzione, e non richiede alcuna conferma: è un'azione non distruttiva, disponibile indipendentemente da qualunque altra.
 15. In qualsiasi momento l'Utente può cancellare il proprio account dalle impostazioni. La conferma consiste nel digitare il proprio nome utente; la cancellazione è immediata, definitiva, senza periodo di grazia. L'esportazione dei libri letti (14bis) resta un'azione separata: non è proposta in questo passaggio, ed è comunque disponibile prima come dopo. Travolge in cascata libreria, letture, avanzamenti, voti, recensioni, insight, note, preview personalizzate, indici semantici derivati e collegamenti.
 
 **Post MVP**
-- Registrazione aperta, senza invito del Manutentore: l'istanza resta chiusa per questa versione (ADR 0013).
+- Registrazione aperta, senza invito del Manutentore: l'istanza resta chiusa per questa versione.
 - Raccomandazioni basate sullo storico, con rifiuto permanente di titoli e autori e affinità calcolata su chi valuta gli stessi libri allo stesso modo.
 - Recap periodico in card condivisibile: nessun contenuto privato può finirci dentro, e la condivisione esce dal perimetro chiuso, quindi è pubblicazione consapevole e irreversibile. Richiederà periodi diversi dall'anno solare.
 
-## Regole invalicabili
-
-1. Un contenuto privato non è mai restituito a nessuno oltre al proprietario, collegati inclusi.
- *Test:* A crea recensione, insight e nota privati; B collegato interroga ogni vista; nessuno compare.
-2. Recensioni e insight nascono condivisi con i soli collegati, mai oltre; le note di intenzione nascono private e restano tali.
- *Test:* creare i tre contenuti senza indicare la visibilità; i primi due risultano visibili ai collegati e a nessun altro, la nota a nessuno.
-3. Una nota di intenzione non ha alcuna operazione che possa renderla visibile.
- *Test:* tentare ogni scrittura sulla sua visibilità; tutte rifiutate.
-4. A un Utente non collegato non è mai visibile alcun dato di lettura altrui: né libreria, né stati, né avanzamenti, né voti, né contenuti, né metriche. Restano visibili a tutti soltanto i dati condivisi del catalogo e i nomi utente dell'elenco membri.
- *Test:* A condivide voto, recensione e insight; C non collegato interroga ogni vista e ogni identificatore noto di quei dati; rifiuto. La scheda del Libro resta invece accessibile a C.
-5. Nessun Utente può creare, modificare o cancellare contenuti altrui: nel prodotto non esiste alcun account con privilegi superiori. I lavori in secondo piano operano con un'identità tecnica che non serve mai richieste di Utenti e può soltanto produrre dati derivati, mai leggere o alterare contenuti per conto di qualcuno.
- *Test:* B tenta ogni scrittura sui dati di A; rifiuto, dati invariati. Nessun ruolo applicativo consente di aggirarlo.
-6. Nessun dato di lettura e nessun file conservato dal sistema, copertine comprese, è accessibile senza autenticazione, e nessuna pagina dell'app è indicizzabile.
- *Test:* richiesta anonima a qualunque indirizzo di contenuto e a qualunque indirizzo di immagine; rifiuto in entrambi i casi. Verifica delle direttive di esclusione dei crawler.
-7. Una richiesta di collegamento in attesa non concede alcuna visibilità.
- *Test:* A invia richiesta a B; nessuno dei due vede nulla dell'altro finché B non accetta.
-8. Interrotto il collegamento, ogni visibilità cessa in entrambe le direzioni dalla richiesta successiva.
- *Test:* B vede la libreria di A; A interrompe; B ripete e riceve rifiuto, e lo stesso vale per A verso B.
-9. Un cambio di visibilità ha effetto immediato.
- *Test:* B legge un insight condiviso di A; A lo rende privato; alla richiesta successiva non lo trova.
-10. Un insight contrassegnato spoiler non è mai restituito in chiaro in elenchi o anteprime.
- *Test:* B apre ogni vista che elenchi insight di A; il testo appare solo dopo azione esplicita.
-11. Un Libro genera al massimo una Voce per libreria; la rilettura produce una nuova Lettura, non una seconda Voce.
- *Test:* aggiungere due volte la stessa opera; una sola Voce esiste.
-12. I libri finiti di un anno corrispondono alle Letture chiuse con esito conclusione in quell'anno.
- *Test:* chiudere due Letture della stessa Voce in anni diversi; ciascun anno ne conta una.
-13. Un abbandono non incrementa mai il conteggio dei libri finiti, ma non annulla le pagine registrate.
- *Test:* chiudere una Lettura con esito abbandono; conteggio libri invariato, pagine invariate.
-14. Dentro una Lettura la somma degli incrementi non supera mai le pagine adottate per la Voce, quando queste esistono; se la Voce non ha pagine adottate non si applica alcun tetto. Letture diverse sulla stessa Voce hanno conteggi indipendenti, quindi una rilettura conta di nuovo le stesse pagine.
- *Test:* registrare avanzamenti fino al totale e tentarne uno oltre: rifiutato. Aprire una seconda Lettura e verificare che il conteggio riparta da zero. Su una Voce senza pagine adottate, verificare che nessun avanzamento venga rifiutato per superamento.
-15. Un avanzamento non può essere datato prima dell'avanzamento precedente della stessa Lettura, né a una data futura.
- *Test:* tentare l'inserimento con data anteriore al precedente e con data futura; entrambi rifiutati.
-16. La correzione locale dei metadati non altera i dati visti da altri Utenti.
- *Test:* A corregge le pagine; metriche e vista di B restano invariate.
-17. Le metriche di un Utente sono calcolate solo sui suoi dati.
- *Test:* variare i dati di B; le metriche di A non cambiano.
-18. Un libro con più autori distribuisce il proprio peso tra loro: la somma dei contributi resta pari a un libro.
- *Test:* registrare un libro a tre autori; la somma dei pesi in "autori più letti" vale uno, non tre.
-19. Nessun contenuto appartenente a un Utente diverso da chi ha richiesto l'operazione viene mai inviato a un fornitore esterno di modelli.
- *Test:* eseguire ogni funzione assistita di A e ispezionare il contenuto inviato; nessun testo, voto o dato di lettura di B vi compare.
-20. Una preview generata non supera le ottanta parole e non contiene testo tra virgolette.
- *Test:* generare preview su un campione di libri e verificare le due condizioni, che sono misurabili senza possedere l'originale.
-
- La terza condizione originaria — "riporta l'indicazione di essere una sintesi generata" — è stata tolta. L'indicazione nasceva per proteggere l'Utente dallo scambiare un parere generato per un giudizio proprio, ma la preview vive sotto un titolo che è già la domanda che le si è posta ("Me lo consigli?"), dietro un pulsante che si preme apposta, e nessun altro la vede mai (regola 23). L'unico lettore possibile è chi l'ha chiesta un momento prima: non c'è nessuno da avvertire, e l'etichetta finiva per essere un tag di servizio in cima al testo. Resta la disciplina che conta, cioè le due condizioni misurabili sul testo.
-21. Il genere non è modificabile da alcun Utente attraverso l'app: è dato condiviso, corretto solo fuori banda.
- *Test:* ogni tentativo di scrittura sul genere da parte di qualsiasi Utente viene rifiutato.
-22. Una correzione di genere effettuata fuori banda è visibile a tutti gli Utenti dalla richiesta successiva, e nessuna esecuzione automatica la sovrascrive.
- *Test:* correggere un genere sulla piattaforma dati, verificarne la comparsa per ogni Utente, aggiungere altri libri e verificare che il valore corretto resti.
-22bis. Un nome d'autore ricondotto a un'identità esistente non crea un secondo autore nella metrica.
- *Test:* aggiungere due libri con il nome dello stesso autore scritto in forme diverse; in "autori più letti" compare una voce sola.
-23. Una preview personalizzata non è mai condivisibile né visibile ad altri, perché deriva da contenuti privati.
- *Test:* generare una preview personalizzata di A; nessuna vista di B la contiene e nessuna operazione può renderla condivisa.
-24. Gli indici della ricerca semantica sono soggetti alle stesse regole di accesso dei contenuti da cui derivano.
- *Test:* interrogare la ricerca semantica come B su contenuti privati di A; nessun risultato, nemmeno parziale o in forma di estratto.
-25. Finché la scheda del browser resta aperta, un testo in corso di scrittura sopravvive alla scadenza della sessione e a un errore di rete.
- *Test:* far scadere la sessione e interrompere la rete durante la scrittura di un insight lungo; il testo è ancora lì e si salva dopo la riautenticazione. Fuori da questo ambito, cioè scheda chiusa o macchina riavviata, non è garantito nulla.
-26. La cancellazione dell'account rimuove ogni dato appartenente all'Utente, senza residui interrogabili da alcun attore.
- *Test:* cancellare l'account di A; verificare che nessuna vista di B e nessuna interrogazione della ricerca semantica restituisca contenuti, metriche o tracce di A.
-27. La cancellazione non tocca i dati condivisi che non appartengono all'Utente: schede dei Libri e generi restano.
- *Test:* cancellare l'account di A, che aveva creato la scheda di un libro; la scheda esiste ancora nella libreria di B.
-28. La cancellazione dell'account non è mai eseguita senza che l'Utente abbia digitato il proprio nome utente nella stessa sessione.
- *Test:* invocare la cancellazione senza conferma, e con una stringa di conferma errata; in nessuno dei due casi viene rimosso alcun dato.
-29. La cancellazione ha effetto immediato dentro il perimetro del sistema: nessun dato dell'Utente vi sopravvive in attesa di una scadenza. Resta fuori dal perimetro ciò che è già stato inviato al fornitore di modelli, soggetto alla sua ritenzione.
- *Test:* cancellare l'account e interrogare subito ogni vista, ogni indice e lo spazio file; nessuna traccia.
-30. Con il consenso revocato, nessuna delle cinque funzioni che toccano dati personali viene eseguita, e nessun indice semantico costruito su quei contenuti sopravvive.
- *Test:* revocare il consenso di A; invocare ciascuna delle cinque funzioni e verificare che non partano; interrogare gli indici e non trovare vettori derivati da contenuti di A.
-31. La classificazione dei generi e la deduplicazione dei metadati non inviano mai contenuti dell'Utente, e restano attive anche a consenso revocato.
- *Test:* revocare il consenso, aggiungere un libro, ispezionare il contenuto inviato: soli dati bibliografici.
-32. La revoca del consenso non cancella né altera contenuti già presenti nella libreria dell'Utente, artefatti generati inclusi.
- *Test:* generare una preview personalizzata e una sintesi tematica, revocare il consenso, verificare che siano ancora leggibili dal proprietario e che non se ne possano creare di nuove.
-33. L'esportazione dei libri letti restituisce solo le Voci dell'Utente richiedente con stato "letto", mai quelle di un altro utente, anche collegato.
- *Test:* A e B collegati, A ha libri letti; B esporta i propri; il file di B non contiene alcun libro di A.
-34. L'esportazione dei libri letti non include mai insight né nota di intenzione.
- *Test:* esportare una Voce con insight e nota di intenzione; nessuno dei due testi compare nel file, in nessuna colonna.
-
 ## Casi limite
+
+Comportamenti attesi nei casi meno frequenti — utili come riferimento per capire cosa succede quando i dati non sono nel caso comune.
 
 **Accesso a dati altrui**
 - Richiesta diretta di un contenuto privato altrui di cui si conosce l'identificatore: rifiuto indistinguibile da quello di un contenuto inesistente.
@@ -327,26 +256,25 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 - Carico: interattivo e sporadico, con letture delle metriche molto più frequenti delle scritture.
 - Nessun requisito di latenza o disponibilità dichiarato. Nessuna scadenza di rilascio.
 
-## Vincoli esterni
+## Contesto tecnico
 
-- Stack imposto: Next.js, FastAPI, Supabase. Il front end sta su Vercel; il back end, che è l'unico a interrogare i cataloghi, sta su un ambiente con indirizzo di uscita stabile in Europa, quindi non serverless.
+- Stack attuale: Next.js, FastAPI, Supabase. Il front end sta su Vercel; il back end, che è l'unico a interrogare i cataloghi, sta su un ambiente con indirizzo di uscita stabile in Europa, quindi non serverless.
 - Fonte bibliografica primaria: Google Books, per copertura del catalogo italiano e qualità della ricerca. Richiede chiave API. Google dichiara di avere in licenza gran parte dei dati che alimentano il servizio e di non essere libera di ridistribuirli; i termini impongono la rimozione su richiesta dei contenuti lesivi di diritti di terzi e un contatto per i titolari; i risultati variano in base all'IP del server, perché rispettano le restrizioni legali del paese. La conservazione permanente di una copia locale è terreno grigio contrattuale.
-- Fonte di ripiego e record canonico: Open Library. Gratuita, senza chiave, con separazione nativa tra opera ed edizione, dati riutilizzabili senza vincoli. Non supporta CORS, va interrogata dal back end. Limite di cortesia osservato attorno a 100 richieste ogni 5 minuti per IP. Contiene però opere duplicate (più record d'opera per la stessa opera, verificato) e circa il 40% degli ISBN italiani campionati non vi risulta: la deduplicazione a valle non è un caso limite ma manutenzione ordinaria del catalogo.
-- Fonte di arricchimento: Wikidata. Gratuita, senza chiave, CC0. Risolve l'identità di un'opera a partire da un titolo in qualunque lingua — dove Open Library richiede di cercare nella lingua del suo titolo canonico — e fornisce la lingua originale dell'opera, che Open Library non dà (il suo campo lingua è quello delle edizioni, non dell'opera). Copertura limitata alle opere notabili: è un ripiego e un arricchimento, mai l'ossatura della risoluzione.
-- Attrito noto e accettato: Google Books non ha il concetto di opera, ogni volume è un'edizione. La regola di una scheda per opera richiede quindi una deduplicazione a carico del sistema.
-- Amministrazione interamente fuori dal prodotto: l'invito dei nuovi membri (ADR 0013), la correzione dei generi, l'elenco chiuso, la creazione manuale delle schede assenti dai cataloghi e la fusione dei duplicati avvengono sulla piattaforma dati. Nome utente e password restano scelti dal membro, ma solo a valle di un invito che nessuno fuori dal Manutentore può creare. L'app non contiene alcuna funzione amministrativa né alcun account privilegiato.
-- Interfaccia bilingue italiano e inglese dal primo giorno, limitata al minimo essenziale nell'MVP; il perimetro esatto della traduzione si definisce in fase di costruzione. Le email non compaiono nell'interfaccia del prodotto: il Manutentore le usa solo per mandare l'invito (ADR 0013), fuori dall'app, e il recupero delle credenziali resta fuori dall'app; errori, conferme e stati vuoti seguono la lingua dell'interfaccia. I contenuti scritti dagli utenti non vengono tradotti; i generi appartengono all'elenco chiuso, non alla lingua della fonte. Le stringhe vanno tenute fuori dal codice fin dall'inizio; date e numeri seguono la lingua del browser.
-- Mobile e desktop hanno pari importanza, con il mobile a fare da riferimento principale nei casi di dubbio: gli usi rapidi e sul momento (registrare un avanzamento, controllare la libreria di un collegato, scrivere un insight in coda) sono più probabili da telefono, quindi ogni schermata va progettata e verificata mobile-first e poi estesa al desktop, non il contrario.
+- Fonte di ripiego e record canonico: Open Library. Gratuita, senza chiave, con separazione nativa tra opera ed edizione, dati riutilizzabili senza vincoli. Non supporta CORS, va interrogata dal back end. Limite di cortesia osservato attorno a 100 richieste ogni 5 minuti per IP. Contiene però opere duplicate (più record d'opera per la stessa opera, verificato) e circa il 40% degli ISBN italiani campionati non vi risulta: la deduplicazione a valle è manutenzione ordinaria del catalogo, non un caso raro.
+- Fonte di arricchimento: Wikidata. Gratuita, senza chiave, CC0. Risolve l'identità di un'opera a partire da un titolo in qualunque lingua — dove Open Library richiede di cercare nella lingua del suo titolo canonico — e fornisce la lingua originale dell'opera, che Open Library non dà (il suo campo lingua è quello delle edizioni, non dell'opera). Copertura limitata alle opere notabili: è un ripiego e un arricchimento, non l'ossatura della risoluzione.
+- Attrito noto: Google Books non ha il concetto di opera, ogni volume è un'edizione. La regola di una scheda per opera richiede quindi una deduplicazione a carico del sistema.
+- Amministrazione interamente fuori dal prodotto: l'invito dei nuovi membri, la correzione dei generi, l'elenco chiuso, la creazione manuale delle schede assenti dai cataloghi e la fusione dei duplicati avvengono sulla piattaforma dati. Nome utente e password restano scelti dal membro, ma solo a valle di un invito che nessuno fuori dal Manutentore può creare. L'app non contiene alcuna funzione amministrativa né alcun account privilegiato.
+- Interfaccia bilingue italiano e inglese dal primo giorno, limitata al minimo essenziale nell'MVP; il perimetro esatto della traduzione si definisce in fase di costruzione. Le email non compaiono nell'interfaccia del prodotto: il Manutentore le usa solo per mandare l'invito, fuori dall'app, e il recupero delle credenziali resta fuori dall'app; errori, conferme e stati vuoti seguono la lingua dell'interfaccia. I contenuti scritti dagli utenti non vengono tradotti; i generi appartengono all'elenco chiuso, non alla lingua della fonte. Le stringhe vanno tenute fuori dal codice fin dall'inizio; date e numeri seguono la lingua del browser.
+- Mobile e desktop hanno pari importanza, con il mobile a fare da riferimento principale nei casi di dubbio: gli usi rapidi e sul momento (registrare un avanzamento, controllare la libreria di un collegato, scrivere un insight in coda) sono più probabili da telefono, quindi ogni schermata va progettata e verificata mobile-first e poi estesa al desktop.
 - Fornitore di modelli linguistici e visivi: OpenAI. Sull'API i dati inviati non vengono usati per l'addestramento, e i log per il monitoraggio degli abusi sono conservati fino a trenta giorni salvo obblighi di legge. La ritenzione zero richiede approvazione preventiva su contratto dedicato e non si applica agli account standard: la condizione di riferimento resta quindi trenta giorni. Nessun tetto di spesa impostato nel sistema: il controllo è manuale, fuori dal prodotto.
 - Gli Utenti hanno acconsentito all'invio dei propri contenuti, comprese recensioni e insight lasciati privati. Restano fuori dal consenso, e quindi non escono mai, le note di intenzione e ogni contenuto appartenente ad altri Utenti.
 - Gli indici della ricerca semantica risiedono nello stesso sistema dei dati, sotto le stesse regole di accesso, senza copie dei contenuti privati presso servizi terzi.
 - Alcune operazioni non stanno dentro il tempo di una richiesta e presuppongono lavori in secondo piano con uno stato osservabile: ricostruzione degli indici semantici, recupero e conversione delle copertine, riconduzione degli autori, deduplicazione. Quando un lavoro è in corso, le funzioni che ne dipendono lo dichiarano invece di restituire risultati parziali senza spiegazione.
-- Le regole su chi vede cosa vivono nel database, come regole di riga applicate a ogni interrogazione, e il back end opera con l'identità dell'Utente e non con una chiave di servizio che le scavalcherebbe. È l'unico modo perché valgano anche sugli indici semantici, come impone la regola 24, e perché una nuova vista non possa dimenticarle. La chiave di servizio resta riservata ai lavori in secondo piano, che non rispondono a richieste degli Utenti.
-- Le chiamate ai cataloghi partono dal back end ospitato con indirizzo di uscita stabile in Europa. Un ambiente serverless con indirizzi variabili renderebbe i risultati di Google Books dipendenti dal paese del nodo, e siccome la scheda si crea una volta e vale per tutti, congelerebbe nella libreria di tutti ciò che ha risposto a quel particolare nodo.
-- Ogni interrogazione dei cataloghi avviene dal lato server, per entrambe le fonti: una parte delle chiamate fatta dal client renderebbe le schede condivise dipendenti dalla geografia di chi le ha create.
-- La cancellazione a cascata deve raggiungere anche ciò che non vive nel database, cioè copertine, immagini e indici, e vale anche quando un utente viene rimosso direttamente sulla piattaforma dati senza passare dal prodotto.
+- Le regole su chi vede cosa vivono nel database, come regole di riga applicate a ogni interrogazione, e il back end opera con l'identità dell'Utente e non con una chiave di servizio che le scavalcherebbe. È il modo per cui valgono anche sugli indici semantici e per cui una nuova vista non le dimentica. La chiave di servizio resta riservata ai lavori in secondo piano, che non rispondono a richieste degli Utenti.
+- Le chiamate ai cataloghi partono dal back end ospitato con indirizzo di uscita stabile in Europa. Un ambiente serverless con indirizzi variabili renderebbe i risultati di Google Books dipendenti dal paese del nodo, e siccome la scheda si crea una volta e vale per tutti, congelerebbe nella libreria di tutti ciò che ha risposto a quel particolare nodo. Ogni interrogazione dei cataloghi avviene dal lato server, per entrambe le fonti, per lo stesso motivo.
+- La cancellazione a cascata raggiunge anche ciò che non vive nel database, cioè copertine, immagini e indici, e vale anche quando un utente viene rimosso direttamente sulla piattaforma dati senza passare dal prodotto.
 - Infrastruttura: solo piani gratuiti finché sono sufficienti. Gli indici semantici non hanno un costo proprio, perché la ricerca vettoriale è inclusa nel database; consumano spazio, che sul piano gratuito è limitato. Due limiti pesano più dello spazio: i progetti gratuiti vengono sospesi dopo una settimana di scarsa attività, e non prevedono backup. Quest'ultimo si somma alla scelta di offrire solo un'esportazione limitata (i libri letti) e di rendere la cancellazione immediata: sotto il resto dei dati, insight in testa, non c'è alcuna rete. Le chiamate ai modelli restano l'unica voce di costo variabile e non hanno tetto: è la sola spesa che può crescere senza preavviso.
-- Dati personali di terzi su territorio UE: chi mantiene l'istanza è titolare del trattamento. La cancellazione è coperta da una funzione del prodotto. La portabilità è coperta in parte, con l'esportazione CSV dei libri con stato "letto" dalle impostazioni (ADR 0011).
+- Dati personali di terzi su territorio UE: chi mantiene l'istanza è titolare del trattamento. La cancellazione è coperta da una funzione del prodotto. La portabilità è coperta in parte, con l'esportazione CSV dei libri con stato "letto" dalle impostazioni.
 - Nessuna scadenza di rilascio.
 
 ## Fuori scope
@@ -362,7 +290,7 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
 - Nessuna funzione amministrativa nel prodotto: niente gestione utenti, niente correzione generi, niente segnalazioni.
 - Nessuna creazione manuale di schede da parte degli Utenti, nessun inserimento per ISBN digitato, nessuna scansione del codice a barre: l'unica via d'ingresso è la ricerca per titolo o autore.
 - Nessuna scelta dell'edizione: il numero di pagine è precompilato e correggibile, non selezionato da un elenco.
-- Nessuna esportazione completa dell'account nell'MVP (ADR 0011). L'unica esportazione è quella dei libri con stato "letto", in CSV, dalle impostazioni — vedi comportamento 14bis; insight e nota di intenzione restano fuori. La cancellazione autonoma dell'account c'è.
+- Nessuna esportazione completa dell'account nell'MVP. L'unica esportazione è quella dei libri con stato "letto", in CSV, dalle impostazioni — vedi comportamento 14bis; insight e nota di intenzione restano fuori. La cancellazione autonoma dell'account c'è.
 - Nessun avanzamento retrodatato oltre il precedente, né datato nel futuro.
 - Nessuna gestione di edizioni, formati, audiolibri, ebook.
 - Nessuna struttura sugli insight: niente numero di pagina, niente citazione separata, niente tag personali.
@@ -386,7 +314,7 @@ Non sono requisiti, sono i tre punti in cui il modello può incrinarsi senza dar
 
 Ventotto voci, tutte sullo stesso piano. Ogni voce ha un'identità stabile a cui puntano i libri, e due etichette che l'utente legge. Le etichette si possono riscrivere in qualsiasi momento senza toccare alcun libro; le identità no, perché reggono le metriche degli anni passati.
 
-L'elenco è costruito guardando come si comportano le fonti e le app del settore: BISAC, lo standard editoriale che alimenta anche le categorie di Google Books, conta 53 categorie di primo livello e oltre 5700 intestazioni complessive nell'edizione 2025, quindi è una gerarchia da cui attingere, non da copiare, anche perché il suo uso completo dentro sistemi aziendali richiede una licenza a pagamento. StoryGraph ne espone 58, mantenute da bibliotecari volontari; Goodreads circa trenta in evidenza. Ventotto sta nella fascia in cui la mappatura automatica sbaglia poco e i generi principali restano leggibili.
+L'elenco è costruito guardando come si comportano le fonti e le app del settore: BISAC, lo standard editoriale che alimenta anche le categorie di Google Books, conta 53 categorie di primo livello e oltre 5700 intestazioni complessive, quindi è una gerarchia da cui attingere, non da copiare. StoryGraph ne espone 58, mantenute da bibliotecari volontari; Goodreads circa trenta in evidenza. Ventotto sta nella fascia in cui la mappatura automatica sbaglia poco e i generi principali restano leggibili.
 
 | identità | italiano | inglese |
 |---|---|---|
@@ -421,6 +349,6 @@ L'elenco è costruito guardando come si comportano le fonti e le app del settore
 
 **Criteri seguiti.** Nessun formato: ebook, audiolibro, graphic novel e fumetto descrivono come si legge un'opera, non di cosa parla, e mescolarli ai generi sporcherebbe le metriche. Nessun livello superiore: narrativa e saggistica non compaiono come voci, perché ogni libro finirebbe in due caselle sovrapposte e i conteggi si gonfierebbero. Nessuna fascia d'età: ragazzi e young adult indicano il destinatario, non il contenuto. Etichette vicine alle categorie di primo livello delle fonti, così la mappatura automatica ricorre al modello il meno possibile.
 
-**Voci da valutare in seguito.** Teatro, fumetto e graphic novel, letteratura per ragazzi: sono le tre aree che qualcuno potrebbe chiedere per prime. L'elenco però resta fissato per l'MVP, e ogni modifica, con il ripasso delle schede che comporterebbe, è rinviata al momento in cui servirà davvero.
+**Voci da valutare in seguito.** Teatro, fumetto e graphic novel, letteratura per ragazzi: sono le tre aree che qualcuno potrebbe chiedere per prime. L'elenco resta fissato per l'MVP, e ogni modifica, con il ripasso delle schede che comporterebbe, è rinviata al momento in cui servirà davvero.
 
 **Non classificato** non è un genere di questo elenco: è l'assenza di genere, e vive come stato della scheda.
