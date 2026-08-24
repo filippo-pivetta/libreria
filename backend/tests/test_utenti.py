@@ -171,6 +171,18 @@ _METRICHE: dict[str, Any] = {
     "generi_principali": [],
     "libri_senza_genere": 0,
     "ha_letture_a_cavallo_anno": False,
+    "letture_a_cavallo_anno": 0,
+    "pagine_per_mese": [0] * 12,
+    "giorni_con_lettura": 0,
+    "giorni_trascorsi": 234,
+    "voto_medio": None,
+    "libri_votati": 0,
+    "voti_per_stella": [0, 0, 0, 0, 0],
+    "abbandoni": 0,
+    "durata_media_giorni": None,
+    "durata_massima_giorni": None,
+    "durata_massima_titolo": None,
+    "libri_senza_pagine": 0,
 }
 
 

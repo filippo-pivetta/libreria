@@ -797,36 +797,125 @@ che il libro non ci sia mentre è solo il catalogo che non risponde.
 Stessi piani e stessa luce dello scaffale, in tono minore. I numeri in Inter Tight, tabulari,
 allineati. Nessun trattamento tipografico speciale: l'espressività è riservata agli insight.
 
-Una carta per blocco di metrica, tutte sul piano 1, nessuna sollevata: negli Annali non c'è
-niente da afferrare, quindi non c'è niente da sollevare.
+**Il titolo della pagina è l'anno.** Non la parola "Annali", che è già accesa nella barra di
+navigazione due righe più sopra: un titolo che ripete l'indirizzo non nomina il contenuto. Il
+contenuto è un anno, e sta in Fraunces a 56px con il selettore accanto.
 
-**Ogni numero porta accanto il suo limite, in una riga piccola, sempre**, non solo quando c'è
-un'anomalia.
+**Tre pesi, non tre lastre uguali.** Il piano resta uno solo, `surface-1`: negli Annali non c'è
+niente da afferrare, quindi non c'è niente da sollevare e non esiste un piano 2 in questa pagina.
+Ma stesso piano non vuol dire stesso peso, e la gerarchia la fa la tipografia:
 
-Le righe riflettono comportamenti del PRD:
+1. **L'anno**, a piena larghezza. Quattro numeri a 52px (libri finiti, pagine, giorni con
+   lettura, voto medio) e sotto la forma dell'anno, cioè le pagine mese per mese.
+2. **Chi e cosa**, due colonne da 1024px in su: autori più letti e generi.
+3. **Voti e letture**, due colonne, numeri a 28px.
 
-- i libri senza pagine adottate contano solo le pagine registrate a mano, e la somma non è mai
-  presentata come completa;
-- il peso di un libro si ripartisce fra autori e generi, così un libro vale sempre uno. I
-  decimali (1,5 accanto a un autore) restano visibili, con la frase che li spiega sotto;
-- i libri senza genere restano fuori dalla classifica dei generi e lo scarto è dichiarato accanto
-  — e, nella ciambella, dentro: uno spicchio neutro come le altre voci;
-- "di cui 2 riletture" chiarisce che l'unità è la Lettura e non il Libro.
+Tre gradini di dimensione del numero. Prima erano tre carte identiche per forma e larghezza, e la
+pagina non aveva un primo elemento.
 
-Selettore ad anno a frecce, con l'intervallo dichiarato dal primo anno con dati a oggi. Anni
-futuri non selezionabili; un anno intermedio senza letture mostra zeri, non un errore.
+### Il limite di un numero si dice una volta, e con un numero dentro
 
-Autori più letti: classifica a cinque voci con "mostra tutte", barre in `accent`, mai una scala
-di colori diversi per voce — sono la stessa grandezza misurata su soggetti diversi. Generi
-principali: stesso principio ma a ciambella, perché il part-to-whole si legge meglio come
-porzione di un intero che come barre affiancate; resta un solo accento, non una tavolozza — gli
-spicchi sono la stessa tinta a passi di opacità decrescenti, lo spicchio "non classificato" è
-neutro (`surface-2`, lo stesso dell'assente sullo scaffale), al più cinque spicchi con peso
-proprio oltre i quali si ripiegano in "Altri generi".
+La regola precedente ("ogni numero porta accanto il suo limite, in una riga piccola, sempre") aveva
+l'intento giusto e l'esecuzione sbagliata: sotto "5.240" stavano diciotto parole di scuse, e
+misurato in inchiostro il limite pesava più del dato che qualificava. Due cose distinte erano state
+fuse in una riga sola.
 
-La spiegazione della divergenza a cavallo d'anno compare solo quando serve, cioè quando in
-quell'anno esiste almeno una lettura che attraversa il capodanno: il libro conta nell'anno di
-chiusura mentre le pagine restano divise fra i due anni secondo quando sono state segnate.
+- **L'unità** ("pagine lette", "di cui 2 riletture") dice cosa si sta guardando: resta attaccata al
+  numero, sempre, e non porta spiegazioni.
+- **Il limite** è una proprietà del conteggio, non della cifra: esce dal flusso della carta e va in
+  una **chiosa**, cioè un riquadro che si apre da un punto interrogativo accanto al titolo
+  ("Autori più letti (?)"), **una sola per carta**. Cinque carte con cinque righe di prosa in coda
+  facevano di questa pagina metà numeri e metà note a piè di pagina, e una spiegazione che non
+  cambia mai da un anno all'altro non merita di occupare spazio a ogni visita. Il punto
+  interrogativo dice che c'è qualcosa da sapere; il testo si legge quando serve saperlo.
+
+La chiosa è un **glifo tipografico, non un'icona**: l'app non ha un vocabolario di icone e non è
+questo il posto per aprirne uno (§5). Non è nemmeno un quarto canale di messaggi: i tre canali
+portano l'esito di qualcosa che è appena successo, questa porta un'annotazione su un dato, sempre
+vera e sempre la stessa. Si apre al passaggio del mouse, al clic e al tocco, prende il fuoco da
+tastiera e si chiude con Escape (`ui/chiosa.tsx`, Base UI `Popover`): un riquadro che si aprisse
+solo in hover sarebbe invisibile da tastiera e irraggiungibile su un telefono, dove `mouseleave`
+non arriva mai.
+
+E il limite smette di essere perpetuo. "La somma non è mai completa" era vero per costruzione, quindi
+non diceva nulla di questo anno; `libri_senza_pagine` lo rende un fatto contabile ("3 dei 17 libri
+finiti non hanno un conteggio di pagine adottato"), e quando vale zero **la frase sparisce**, perché
+la somma è davvero completa. Una disclaimer che c'è sempre non si legge più dalla seconda visita;
+una frase che nomina tre libri sì. È più onesto, non meno. Vale identico per il denominatore del
+voto medio e per lo scarto dei generi.
+
+### Le metriche
+
+Dieci, tutte ricalcolate a ogni richiesta (ADR 0004) e tutte ricavate dalle stesse tre letture di
+`lettura`, `avanzamento` e `voce_di_libreria`: nessuna tabella nuova, nessuna query in più.
+
+| | Cosa dice |
+|---|---|
+| Libri finiti, di cui riletture | Solo esito "conclusa". L'unità è la Lettura, non il Libro |
+| Pagine lette | Somma degli incrementi datati nell'anno, mai delle pagine raggiunte |
+| Pagine mese per mese | La forma dell'anno: dodici barre in `accent`, etichetta solo sul mese più alto |
+| Giorni con lettura, su quelli trascorsi | L'abitudine, non il volume. Un incremento nullo non fa un giorno |
+| Voto medio, e la distribuzione a cinque colonne | L'unica dimensione di giudizio. Un voto per Voce, non per Lettura |
+| Autori più letti | Cinque voci con "mostra tutti", barre in `accent` |
+| Generi | A ciambella, un solo accento a passi di opacità |
+| Abbandoni | Fuori dai libri finiti (regola 13), dentro le pagine |
+| Durata media di una lettura, e la più lunga | Estremi inclusi: una lettura aperta e chiusa in giornata dura un giorno |
+| Libri senza genere, libri senza pagine adottate | Gli scarti, dichiarati nella chiosa e non nascosti |
+
+Restano **fuori per scelta, non per dimenticanza**: i giorni consecutivi, perché una serie da
+difendere trasforma un registro in un dovere e il primo giorno saltato in un fallimento, in un
+prodotto che non ha né notifiche né obiettivo annuale; l'obiettivo annuale stesso; mood e pace
+dichiarati a mano, perché quel giudizio qui è testo (insight e recensione), non caselle. Restano
+fuori **perché non calcolabili**: lunghezza media e libro più lungo, dato che non esiste un conteggio
+pagine canonico sul Libro ma solo `pagine_adottate` sulla Voce (ADR 0003), e una media su un
+sottoinsieme autoselezionato sarebbe un numero falso con l'aria di essere vero; tempo e velocità di
+lettura, che richiederebbero un cronometro. Resta **rimandata** la metrica sull'anno di prima
+pubblicazione: il dato c'è, ma il PRD dice che anno e lingua non alimentano metriche in questa
+versione, e una parte di quegli anni è dedotta dal modello e non di fonte.
+
+### Il selettore d'anno
+
+**Una finestra di tre anni, non tutti e non due frecce sole.** Due chevron e un numero usavano
+dell'intervallo dichiarato dal backend solo il permesso di disabilitare un pulsante. Mostrarli
+tutti capovolgeva il problema: a otto anni la riga occupava metà intestazione per una navigazione
+che si usa di rado, e la sua larghezza cambiava di anno in anno man mano che l'intervallo cresce.
+
+La finestra è di tre: l'anno scelto e i suoi due vicini, centrata finché può e appoggiata a un
+estremo quando non può, così agli estremi si vedono comunque tre anni e non uno. Larghezza
+costante. I vicini bastano a dire che l'anno sta dentro una serie; dove comincia la serie lo dice
+una riga sotto, "dal 2019", che compare solo quando c'è davvero dell'altro dietro la finestra. Il
+numero grande dell'intestazione dice già quale anno si guarda, quindi qui non va ripetuto in
+grande. L'anno attivo si segnala con inchiostro pieno e filetto, il linguaggio della voce di
+navigazione attiva (§5), mai un riempimento. Anni futuri non selezionabili; un anno intermedio
+senza letture mostra zeri, non un errore.
+
+### Le classifiche
+
+Autori: cinque voci con "mostra tutti e N", barre in `accent`, mai una scala di colori diversi per
+voce, perché sono la stessa grandezza misurata su soggetti diversi. Il binario della barra è
+l'inchiostro del tema con alpha: `surface-2` su una carta `surface-1` sono 0,985 contro 0,965 di
+luminanza, cioè un binario invisibile, e una barra corta non si distingue da una barra assente.
+Sotto i 640px il nome sale sopra la barra: a 390px una colonna nome fissa lascerebbe alla barra meno
+di 90px.
+
+Generi: stesso principio ma a ciambella, perché il part-to-whole si legge meglio come porzione di un
+intero. Un solo accento, non una tavolozza: gli spicchi sono la stessa tinta a passi di opacità
+decrescenti, lo spicchio "non classificato" è neutro (`surface-2`), al più cinque spicchi con peso
+proprio oltre i quali si ripiegano in "Altri generi". **Nessun numero scritto dentro gli spicchi:**
+a 9px stava sotto il minimo tipografico di `.t-label`, e `on-accent` su `accent-strong` pieno crolla
+a 2,9:1 di giorno. I pesi stanno nella legenda, dove si leggono.
+
+*Questa scelta resta la più discutibile della pagina, ed è dichiarata come tale: l'intero della
+ciambella non è intero, perché i pesi sono frazionari e i libri senza genere entrano come spicchio
+pur essendo dichiarati fuori dalla classifica. Le barre direbbero la stessa cosa con una grammatica
+sola per due classifiche. Se si cambia idea, cambia il contenuto di una carta su cinque e nient'altro.*
+
+### La divergenza a cavallo d'anno
+
+Compare solo quando in quell'anno esiste almeno una lettura che attraversa il capodanno: il libro
+conta nell'anno di chiusura mentre le pagine restano divise fra i due anni secondo quando sono state
+segnate. **La frase concorda col numero**, perché il servizio manda il conteggio e non solo il flag:
+era al singolare fisso, e con due letture a cavallo diceva il falso.
 
 ---
 
@@ -843,9 +932,21 @@ la scheda del singolo libro di un collegato (§9): anche lì la barra globale sp
 da "‹ [nome]" verso la sua libreria e il titolo del libro accanto alle sue iniziali — un livello
 alla volta, mai un salto diretto a Lettori da dentro un libro.
 
-**Scheda Annali del collegato.** Le sue metriche di lettura, calcolate sui suoi dati: stessa
-card della propria vista Annali (§14), più l'affiancamento con le tue metriche dello stesso anno
-e i libri letti in comune con i voti affiancati.
+**Scheda Annali del collegato.** Le sue metriche di lettura, calcolate sui suoi dati: le stesse
+carte della propria vista Annali (§14), più i libri letti in comune con i voti affiancati.
+
+Che non sia casa tua lo dicono **quattro segnali**, e nessuno di loro è un avviso: la barra globale
+sparita e sostituita da "‹ Lettori" con nome e iniziali; la stanza raffreddata da `[data-guest]`, che
+porta `accent` e `accent-strong` a `ink-soft` e quindi rende grigie barre e ciambella; sopra l'anno
+una micro-etichetta, "ANNALI DI <nome>", che sulla propria pagina non esiste mai; e la terza persona
+nelle carte ("come li **ha** votati", "le pagine che **ha** segnato a mano"). Il terzo serve da
+quando il titolo di pagina è l'anno: senza, la sua pagina si aprirebbe con lo stesso numero della tua.
+
+**L'affiancamento è una riga, non una carta.** Due carte pari affiancate *sono* un confronto, e qui
+il confronto è vietato: con quattro numeri e un profilo mensile per carta sarebbe diventata una gara
+anche visiva, un grafico accanto a un grafico. I tuoi quattro numeri restano tutti, in una riga sola
+di terzo peso sotto la sua carta, senza percentuali e senza "più" o "meno". Resta grigia come il
+resto: metterci il tuo ottone romperebbe la lampada di un altro per un contrasto che non serve.
 
 **Libri in comune.** L'intestazione della sua libreria porta anche il numero di opere che
 possiedi anche tu, calcolato dalle due liste già caricate.

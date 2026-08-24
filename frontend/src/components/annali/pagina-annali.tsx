@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMetriche, type Metriche } from "@/lib/api/metriche";
 import { getAccessToken } from "@/lib/api/access-token";
 import { CarteMetriche } from "@/components/annali/carte-metriche";
-import { SelettoreAnno } from "@/components/annali/selettore-anno";
+import { IntestazioneAnnali } from "@/components/annali/intestazione-annali";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroAnnali } from "@/components/states/scheletri";
 import { useTranslations } from "next-intl";
@@ -59,16 +59,14 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <p className="t-title text-xl">Annali</p>
-        <SelettoreAnno
-          anno={anno}
-          annoMinimo={data.annoMinimo}
-          annoMassimo={data.annoMassimo}
-          onCambiaAnno={setAnno}
-        />
-      </div>
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <IntestazioneAnnali
+        anno={anno}
+        annoMinimo={data.annoMinimo}
+        annoMassimo={data.annoMassimo}
+        onCambiaAnno={setAnno}
+        annoInCorso={anno === data.annoMassimo}
+      />
       <CarteMetriche metriche={data} />
     </div>
   );

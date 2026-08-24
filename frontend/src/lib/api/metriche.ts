@@ -40,6 +40,45 @@ export type Metriche = {
   /** Governa la spiegazione della divergenza a cavallo d'anno, mostrata
    * solo quando serve (design-frontend.md §14). */
   haLettureACavalloAnno: boolean;
+  /** Quante sono: `haLettureACavalloAnno` decide SE mostrare la
+   * spiegazione, questo le permette di andare al plurale quando serve.
+   * Prima la frase era al singolare fisso e con due letture mentiva. */
+  lettureACavalloAnno: number;
+
+  // --- Aggiunte dal ridisegno degli Annali (design-frontend.md §14) ------
+
+  /** Dodici numeri, da gennaio a dicembre, sempre di lunghezza 12 anche
+   * per un anno in corso. È `pagineLette` a una risoluzione più fine:
+   * la somma delle caselle coincide col totale per costruzione. */
+  paginePerMese: number[];
+  /** Date distinte con almeno un avanzamento a incremento positivo:
+   * misura l'abitudine, non il volume. */
+  giorniConLettura: number;
+  /** Giorni dell'anno già trascorsi: l'anno intero se è passato, il
+   * giorno dell'anno se è quello in corso. Denominatore obbligato di
+   * `giorniConLettura`, che da solo non si può leggere. */
+  giorniTrascorsi: number;
+  /** Media dei voti dei libri finiti nell'anno che un voto ce l'hanno.
+   * `null` quando nessuno è votato, mai 0 (che sarebbe un voto pessimo
+   * invece di un'assenza). */
+  votoMedio: number | null;
+  /** Il denominatore esplicito di `votoMedio`. */
+  libriVotati: number;
+  /** Cinque caselle, da una a cinque stelle. I mezzi voti si
+   * arrotondano alla stella superiore. */
+  votiPerStella: number[];
+  /** Letture abbandonate chiuse nell'anno: fuori da `libriFiniti`
+   * (regola 13), ma le loro pagine restano dentro `pagineLette`. */
+  abbandoni: number;
+  /** Estremi inclusi: una lettura aperta e chiusa in giornata dura un
+   * giorno. `null` quando nell'anno non si è conclusa alcuna lettura. */
+  durataMediaGiorni: number | null;
+  durataMassimaGiorni: number | null;
+  durataMassimaTitolo: string | null;
+  /** Libri finiti senza pagine adottate: lo scarto che rende concreto
+   * il limite su `pagineLette`. Zero significa somma completa, e allora
+   * il limite non va nemmeno scritto. */
+  libriSenzaPagine: number;
 };
 
 type VoceClassificaBody = { id: string; nome: string; peso: number };
@@ -55,6 +94,18 @@ type MetricheBody = {
   generi_principali: VoceClassificaBody[];
   libri_senza_genere: number;
   ha_letture_a_cavallo_anno: boolean;
+  letture_a_cavallo_anno: number;
+  pagine_per_mese: number[];
+  giorni_con_lettura: number;
+  giorni_trascorsi: number;
+  voto_medio: number | null;
+  libri_votati: number;
+  voti_per_stella: number[];
+  abbandoni: number;
+  durata_media_giorni: number | null;
+  durata_massima_giorni: number | null;
+  durata_massima_titolo: string | null;
+  libri_senza_pagine: number;
 };
 
 function toMetriche(body: MetricheBody): Metriche {
@@ -69,6 +120,18 @@ function toMetriche(body: MetricheBody): Metriche {
     generiPrincipali: body.generi_principali,
     libriSenzaGenere: body.libri_senza_genere,
     haLettureACavalloAnno: body.ha_letture_a_cavallo_anno,
+    lettureACavalloAnno: body.letture_a_cavallo_anno,
+    paginePerMese: body.pagine_per_mese,
+    giorniConLettura: body.giorni_con_lettura,
+    giorniTrascorsi: body.giorni_trascorsi,
+    votoMedio: body.voto_medio,
+    libriVotati: body.libri_votati,
+    votiPerStella: body.voti_per_stella,
+    abbandoni: body.abbandoni,
+    durataMediaGiorni: body.durata_media_giorni,
+    durataMassimaGiorni: body.durata_massima_giorni,
+    durataMassimaTitolo: body.durata_massima_titolo,
+    libriSenzaPagine: body.libri_senza_pagine,
   };
 }
 

@@ -160,10 +160,20 @@ export function ScheletroAnnali() {
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-8 w-36" />
       </div>
+      {/* La carta prima: quattro numeri e la fascia dei mesi. Lo
+          scheletro segue la forma vera, altrimenti il salto
+          all'idratazione è un salto di layout. */}
       <div className="plane-1 grain p-6">
         <Skeleton className="h-2.5 w-24" />
-        <Skeleton className="mt-3 h-10 w-28" />
-        <Skeleton className="mt-2 h-3 w-56" />
+        <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:gap-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="sm:flex-1">
+              <Skeleton className="h-12 w-24" />
+              <Skeleton className="mt-2 h-3 w-28" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="mt-8 h-[141px] w-full" />
       </div>
       <div className="grid gap-6 md:grid-cols-2">
         {Array.from({ length: 2 }, (_, i) => (

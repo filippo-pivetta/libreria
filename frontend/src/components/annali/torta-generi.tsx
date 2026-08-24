@@ -6,12 +6,9 @@ import type { VoceClassifica } from "@/lib/api/metriche";
 // Stessa forma di un voto in stelle: riusata invece di reimplementarla
 // (stesso motivo di classifica.tsx).
 import { formattaVoto as formattaPeso } from "@/components/libro/voto-stelle";
+import { TitoloConChiosa } from "@/components/ui/chiosa";
 
 const SPICCHI_IDENTITA_MASSIMI = 5;
-// Sotto questa quota uno spicchio non porta un'etichetta diretta sopra
-// l'arco: lo spazio non basterebbe a scriverla senza sovrapposizioni
-// (dataviz skill: "label selettivamente, mai un numero su ogni punto").
-const QUOTA_MINIMA_ETICHETTA_DIRETTA = 0.12;
 
 type Spicchio = {
   chiave: string;
@@ -128,7 +125,15 @@ export function TortaGeneri({
   if (totale === 0) {
     return (
       <div>
-        <p className="t-label">Generi principali</p>
+        <TitoloConChiosa
+        titolo="Generi principali"
+        chiosa={
+          <p>
+            Il peso di un libro con più generi si ripartisce tra loro, come per gli autori: la
+            ciambella misura il peso, non il numero di libri.
+          </p>
+        }
+      />
         <p className="t-meta mt-2">Nessun dato per l&apos;anno selezionato.</p>
       </div>
     );
@@ -182,7 +187,15 @@ export function TortaGeneri({
 
   return (
     <div>
-      <p className="t-label">Generi principali</p>
+      <TitoloConChiosa
+        titolo="Generi principali"
+        chiosa={
+          <p>
+            Il peso di un libro con più generi si ripartisce tra loro, come per gli autori: la
+            ciambella misura il peso, non il numero di libri.
+          </p>
+        }
+      />
       <div className="mt-3 flex flex-col items-center gap-5 sm:flex-row sm:items-start">
         <svg
           viewBox={`0 0 ${dimensione} ${dimensione}`}
@@ -218,48 +231,6 @@ export function TortaGeneri({
                 onFocus={() => setAttivo(arco.chiave)}
                 onBlur={() => setAttivo(null)}
               />
-              {arco.quota >= QUOTA_MINIMA_ETICHETTA_DIRETTA && (
-                <text
-                  x={
-                    puntoSuCerchio(
-                      raggioEsterno,
-                      raggioEsterno,
-                      (raggioEsterno + raggioInterno) / 2,
-                      (arco.inizio + arco.fine) / 2,
-                    ).x
-                  }
-                  y={
-                    puntoSuCerchio(
-                      raggioEsterno,
-                      raggioEsterno,
-                      (raggioEsterno + raggioInterno) / 2,
-                      (arco.inizio + arco.fine) / 2,
-                    ).y
-                  }
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  aria-hidden
-                  className="pointer-events-none select-none font-ui text-[9px] font-medium"
-                  // `on-accent` è tarato per un riempimento pieno: sotto
-                  // un certo passo della rampa il lavaggio è troppo
-                  // chiaro perché un testo chiaro ci si legga sopra
-                  // (dataviz skill: il colore del testo segue la
-                  // luminanza effettiva del riempimento, non la sua tinta
-                  // nominale). Soglia empirica sulla stessa opacità che
-                  // già governa il riempimento, non un calcolo di
-                  // contrasto vero: `ink` è comunque sicuro su qualunque
-                  // lavaggio chiaro.
-                  fill={
-                    arco.neutro
-                      ? "var(--mtg-ink-soft)"
-                      : arco.opacita >= 0.55
-                        ? "var(--mtg-on-accent)"
-                        : "var(--mtg-ink)"
-                  }
-                >
-                  {Math.round(arco.quota * 100)}%
-                </text>
-              )}
             </g>
           ))}
         </svg>
@@ -296,15 +267,11 @@ export function TortaGeneri({
         <button
           type="button"
           onClick={() => setEspansa((v) => !v)}
-          className="t-meta mt-3 underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+          className="t-meta mt-3 inline-flex min-h-11 items-center underline decoration-line-strong underline-offset-4 hover:decoration-ink sm:min-h-0"
         >
-          {espansa ? "mostra meno" : "mostra tutte"}
+          {espansa ? "mostra meno" : `mostra tutti e ${righe.length}`}
         </button>
       )}
-      <p className="t-meta mt-3 border-t border-line pt-3">
-        Il peso di un libro con più generi si ripartisce tra loro, come per gli autori — la
-        ciambella misura il peso, non il numero di libri.
-      </p>
     </div>
   );
 }

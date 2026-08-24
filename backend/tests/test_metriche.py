@@ -54,6 +54,19 @@ _METRICHE_ZERO: dict[str, Any] = {
     "generi_principali": [],
     "libri_senza_genere": 0,
     "ha_letture_a_cavallo_anno": False,
+    "letture_a_cavallo_anno": 0,
+    "pagine_per_mese": [0] * 12,
+    "giorni_con_lettura": 0,
+    # 22 agosto 2026 è il 234° giorno dell'anno (`_oggi_fissato`).
+    "giorni_trascorsi": 234,
+    "voto_medio": None,
+    "libri_votati": 0,
+    "voti_per_stella": [0, 0, 0, 0, 0],
+    "abbandoni": 0,
+    "durata_media_giorni": None,
+    "durata_massima_giorni": None,
+    "durata_massima_titolo": None,
+    "libri_senza_pagine": 0,
 }
 
 
@@ -154,19 +167,37 @@ def _patch_repo(
     )
 
 
-def _libro(id_: str, autori: list[str], generi: list[str]) -> dict[str, Any]:
+def _voce(
+    id_: str,
+    autori: list[str],
+    generi: list[str],
+    voto: float | None = None,
+    pagine_adottate: int | None = 300,
+    titolo: str = "Un titolo",
+) -> dict[str, Any]:
+    """Una riga di `list_voci_con_libro`: la Voce (voto, pagine adottate)
+    col Libro incorporato. `pagine_adottate` è valorizzato per difetto
+    perché l'assenza è il caso che una metrica conta (`libri_senza_pagine`),
+    e va scritta esplicitamente dal test che la esercita."""
     return {
         "id": id_,
-        "libro_autore": [{"autore": {"id": a, "nome_canonico": f"Autore {a}"}} for a in autori],
-        "libro_genere": [
-            {
-                "genere": {
-                    "id": g,
-                    "genere_etichetta": [{"lingua": "it", "etichetta": f"Genere {g}"}],
+        "voto": voto,
+        "pagine_adottate": pagine_adottate,
+        "libro": {
+            "id": id_,
+            "titolo_canonico": titolo,
+            "variante_titolo": [],
+            "libro_autore": [{"autore": {"id": a, "nome_canonico": f"Autore {a}"}} for a in autori],
+            "libro_genere": [
+                {
+                    "genere": {
+                        "id": g,
+                        "genere_etichetta": [{"lingua": "it", "etichetta": f"Genere {g}"}],
+                    }
                 }
-            }
-            for g in generi
-        ],
+                for g in generi
+            ],
+        },
     }
 
 
@@ -199,7 +230,7 @@ def test_metriche_di_riletture_conta_letture_non_libri(monkeypatch: pytest.Monke
             "esito": "conclusa",
         },
     ]
-    voci = {"00000000-0000-0000-0000-0000000000a1": _libro("b1", ["a1"], [])}
+    voci = {"00000000-0000-0000-0000-0000000000a1": _voce("b1", ["a1"], [])}
     _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
 
     import asyncio
@@ -227,22 +258,29 @@ def test_metriche_di_etichetta_genere_segue_la_lingua_richiesta(
             "esito": "conclusa",
         }
     ]
-    libro = {
+    voce = {
         "id": "b1",
-        "libro_autore": [],
-        "libro_genere": [
-            {
-                "genere": {
-                    "id": "g1",
-                    "genere_etichetta": [
-                        {"lingua": "it", "etichetta": "Narrativa"},
-                        {"lingua": "en", "etichetta": "Fiction"},
-                    ],
+        "voto": None,
+        "pagine_adottate": 300,
+        "libro": {
+            "id": "b1",
+            "titolo_canonico": "Un titolo",
+            "variante_titolo": [],
+            "libro_autore": [],
+            "libro_genere": [
+                {
+                    "genere": {
+                        "id": "g1",
+                        "genere_etichetta": [
+                            {"lingua": "it", "etichetta": "Narrativa"},
+                            {"lingua": "en", "etichetta": "Fiction"},
+                        ],
+                    }
                 }
-            }
-        ],
+            ],
+        },
     }
-    voci = {"00000000-0000-0000-0000-0000000000a1": libro}
+    voci = {"00000000-0000-0000-0000-0000000000a1": voce}
     _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
 
     import asyncio
@@ -266,7 +304,7 @@ def test_metriche_di_ripartisce_il_peso_tra_autori_e_generi(
             "esito": "conclusa",
         }
     ]
-    voci = {"00000000-0000-0000-0000-0000000000a1": _libro("b1", ["a1", "a2", "a3"], ["g1", "g2"])}
+    voci = {"00000000-0000-0000-0000-0000000000a1": _voce("b1", ["a1", "a2", "a3"], ["g1", "g2"])}
     _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
 
     import asyncio
@@ -354,7 +392,7 @@ def test_metriche_di_segnala_letture_a_cavallo_anno(monkeypatch: pytest.MonkeyPa
             "esito": "conclusa",
         }
     ]
-    voci = {"00000000-0000-0000-0000-0000000000a1": _libro("b1", ["a1"], ["g1"])}
+    voci = {"00000000-0000-0000-0000-0000000000a1": _voce("b1", ["a1"], ["g1"])}
     _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
 
     import asyncio
@@ -453,19 +491,26 @@ def test_metriche_di_genere_senza_etichetta_italiana_non_conta_come_assente(
             "esito": "conclusa",
         }
     ]
-    libro = {
+    voce = {
         "id": "b1",
-        "libro_autore": [{"autore": {"id": "a1", "nome_canonico": "Autore a1"}}],
-        "libro_genere": [
-            {
-                "genere": {
-                    "id": "g1",
-                    "genere_etichetta": [{"lingua": "en", "etichetta": "Genre g1"}],
+        "voto": None,
+        "pagine_adottate": 300,
+        "libro": {
+            "id": "b1",
+            "titolo_canonico": "Un titolo",
+            "variante_titolo": [],
+            "libro_autore": [{"autore": {"id": "a1", "nome_canonico": "Autore a1"}}],
+            "libro_genere": [
+                {
+                    "genere": {
+                        "id": "g1",
+                        "genere_etichetta": [{"lingua": "en", "etichetta": "Genre g1"}],
+                    }
                 }
-            }
-        ],
+            ],
+        },
     }
-    voci = {"00000000-0000-0000-0000-0000000000a1": libro}
+    voci = {"00000000-0000-0000-0000-0000000000a1": voce}
     _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
 
     import asyncio
@@ -474,3 +519,254 @@ def test_metriche_di_genere_senza_etichetta_italiana_non_conta_come_assente(
 
     assert risultato["libri_senza_genere"] == 0
     assert [r["id"] for r in risultato["generi_principali"]] == ["g1"]
+
+
+# --- Le metriche aggiunte dal ridisegno degli Annali (§14) ---------------
+
+
+def _voce_id(chiave: str) -> str:
+    """`metriche_service` costruisce un `UUID` da `voce_id` per passarlo
+    al repository: una chiave corta come "v1" non è un UUID valido e
+    farebbe fallire il servizio prima di arrivare all'asserzione."""
+    return f"00000000-0000-0000-0000-0000000000{int(chiave.lstrip('v')):02d}"
+
+
+def _lettura(
+    id_: str,
+    voce: str,
+    inizio: str,
+    fine: str | None = None,
+    esito: str | None = "conclusa",
+) -> dict[str, Any]:
+    return {
+        "id": id_,
+        "voce_id": _voce_id(voce),
+        "data_inizio": inizio,
+        "data_fine": fine,
+        "esito": esito,
+    }
+
+
+def _avanzamento(lettura: str, pagina: int, data: str) -> dict[str, Any]:
+    return {
+        "lettura_id": lettura,
+        "pagina": pagina,
+        "data": data,
+        "creato_at": f"{data}T00:00:00Z",
+    }
+
+
+def test_metriche_di_pagine_per_mese_e_la_stessa_somma_non_collassata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`pagine_per_mese` è `pagine_lette` a una risoluzione più fine:
+    dodici caselle sempre, e la loro somma coincide per costruzione."""
+    avanzamenti = [
+        _avanzamento("l1", 50, "2026-01-10"),
+        _avanzamento("l1", 130, "2026-03-04"),
+        _avanzamento("l1", 200, "2026-03-20"),
+        # Fuori anno: non entra in nessuna casella del 2026, ma la sua
+        # pagina resta la base dell'incremento successivo.
+        _avanzamento("l2", 40, "2025-12-31"),
+        _avanzamento("l2", 90, "2026-08-01"),
+    ]
+    _patch_repo(monkeypatch, letture=[], avanzamenti=avanzamenti, voci={})
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["pagine_per_mese"] == [50, 0, 150, 0, 0, 0, 0, 50, 0, 0, 0, 0]
+    assert sum(risultato["pagine_per_mese"]) == risultato["pagine_lette"] == 250
+
+
+def test_metriche_di_giorni_con_lettura_conta_date_distinte_e_ignora_incrementi_nulli(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Misura l'abitudine, non il volume: due Avanzamenti nello stesso
+    giorno fanno un giorno, e un Avanzamento che non fa avanzare nulla
+    (la stessa pagina segnata di nuovo) non fa un giorno di lettura."""
+    avanzamenti = [
+        _avanzamento("l1", 30, "2026-02-01"),
+        _avanzamento("l1", 60, "2026-02-01"),
+        _avanzamento("l1", 60, "2026-02-05"),  # incremento zero
+        _avanzamento("l1", 90, "2026-02-09"),
+    ]
+    _patch_repo(monkeypatch, letture=[], avanzamenti=avanzamenti, voci={})
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["giorni_con_lettura"] == 2
+    # 22 agosto 2026: l'anno corrente si ferma a oggi, non a 365.
+    assert risultato["giorni_trascorsi"] == 234
+
+
+def test_metriche_di_giorni_trascorsi_di_un_anno_passato_e_lanno_intero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_repo(monkeypatch, letture=[], avanzamenti=[], voci={})
+
+    import asyncio
+
+    assert (
+        asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2025, "it"))["giorni_trascorsi"]
+        == 365
+    )
+    # 2024 è bisestile.
+    assert (
+        asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2024, "it"))["giorni_trascorsi"]
+        == 366
+    )
+
+
+def test_metriche_di_voto_medio_e_distribuzione_arrotondano_alla_stella_superiore(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il voto è numeric(2,1) fra 1,0 e 5,0 a mezze stelle (migrazione
+    20260820205444): la media resta a mezzo punto, l'istogramma a cinque
+    colonne arrotonda per eccesso, e chi non ha voto resta fuori dal
+    campione invece di entrarci come zero."""
+    letture = [
+        _lettura("l1", "v1", "2026-01-01", "2026-01-20"),
+        _lettura("l2", "v2", "2026-02-01", "2026-02-20"),
+        _lettura("l3", "v3", "2026-03-01", "2026-03-20"),
+    ]
+    voci = {
+        _voce_id("v1"): _voce("b1", ["a1"], [], voto=4.0),
+        _voce_id("v2"): _voce("b2", ["a2"], [], voto=3.5),
+        _voce_id("v3"): _voce("b3", ["a3"], [], voto=None),
+    }
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["libri_finiti"] == 3
+    assert risultato["libri_votati"] == 2
+    assert risultato["voto_medio"] == 3.8
+    # 4,0 e 3,5 finiscono entrambi nella colonna delle quattro stelle.
+    assert risultato["voti_per_stella"] == [0, 0, 0, 2, 0]
+
+
+def test_metriche_di_voto_di_una_voce_riletta_conta_una_volta_sola(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il voto sta sulla Voce, non sulla Lettura: due riletture della
+    stessa Voce concluse nello stesso anno contano due libri finiti (PRD)
+    ma un voto solo, altrimenti la media pesa due volte lo stesso
+    giudizio."""
+    letture = [
+        _lettura("l1", "v1", "2026-01-01", "2026-01-20"),
+        _lettura("l2", "v1", "2026-05-01", "2026-05-20"),
+    ]
+    voci = {_voce_id("v1"): _voce("b1", ["a1"], [], voto=5.0)}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["libri_finiti"] == 2
+    assert risultato["riletture"] == 1
+    assert risultato["libri_votati"] == 1
+    assert risultato["voti_per_stella"] == [0, 0, 0, 0, 1]
+
+
+def test_metriche_di_abbandoni_contano_nellanno_di_chiusura(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Un abbandono chiude la Lettura come una conclusione (data_fine +
+    esito) e si conta nell'anno di chiusura, senza entrare nei libri
+    finiti (regola 13)."""
+    letture = [
+        _lettura("l1", "v1", "2026-01-01", "2026-02-01", esito="abbandonata"),
+        _lettura("l2", "v2", "2025-11-01", "2025-12-01", esito="abbandonata"),
+        _lettura("l3", "v3", "2026-03-01", None, esito=None),
+        _lettura("l4", "v4", "2026-04-01", "2026-04-10"),
+    ]
+    voci = {_voce_id("v4"): _voce("b4", ["a1"], [])}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["abbandoni"] == 1
+    assert risultato["libri_finiti"] == 1
+
+
+def test_metriche_di_durata_conta_gli_estremi_e_nomina_la_piu_lunga(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Estremi inclusi: una Lettura cominciata e conclusa in giornata
+    dura un giorno, non zero. Il titolo della più lunga segue la lingua
+    dell'interfaccia quando esiste una variante."""
+    letture = [
+        _lettura("l1", "v1", "2026-01-01", "2026-01-01"),
+        _lettura("l2", "v2", "2026-02-01", "2026-02-10"),
+    ]
+    voci = {
+        _voce_id("v1"): _voce("b1", ["a1"], [], titolo="Un giorno solo"),
+        _voce_id("v2"): _voce("b2", ["a2"], [], titolo="Il piu lungo"),
+    }
+    voci[_voce_id("v2")]["libro"]["variante_titolo"] = [{"lingua": "en", "titolo": "The longest"}]
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    it = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+    en = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "en"))
+
+    # 1 giorno e 10 giorni: media 5,5 arrotondata a 6 (round half to even
+    # di Python porterebbe 5,5 a 6 comunque, ma qui conta il valore).
+    assert it["durata_massima_giorni"] == 10
+    assert it["durata_media_giorni"] == 6
+    assert it["durata_massima_titolo"] == "Il piu lungo"
+    assert en["durata_massima_titolo"] == "The longest"
+
+
+def test_metriche_di_libri_senza_pagine_rende_concreto_il_limite(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Zero significa che la somma delle pagine è completa e il limite
+    non va nemmeno scritto: è il numero che sostituisce il caveat
+    perpetuo di §14."""
+    letture = [
+        _lettura("l1", "v1", "2026-01-01", "2026-01-20"),
+        _lettura("l2", "v2", "2026-02-01", "2026-02-20"),
+    ]
+    voci = {
+        _voce_id("v1"): _voce("b1", ["a1"], [], pagine_adottate=None),
+        _voce_id("v2"): _voce("b2", ["a2"], [], pagine_adottate=412),
+    }
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["libri_senza_pagine"] == 1
+
+
+def test_metriche_di_letture_a_cavallo_anno_e_un_conteggio_non_un_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """La frase che spiega la divergenza era al singolare fisso: serve il
+    numero perché possa andare al plurale quando le letture sono due."""
+    letture = [
+        _lettura("l1", "v1", "2025-12-20", "2026-01-05"),
+        _lettura("l2", "v2", "2025-11-01", "2026-02-02"),
+        _lettura("l3", "v3", "2026-03-01", "2026-03-20"),
+    ]
+    voci = {_voce_id(c): _voce(c, ["a1"], []) for c in ("v1", "v2", "v3")}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["ha_letture_a_cavallo_anno"] is True
+    assert risultato["letture_a_cavallo_anno"] == 2

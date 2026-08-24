@@ -56,17 +56,25 @@ def list_avanzamenti(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
 
 
 def list_voci_con_libro(client: Client, voce_ids: set[UUID]) -> dict[str, dict[str, Any]]:
-    """Libro (+ autori, + generi) delle Voci indicate, indicizzato per
-    `voce_id`. Le Voci arrivano già dalla FK composita `lettura ->
-    voce_di_libreria(id, utente_id)`: appartengono per costruzione allo
-    stesso utente delle Letture che le hanno prodotte, senza bisogno di
-    un secondo filtro qui."""
+    """La Voce (voto, pagine adottate) col suo Libro (+ titolo e sue
+    varianti, + autori, + generi), indicizzata per `voce_id`. Le Voci
+    arrivano già dalla FK composita `lettura -> voce_di_libreria(id,
+    utente_id)`: appartengono per costruzione allo stesso utente delle
+    Letture che le hanno prodotte, senza bisogno di un secondo filtro
+    qui.
+
+    Restituisce la Voce intera e non il solo Libro perché tre metriche
+    stanno sulla Voce e non sull'opera: il voto medio e la sua
+    distribuzione (`voto`), e lo scarto che rende concreto il limite
+    sulle pagine (`pagine_adottate`). Nessuna andata-e-ritorno in più:
+    sono colonne della riga che questa query già legge."""
     if not voce_ids:
         return {}
     response = (
         client.table("voce_di_libreria")
         .select(
-            "id, libro:libro_id (id, "
+            "id, voto, pagine_adottate, libro:libro_id (id, titolo_canonico, "
+            "variante_titolo(lingua, titolo), "
             "libro_autore(autore:autore_id(id, nome_canonico)), "
             "libro_genere(genere:genere_id(id, genere_etichetta(lingua, etichetta))))"
         )
@@ -74,4 +82,4 @@ def list_voci_con_libro(client: Client, voce_ids: set[UUID]) -> dict[str, dict[s
         .execute()
     )
     righe = cast("list[dict[str, Any]]", response.data)
-    return {riga["id"]: riga["libro"] for riga in righe}
+    return {riga["id"]: riga for riga in righe}
