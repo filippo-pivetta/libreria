@@ -209,6 +209,71 @@ def test_senza_chiave_e_uno_stato_dichiarabile_non_un_guasto(
         __import__("asyncio").run(gb.cerca("qualcosa"))
 
 
+def _con_sequenza_risposte(
+    monkeypatch: pytest.MonkeyPatch, risposte: list[httpx.Response]
+) -> None:
+    """Come `_con_risposta`, ma una risposta diversa a ogni chiamata: serve
+    a simulare il 503 transitorio di Google seguito da un tentativo che va
+    a segno."""
+    originale = httpx.AsyncClient
+    code = iter(risposte)
+
+    def _client(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
+        kwargs["transport"] = httpx.MockTransport(lambda _: next(code))
+        return originale(*args, **kwargs)
+
+    monkeypatch.setattr(gb.httpx, "AsyncClient", _client)
+
+
+def test_503_transitorio_si_ripete_e_va_a_segno(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Misurato dal vivo: Google alterna 503 (`backendFailed`) e 200 sulla
+    stessa richiesta a distanza di un istante. Un retry basta a non far
+    vedere il guasto a chi cerca."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    monkeypatch.setattr(gb, "_ATTESA_RETRY", 0)
+    _con_sequenza_risposte(
+        monkeypatch,
+        [httpx.Response(503), httpx.Response(200, json={"items": []})],
+    )
+
+    risultato = __import__("asyncio").run(gb.cerca("qualcosa"))
+    assert risultato == []
+
+
+def test_503_due_volte_di_fila_si_riprende_al_terzo_tentativo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Misurato dal vivo (24/08/2026): durante un momento instabile del
+    backend di Google, due 503 di fila non sono rari. Un solo retry (due
+    tentativi totali) non bastava; con tre tentativi il caso è coperto."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    monkeypatch.setattr(gb, "_ATTESA_RETRY", 0)
+    _con_sequenza_risposte(
+        monkeypatch,
+        [httpx.Response(503), httpx.Response(503), httpx.Response(200, json={"items": []})],
+    )
+
+    risultato = __import__("asyncio").run(gb.cerca("qualcosa"))
+    assert risultato == []
+
+
+def test_503_persistente_resta_fonte_non_raggiungibile(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Il retry non è illimitato: se Google continua a fallire, l'errore
+    deve comunque emergere come `fonte_irraggiungibile` e non restare a
+    ritentare all'infinito."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    monkeypatch.setattr(gb, "_ATTESA_RETRY", 0)
+    _con_risposta(monkeypatch, httpx.Response(503))
+
+    with pytest.raises(FonteNonRaggiungibileError) as errore:
+        __import__("asyncio").run(gb.cerca("qualcosa"))
+    assert errore.value.fonte == "google_books"
+    assert "503" in errore.value.motivo
+
+
 def test_messaggio_di_errore_mai_vuoto() -> None:
     """`ConnectTimeout` e altre eccezioni di httpx hanno il messaggio
     vuoto, e un log che dice solo "open_library: " non aiuta nessuno."""

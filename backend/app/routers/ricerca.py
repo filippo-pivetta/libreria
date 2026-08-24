@@ -11,6 +11,7 @@ quando la fonte ha risposto e non ha nulla, 503 con `error_code`
 `fonte_irraggiungibile` quando non ha risposto.
 """
 
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -34,6 +35,8 @@ from app.schemas.ricerca import (
 from app.schemas.ricerca_semantica import RicercaSemanticaResponse
 from app.services import consenso as consenso_service
 from app.services import ricerca_semantica_service, ricerca_service
+
+logger = logging.getLogger("app.ricerca")
 
 router = APIRouter(tags=["ricerca"])
 
@@ -85,6 +88,7 @@ async def get_ricerca_cataloghi(
             current_user.access_token, current_user.id, termine
         )
     except FonteNonRaggiungibileError as error:
+        logger.warning("Ricerca esterna fallita (%s): %s", error.fonte, error.motivo)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             {
@@ -123,6 +127,7 @@ async def post_libri(
             },
         ) from error
     except FonteNonRaggiungibileError as error:
+        logger.warning("Aggiunta da catalogo fallita (%s): %s", error.fonte, error.motivo)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             {
@@ -182,6 +187,7 @@ async def get_ricerca_semantica(
             status.HTTP_404_NOT_FOUND, "Il tuo account non è ancora stato completato."
         ) from errore
     except FonteNonRaggiungibileError as errore:
+        logger.warning("Ricerca semantica fallita (%s): %s", errore.fonte, errore.motivo)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             {

@@ -181,6 +181,22 @@ export type RicercaEsternaResult =
   | { status: "fonte_irraggiungibile" }
   | { status: "error"; message: string };
 
+function attesa(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const ATTESE_RETRY_ESTERNI_MS = [1000, 2000, 4000];
+/** Il backend ritenta già i 5xx transitori di Google (tre tentativi, meno
+ * di un secondo in tutto — vedi `app/cataloghi/google_books.py`): se
+ * nonostante quello `/ricerca/cataloghi` torna ancora 503, il disservizio
+ * è più serio del solito momento di instabilità. Si ritenta ancora qui,
+ * con un'attesa che cresce, prima di dichiarare la fonte irraggiungibile
+ * — chi cerca nel frattempo vede "cerco nei cataloghi…" (resta invariato,
+ * `isFetching` di React Query copre l'intera funzione) e non un errore
+ * su un intoppo che il giro successivo avrebbe risolto. In tutto pochi
+ * secondi, non un tentativo infinito: un vero down di Google resta un
+ * down, e va dichiarato.*/
+
 /** GET /ricerca/cataloghi: i cataloghi esterni, una riga per opera. */
 export async function cercaNeiCataloghi(
   accessToken: string,
@@ -189,25 +205,31 @@ export async function cercaNeiCataloghi(
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
-  let response: Response;
-  try {
-    response = await fetch(
-      `${config.baseUrl}/ricerca/cataloghi?q=${encodeURIComponent(termine)}`,
-      { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
-    );
-  } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
-  }
+  for (let tentativo = 0; ; tentativo++) {
+    let response: Response;
+    try {
+      response = await fetch(
+        `${config.baseUrl}/ricerca/cataloghi?q=${encodeURIComponent(termine)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
+      );
+    } catch {
+      return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    }
 
-  if (response.status === 503) {
-    return { status: "fonte_irraggiungibile" };
-  }
-  if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
-  }
+    if (response.status === 503) {
+      if (tentativo < ATTESE_RETRY_ESTERNI_MS.length) {
+        await attesa(ATTESE_RETRY_ESTERNI_MS[tentativo]);
+        continue;
+      }
+      return { status: "fonte_irraggiungibile" };
+    }
+    if (!response.ok) {
+      return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    }
 
-  const body = (await response.json()) as EsternoBody[];
-  return { status: "ok", data: body.map(toEsterno) };
+    const body = (await response.json()) as EsternoBody[];
+    return { status: "ok", data: body.map(toEsterno) };
+  }
 }
 
 export type AggiungiDaCatalogoResult =
