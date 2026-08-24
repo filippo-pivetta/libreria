@@ -152,6 +152,27 @@ def test_l_anno_del_volume_non_e_l_anno_dell_opera() -> None:
     assert volume.anno_pubblicazione == 2019
 
 
+def test_la_descrizione_arriva_senza_marcatura() -> None:
+    """Le quarte di copertina di Google portano `<br>`, `<i>`, `<b>` e
+    entità dentro il testo. Vanno tolte alla fonte: questo testo finisce
+    nella scheda pubblica, nella descrizione salvata alla nascita del
+    libro e nel contesto mandato al modello, e in nessuno dei tre è
+    marcatura da interpretare — renderla mostrerebbe i tag all'Utente,
+    interpretarla significherebbe eseguire HTML di terzi in pagina.
+
+    Un tag diventa uno spazio e non il vuoto, altrimenti le due parole ai
+    suoi lati si salderebbero in una sola."""
+    volume = gb._volume(
+        _elemento(
+            "x",
+            "Stoner",
+            description="Una vita silenziosa.<br><b>Peter Cameron</b> su <i>Stoner</i> &amp; altro",
+        )
+    )
+    assert volume is not None
+    assert volume.descrizione == "Una vita silenziosa. Peter Cameron su Stoner & altro"
+
+
 # --- errori -----------------------------------------------------------------
 
 

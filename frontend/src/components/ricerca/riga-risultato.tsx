@@ -6,6 +6,7 @@ import type { Risultato } from "@/lib/api/ricerca";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Messaggio } from "@/components/ui/messaggio";
+import { percorsoScheda } from "@/lib/percorso-scheda";
 import { useTranslations } from "next-intl";
 
 /**
@@ -80,7 +81,17 @@ export function RigaRisultato({
       <Copertina risultato={risultato} />
 
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate font-display text-base text-ink">{risultato.titolo}</span>
+        {/* Il titolo è un link alla scheda del libro, il verbo resta il
+            verbo: sono due gesti diversi — guardare e prendere — e §13
+            vuole che l'aggiunta non porti via dalla ricerca. Fondere i due
+            in un unico bersaglio significherebbe scegliere quale dei due
+            perdere. */}
+        <Link
+          href={percorsoScheda(risultato)}
+          className="truncate font-display text-base text-ink underline-offset-4 hover:underline"
+        >
+          {risultato.titolo}
+        </Link>
         <span className="truncate font-ui text-sm text-ink-soft">
           {autori || "Autore non indicato"}
           {anno ? ` · ${anno}` : ""}
