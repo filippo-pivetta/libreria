@@ -38,7 +38,15 @@ Due account già completati sull'istanza Supabase locale, riusabili per qualunqu
 | | Email | Password | Nome utente |
 |---|---|---|---|
 | Account 1 | `prova@montaigne.test` | `provaprova123` | `prova` |
-| Account 2 | `prova2@montaigne.test` | `provaprova123` | `prova2` |
+| Account 2 | `prova2@montaigne.test` | `provaprova123` | `marta` |
+
+I due sono **collegati fra loro con relazione attiva**, e `marta` ha una libreria popolata
+apposta per guardare gli Annali di un collegato con dei numeri veri: quindici letture concluse
+nel 2026 sparse da gennaio ad agosto, due abbandoni, una lettura a cavallo del capodanno, due
+libri senza genere e due senza pagine adottate, voti su tutti. Ha anche sei opere in comune con
+`prova`, per la striscia "letti da tutti e due". Lo script che li genera sta in
+`supabase/tests/dati_collegato.sql`: si riapplica dopo un `db reset --local`, dopo aver
+ricreato i due account.
 
 ## Sistema di design (frontend)
 `src/styles/tokens.css` è l'unico posto in cui esistono colori, ombre, raggi e scale tipografiche: nessun componente scrive mai un colore a mano. Le tre regole che si violano più facilmente per distrazione (dettaglio completo in `docs/design-frontend.md`):

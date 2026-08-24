@@ -6,9 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getMetriche, getMetricheCollegato, type Metriche } from "@/lib/api/metriche";
 import { getAccessToken } from "@/lib/api/access-token";
 import type { VoceConLibro } from "@/lib/api/voci";
-import { CartaQuestAnno } from "@/components/annali/carta-questanno";
 import { CarteMetriche } from "@/components/annali/carte-metriche";
-import { SelettoreAnno } from "@/components/annali/selettore-anno";
+import { IntestazioneAnnali } from "@/components/annali/intestazione-annali";
+import { RigaAffiancata } from "@/components/annali/riga-affiancata";
 import { LibriInComune } from "@/components/annali/libri-in-comune";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroAnnali } from "@/components/states/scheletri";
@@ -38,12 +38,14 @@ function messaggioErrore(
  */
 export function PaginaAnnaliCollegato({
   utenteId,
+  nomeUtente,
   metricheCollegatoIniziali,
   metrichePropriaIniziale,
   vociProprie,
   vociCollegato,
 }: {
   utenteId: string;
+  nomeUtente: string;
   metricheCollegatoIniziali: Metriche;
   metrichePropriaIniziale: Metriche | null;
   vociProprie: VoceConLibro[];
@@ -103,25 +105,27 @@ export function PaginaAnnaliCollegato({
   const propria = propriaQuery.data;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <p className="t-title text-xl">Annali</p>
-        <SelettoreAnno
-          anno={anno}
-          annoMinimo={metriche.annoMinimo}
-          annoMassimo={metriche.annoMassimo}
-          onCambiaAnno={setAnno}
-        />
-      </div>
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <IntestazioneAnnali
+        anno={anno}
+        annoMinimo={metriche.annoMinimo}
+        annoMassimo={metriche.annoMassimo}
+        onCambiaAnno={setAnno}
+        nomeUtente={nomeUtente}
+        annoInCorso={anno === metriche.annoMassimo}
+      />
 
       <CarteMetriche
         metriche={metriche}
-        cartaAffiancata={
-          propria ? <CartaQuestAnno titolo="Tu, nello stesso anno" metriche={propria} /> : undefined
-        }
+        altrui
+        affiancamento={propria ? <RigaAffiancata metriche={propria} /> : undefined}
       />
 
-      <LibriInComune vociProprie={vociProprie} vociCollegato={vociCollegato} />
+      <LibriInComune
+        vociProprie={vociProprie}
+        vociCollegato={vociCollegato}
+        nomeUtente={nomeUtente}
+      />
     </div>
   );
 }

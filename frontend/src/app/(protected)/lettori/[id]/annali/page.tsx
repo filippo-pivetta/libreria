@@ -62,6 +62,7 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
   return (
     <PaginaAnnaliCollegato
       utenteId={id}
+      nomeUtente={collegato.utente.nomeUtente}
       metricheCollegatoIniziali={metricheCollegato.data}
       metrichePropriaIniziale={metrichePropria.status === "ok" ? metrichePropria.data : null}
       vociProprie={propria.status === "ok" ? propria.data : []}

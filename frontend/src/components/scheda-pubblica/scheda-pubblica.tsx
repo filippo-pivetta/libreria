@@ -123,7 +123,7 @@ export function SchedaPubblica({
               }}
             />
           )}
-          <p className="cover__placeholder flex items-center justify-center p-3 text-center font-display text-sm leading-snug text-on-accent sm:text-base">
+          <p className="cover__placeholder flex items-center justify-center p-3 text-center font-display text-sm leading-snug sm:text-base">
             {scheda.titolo}
           </p>
         </div>

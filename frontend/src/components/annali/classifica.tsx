@@ -7,20 +7,27 @@ import type { VoceClassifica } from "@/lib/api/metriche";
 // zero superfluo): riusata invece di reimplementarla, esattamente il
 // motivo per cui è esportata da voto-stelle.tsx.
 import { formattaVoto as formattaPeso } from "@/components/libro/voto-stelle";
+import { TitoloConChiosa } from "@/components/ui/chiosa";
 
 const MOSTRATE_INIZIALMENTE = 5;
 
 /**
  * "Autori più letti" (design-frontend.md §14): classifica a cinque voci
- * con "mostra tutte", barre in `accent` — mai una scala di colori
- * diversi per voce, perché misurano la stessa grandezza su soggetti
- * diversi. L'elenco arriva già ordinato e completo dal backend
+ * con "mostra tutti", barre in `accent`, mai una scala di colori diversi
+ * per voce, perché misurano la stessa grandezza su soggetti diversi.
+ * L'elenco arriva già ordinato e completo dal backend
  * (`metriche_service._classifica`): il troncamento a cinque è
- * responsabilità di questo componente, non del backend.
+ * responsabilità di questo componente.
  *
- * "Generi principali" ha la sua carta a parte, a ciambella
- * (`torta-generi.tsx`): stessi dati, forma diversa — qui restano solo
- * gli autori.
+ * Due correzioni rispetto a prima:
+ *
+ * - il binario della barra era `bg-surface-2` su una carta `surface-1`,
+ *   cioè 0,985 contro 0,965 di luminanza: invisibile. Una barra corta
+ *   non si distingueva da una barra assente, che è precisamente ciò che
+ *   un binario esiste per evitare. Ora è l'inchiostro del tema con
+ *   alpha, come ogni altra linea dell'app;
+ * - il comando diceva "mostra tutte" sotto "Autori più letti", ma il
+ *   referente è maschile plurale.
  */
 export function Classifica({
   titolo,
@@ -29,8 +36,10 @@ export function Classifica({
 }: {
   titolo: string;
   righe: VoceClassifica[];
-  /** Spiega i decimali del peso ripartito — senza, "sembrano un errore
-   * di calcolo" (design-frontend.md §14). */
+  /** Spiega i decimali del peso ripartito: senza, "sembrano un errore
+   * di calcolo" (design-frontend.md §14). Sta nella chiosa accanto al
+   * titolo, non in coda alla carta: è sempre la stessa frase, quindi non
+   * merita di occupare spazio a ogni visita. */
   nota: string;
 }) {
   const [espansa, setEspansa] = useState(false);
@@ -40,33 +49,39 @@ export function Classifica({
 
   return (
     <div>
-      <p className="t-label">{titolo}</p>
+      <TitoloConChiosa titolo={titolo} chiosa={<p>{nota}</p>} />
 
       {righe.length === 0 ? (
         // "Quest'anno" sarebbe scorretto: questo componente vale per
         // qualunque anno selezionato, non solo per quello corrente (un
-        // anno intermedio senza letture mostra zeri, non un errore —
+        // anno intermedio senza letture mostra zeri, non un errore:
         // PRD, comportamento #12).
         <p className="t-meta mt-2">Nessun dato per l&apos;anno selezionato.</p>
       ) : (
         <>
-          <ul className="mt-3 flex flex-col gap-2.5">
+          {/* Sotto i 640px il nome sale sopra la barra invece di occupare
+              una colonna fissa: a 390px una colonna nome lascerebbe alla
+              barra meno di 90px, cioè una barra che non misura più
+              niente. Da 640px in su resta la riga singola, più densa. */}
+          <ul className="mt-4 flex flex-col gap-4 sm:gap-3.5">
             {mostrate.map((riga) => (
-              <li key={riga.id} className="flex items-center gap-3">
-                <span
-                  className="w-28 shrink-0 truncate font-ui text-sm text-ink sm:w-40"
-                  title={riga.nome}
-                >
-                  {riga.nome}
-                </span>
-                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
+              <li key={riga.id} className="sm:flex sm:items-center sm:gap-3">
+                <div className="mb-1.5 flex items-baseline justify-between gap-3 sm:mb-0 sm:contents">
+                  <span
+                    className="min-w-0 truncate font-ui text-[15px] text-ink sm:w-40 sm:shrink-0 sm:text-sm"
+                    title={riga.nome}
+                  >
+                    {riga.nome}
+                  </span>
+                  <span className="t-num t-meta shrink-0 sm:order-last sm:w-10 sm:text-right">
+                    {formattaPeso(riga.peso)}
+                  </span>
+                </div>
+                <span className="block h-1.5 overflow-hidden rounded-full bg-ink/7 sm:flex-1">
                   <span
                     className="block h-full rounded-full bg-accent"
                     style={{ width: `${Math.max(4, (riga.peso / pesoMassimo) * 100)}%` }}
                   />
-                </span>
-                <span className="t-num t-meta w-10 shrink-0 text-right">
-                  {formattaPeso(riga.peso)}
                 </span>
               </li>
             ))}
@@ -75,12 +90,11 @@ export function Classifica({
             <button
               type="button"
               onClick={() => setEspansa((v) => !v)}
-              className="t-meta mt-3 underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+              className="t-meta mt-4 inline-flex min-h-11 items-center underline decoration-line-strong underline-offset-4 hover:decoration-ink sm:min-h-0"
             >
-              {espansa ? "mostra meno" : "mostra tutte"}
+              {espansa ? "mostra meno" : `mostra tutti e ${righe.length}`}
             </button>
           )}
-          <p className="t-meta mt-3 border-t border-line pt-3">{nota}</p>
         </>
       )}
     </div>

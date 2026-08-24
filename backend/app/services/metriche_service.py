@@ -14,6 +14,7 @@ collegato.
 
 from collections import defaultdict
 from datetime import date
+from math import ceil
 from typing import Any, cast
 from uuid import UUID
 
@@ -86,6 +87,37 @@ def _anno_minimo(
     return min(anni) if anni else anno_corrente
 
 
+def _titolo(libro: dict[str, Any], lingua: str) -> str:
+    """Variante nella lingua dell'interfaccia (issue #34), altrimenti il
+    titolo canonico (PRD, entità "Variante di titolo"). Stessa forma già
+    usata da `export_service` e `scheda_repository`: ripetuta e non
+    importata perché quei due la applicano a una `select` diversa, e
+    condividerla legherebbe fra loro tre query che non hanno ragione di
+    cambiare insieme."""
+    varianti = libro.get("variante_titolo") or []
+    variante = next((v["titolo"] for v in varianti if v.get("lingua") == lingua), None)
+    return str(variante or libro["titolo_canonico"])
+
+
+def _durata_giorni(lettura: dict[str, Any]) -> int:
+    """Estremi inclusi: una Lettura cominciata e conclusa lo stesso
+    giorno dura un giorno, non zero. `data_fine` non è mai anteriore a
+    `data_inizio` (`trg_lettura_valida`), quindi il risultato è sempre
+    >= 1."""
+    inizio = date.fromisoformat(lettura["data_inizio"])
+    fine = date.fromisoformat(lettura["data_fine"])
+    return (fine - inizio).days + 1
+
+
+def _giorni_trascorsi(anno_richiesto: int, oggi: date) -> int:
+    """L'anno intero se è già passato, il giorno dell'anno se è quello in
+    corso. È il denominatore di `giorni_con_lettura`: senza, "118 giorni"
+    non si può leggere."""
+    if anno_richiesto < oggi.year:
+        return (date(anno_richiesto, 12, 31) - date(anno_richiesto, 1, 1)).days + 1
+    return oggi.timetuple().tm_yday
+
+
 def _classifica(pesi: dict[str, float], nomi: dict[str, str]) -> list[dict[str, Any]]:
     """Elenco completo ordinato per peso decrescente (poi per nome, a
     parità): design-frontend.md §14 mostra solo le prime cinque con
@@ -103,7 +135,8 @@ async def metriche_di(
     # Controllato prima di qualunque lettura: un anno futuro è sempre
     # rifiutato, quindi non vale la pena spendere due andata-e-ritorno
     # verso Supabase per una richiesta che finirà comunque in errore.
-    anno_corrente = oggi_europa_centrale().year
+    oggi = oggi_europa_centrale()
+    anno_corrente = oggi.year
     anno_richiesto = anno if anno is not None else anno_corrente
     if anno_richiesto > anno_corrente:
         raise AnnoFuturoError
@@ -142,20 +175,47 @@ async def metriche_di(
     voce_id_distinti = {lettura["voce_id"] for lettura in concluse_anno}
     riletture = libri_finiti - len(voce_id_distinti)
 
+    voci_gia_pesate: set[str] = set()
     pesi_autori: dict[str, float] = defaultdict(float)
     nomi_autori: dict[str, str] = {}
     pesi_generi: dict[str, float] = defaultdict(float)
     nomi_generi: dict[str, str] = {}
     libri_senza_genere = 0
-    ha_letture_a_cavallo_anno = False
+    letture_a_cavallo_anno = 0
+    libri_senza_pagine = 0
+    voti: list[float] = []
+    voti_per_stella = [0, 0, 0, 0, 0]
 
     for lettura in concluse_anno:
         if _anno(lettura["data_inizio"]) != anno_richiesto:
-            ha_letture_a_cavallo_anno = True
+            letture_a_cavallo_anno += 1
 
-        libro = voci.get(lettura["voce_id"])
-        if libro is None:
+        voce = voci.get(lettura["voce_id"])
+        if voce is None:
             continue
+        libro = voce["libro"]
+
+        # Il voto sta sulla Voce, non sulla Lettura: due riletture della
+        # stessa Voce concluse nello stesso anno porterebbero lo stesso
+        # voto due volte, gonfiando il campione. Si conta una volta per
+        # Voce, non una per Lettura, a differenza di `libri_finiti`.
+        if lettura["voce_id"] not in voci_gia_pesate:
+            voci_gia_pesate.add(lettura["voce_id"])
+            if voce.get("pagine_adottate") is None:
+                libri_senza_pagine += 1
+            voto = voce.get("voto")
+            if voto is not None:
+                # numeric(2,1) fra 1,0 e 5,0 a passi di mezza stella
+                # (migrazione 20260820205444). Il cast è esplicito perché
+                # PostgREST può restituire un numeric come stringa a
+                # seconda del driver.
+                valore = float(voto)
+                voti.append(valore)
+                # L'istogramma ha cinque colonne e la scala dieci passi:
+                # un 3,5 sta nella colonna delle quattro stelle, cioè si
+                # arrotonda per eccesso. Il vincolo di schema garantisce
+                # 1,0 <= valore <= 5,0, quindi l'indice sta sempre in 0..4.
+                voti_per_stella[ceil(valore) - 1] += 1
 
         # Peso ripartito tra gli autori del libro, così un libro vale
         # sempre uno (PRD regola 18) — stesso principio per i generi
@@ -182,9 +242,37 @@ async def metriche_di(
             libri_senza_genere += 1
 
     incrementi = _calcola_incrementi(avanzamenti)
-    pagine_lette = sum(
-        incremento for data, incremento in incrementi if _anno(data) == anno_richiesto
+    # Un solo passaggio per tre risultati: il totale, i dodici mesi e le
+    # date distinte. Sono la stessa somma a tre risoluzioni diverse,
+    # quindi `sum(pagine_per_mese) == pagine_lette` per costruzione.
+    pagine_per_mese = [0] * 12
+    giorni_letti: set[str] = set()
+    pagine_lette = 0
+    for data_iso, incremento in incrementi:
+        if _anno(data_iso) != anno_richiesto:
+            continue
+        pagine_lette += incremento
+        pagine_per_mese[date.fromisoformat(data_iso).month - 1] += incremento
+        # Un incremento nullo (una correzione, la stessa pagina segnata
+        # due volte) non fa di quel giorno un giorno di lettura.
+        if incremento > 0:
+            giorni_letti.add(data_iso)
+
+    # Un abbandono chiude la Lettura come una conclusione (`data_fine` +
+    # `esito`, cambia_stato_voce): si conta nell'anno di chiusura, come i
+    # libri finiti, ed è l'unico posto in cui l'esito 'abbandonata'
+    # compare in una metrica.
+    abbandoni = sum(
+        1
+        for lettura in letture
+        if lettura["esito"] == "abbandonata"
+        and lettura["data_fine"]
+        and _anno(lettura["data_fine"]) == anno_richiesto
     )
+
+    durate = [_durata_giorni(lettura) for lettura in concluse_anno]
+    lettura_piu_lunga = max(concluse_anno, key=_durata_giorni, default=None)
+    voce_piu_lunga = voci.get(lettura_piu_lunga["voce_id"]) if lettura_piu_lunga else None
 
     return {
         "anno": anno_richiesto,
@@ -196,5 +284,19 @@ async def metriche_di(
         "autori_piu_letti": _classifica(pesi_autori, nomi_autori),
         "generi_principali": _classifica(pesi_generi, nomi_generi),
         "libri_senza_genere": libri_senza_genere,
-        "ha_letture_a_cavallo_anno": ha_letture_a_cavallo_anno,
+        "ha_letture_a_cavallo_anno": letture_a_cavallo_anno > 0,
+        "letture_a_cavallo_anno": letture_a_cavallo_anno,
+        "pagine_per_mese": pagine_per_mese,
+        "giorni_con_lettura": len(giorni_letti),
+        "giorni_trascorsi": _giorni_trascorsi(anno_richiesto, oggi),
+        "voto_medio": round(sum(voti) / len(voti), 1) if voti else None,
+        "libri_votati": len(voti),
+        "voti_per_stella": voti_per_stella,
+        "abbandoni": abbandoni,
+        "durata_media_giorni": round(sum(durate) / len(durate)) if durate else None,
+        "durata_massima_giorni": max(durate) if durate else None,
+        "durata_massima_titolo": (
+            _titolo(voce_piu_lunga["libro"], lingua) if voce_piu_lunga else None
+        ),
+        "libri_senza_pagine": libri_senza_pagine,
     }

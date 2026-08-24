@@ -807,7 +807,16 @@
   opacity: 0; transition: opacity var(--dur-panel) var(--ease-rise);
 }
 .cover img[data-loaded] { opacity: 1; }
-.cover__placeholder { position: absolute; inset: 0; opacity: 1; transition: opacity var(--dur-panel) var(--ease-rise); }
+/* Il colore sta qui e non nei componenti: il segnaposto è SEMPRE sopra il
+   colore dominante del libro (luminanza ~0.42), quindi l'inchiostro chiaro
+   è una proprietà della classe, non una scelta di chi la usa. I tre punti
+   che la montavano scrivevano `text-on-accent`, cioè inchiostro scuro su
+   fondo scuro: circa 2,4:1. Stesso bianco di `.volume__placeholder`. */
+.cover__placeholder {
+  position: absolute; inset: 0; opacity: 1;
+  color: rgb(255 255 255 / 0.94);
+  transition: opacity var(--dur-panel) var(--ease-rise);
+}
 .cover:has(img[data-loaded]) .cover__placeholder { opacity: 0; }
 .cover::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
