@@ -1,7 +1,7 @@
 """Route di `/utenti`: elenco membri, libreria e metriche di un
 collegato (issue #3, metriche issue #7)."""
 
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -10,17 +10,28 @@ from app.core.lingua import lingua_interfaccia
 from app.core.security import get_current_user
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.metriche import MetricheResponse
-from app.schemas.utenti import LibreriaCollegatoResponse, MembroResponse
+from app.schemas.utenti import ElencoMembriResponse, LibreriaCollegatoResponse
 from app.services import metriche_service, utenti_service
 
 router = APIRouter(tags=["utenti"])
 
 
-@router.get("/utenti", response_model=list[MembroResponse])
+@router.get("/utenti", response_model=ElencoMembriResponse)
 async def get_utenti(
+    cerca: Annotated[str | None, Query(max_length=64)] = None,
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
-) -> list[dict[str, Any]]:
-    return await utenti_service.elenco_membri(current_user.access_token, current_user.id)
+) -> dict[str, list[dict[str, Any]]]:
+    """L'elenco membri, in tre gruppi e mai per intero.
+
+    `cerca` filtra per nome utente. Sotto `utenti_service.MIN_QUERY`
+    caratteri l'anagrafica non viene interrogata affatto (restano filtrati
+    i soli gruppi che sono già dati di chi chiama): una lettera sola
+    restituirebbe una fetta arbitraria dell'elenco a ogni battuta, che è
+    enumerazione travestita da ricerca. `max_length` sta qui e non nel
+    servizio perché una query lunga arbitraria finirebbe comunque in un
+    `ILIKE` con due caratteri jolly.
+    """
+    return await utenti_service.elenco_membri(current_user.access_token, current_user.id, cerca)
 
 
 @router.get("/utenti/{utente_id}/voci", response_model=LibreriaCollegatoResponse)

@@ -24,6 +24,16 @@ import { SelettoreAnno } from "@/components/annali/selettore-anno";
  * a `ink-soft`, quindi barre e ciambella diventano grigie. Il quarto è
  * la terza persona nelle carte ("come li HA votati").
  * ---------------------------------------------------------------------
+ *
+ * La riga sotto l'anno diceva "Anno in corso. Ogni numero è ricalcolato
+ * adesso.": un fatto vero per costruzione (ADR 0004, ogni metrica è
+ * ricalcolata a ogni richiesta) ripetuto a ogni visita, quindi mai
+ * informativo — lo stesso principio per cui, poco sopra in questo
+ * stesso file, "la somma non è mai completa" è stato sostituito da
+ * `libri_senza_pagine`: un promemoria perenne smette di leggersi dalla
+ * seconda visita. Al suo posto una riga che non spiega un meccanismo,
+ * di terza persona sulla pagina di un collegato come il resto dei
+ * quattro segnali qui sopra.
  */
 export function IntestazioneAnnali({
   anno,
@@ -33,32 +43,30 @@ export function IntestazioneAnnali({
   /** Presente solo nel contesto di un collegato: la sua presenza è il
    * segnale, non il suo valore. */
   nomeUtente,
-  annoInCorso,
 }: {
   anno: number;
   annoMinimo: number;
   annoMassimo: number;
   onCambiaAnno: (anno: number) => void;
   nomeUtente?: string;
-  /** Vero quando l'anno mostrato è quello corrente: cambia la riga sotto
-   * il titolo, perché "anno in corso" su un anno chiuso sarebbe falso. */
-  annoInCorso: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
       <div className="min-w-0">
         {nomeUtente && <p className="t-label">Annali di {nomeUtente}</p>}
+        {/* leading-[1.05] e non leading-none: è lo stesso interlinea di
+            `.t-display` (tokens.css), la classe che dà il titolo a ogni
+            altra pagina (Lettori, Profilo). Con leading-none il riquadro
+            del titolo era più basso qui che altrove, a parità di corpo —
+            lo stesso numero sembrava un titolo di peso minore. */}
         <h1
-          className="t-num mt-2 font-display text-[44px] leading-none text-ink sm:text-[56px]"
+          className="t-num mt-2 font-display text-[44px] leading-[1.05] text-ink sm:text-[56px]"
           style={{ fontVariationSettings: '"opsz" 72, "SOFT" 20' }}
         >
           {anno}
         </h1>
-        <p className="t-meta mt-2">
-          {annoInCorso && "Anno in corso. "}
-          {nomeUtente
-            ? "Ogni numero è calcolato sui suoi dati."
-            : "Ogni numero è ricalcolato adesso."}
+        <p className="t-meta mt-1">
+          {nomeUtente ? "Il suo anno raccontato dai numeri." : "L’anno raccontato dai numeri."}
         </p>
       </div>
 

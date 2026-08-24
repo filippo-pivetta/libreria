@@ -339,33 +339,41 @@ export function paletteToCssVars(p: Palette): Record<string, string> {
  * bordo di luce, velatura delle copertine); `style` porta i valori interpolati,
  * che vincono sui blocchi di fallback in tokens.anchors.css.
  */
-export type PreferenzaLuce = "ora" | "chiara" | "scura";
+/**
+ * "giorno" e "notte" coincidono deliberatamente con due valori di `Anchor`
+ * (sopra): fissare la preferenza non introduce un vocabolario suo, sceglie
+ * uno dei due ancoraggi che il resto del file già conosce. Si chiamavano
+ * "chiara"/"scura" — un secondo nome per la stessa cosa, che costringeva a
+ * tradurre mentalmente "chiara" nell'ancoraggio "giorno" a ogni lettura di
+ * `risolviLuce` qui sotto.
+ */
+export type PreferenzaLuce = "ora" | "giorno" | "notte";
 
 /** Il nome del cookie che porta la preferenza. Letto solo lato server. */
 export const COOKIE_LUCE = "mtg-luce";
 
 export function preferenzaValida(valore: string | undefined): PreferenzaLuce {
-  return valore === "chiara" || valore === "scura" ? valore : "ora";
+  return valore === "giorno" || valore === "notte" ? valore : "ora";
 }
 
 /**
  * L'ancoraggio e la palette effettivi, data la preferenza.
  *
  * "ora" è il comportamento di sempre: la stanza segue il momento della
- * giornata, interpolata fra i due ancoraggi adiacenti. "chiara" e "scura"
- * fissano rispettivamente `giorno` e `notte`, senza interpolazione — sono
- * scelte, non momenti, e un valore intermedio non vorrebbe dire nulla.
+ * giornata, interpolata fra i due ancoraggi adiacenti. "giorno" e "notte"
+ * fissano l'ancoraggio omonimo senza interpolazione — sono scelte, non
+ * momenti, e un valore intermedio non vorrebbe dire nulla.
  *
- * Fissare un ancoraggio non introduce rischi di contrasto: `giorno` e `notte`
- * sono due dei quattro punti che `scripts/check-contrast.mts` già verifica, e
- * lo spazio dei valori fissi è un sottoinsieme stretto di quello campionato.
+ * Fissare un ancoraggio non introduce rischi di contrasto: sono due dei
+ * quattro punti che `scripts/check-contrast.mts` già verifica, e lo spazio
+ * dei valori fissi è un sottoinsieme stretto di quello campionato.
  */
 export function risolviLuce(
   preferenza: PreferenzaLuce,
   d: Date = new Date(),
 ): { anchor: Anchor; palette: Palette } {
-  if (preferenza === "chiara") return { anchor: "giorno", palette: ANCHORS.giorno };
-  if (preferenza === "scura") return { anchor: "notte", palette: ANCHORS.notte };
+  if (preferenza === "giorno") return { anchor: "giorno", palette: ANCHORS.giorno };
+  if (preferenza === "notte") return { anchor: "notte", palette: ANCHORS.notte };
   return { anchor: currentAnchor(d), palette: currentPalette(d) };
 }
 

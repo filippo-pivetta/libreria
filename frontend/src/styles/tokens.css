@@ -53,9 +53,17 @@
      accent         SOLO come riempimento (pulsanti, barre, indicatori).
                     NON usarlo mai come testo su superficie chiara: crolla a 2.7:1.
      accent-strong  la versione per testo, icone e numeri. >= 6.1:1 su surface-1.
-     alert          UN SOLO USO in tutta l'app: il contatore delle richieste
-                    ricevute accanto a Torre. Non sugli errori, non sulla
-                    cancellazione dell'account, non sui nastri.
+     alert          DUE USI in tutta l'app, e non ne esistono altri:
+                      1. il contatore delle richieste ricevute accanto a
+                         Lettori (riempimento);
+                      2. il bordo della zona di cancellazione dell'account
+                         (`.zona-pericolo`, sotto).
+                    Non sugli errori, che sono testo. Non sui nastri, che
+                    hanno un rosso proprio di stato. Non su un pulsante,
+                    quello della cancellazione compreso. E mai come testo:
+                    tiene 4.57:1 su surface-1 nel punto peggiore
+                    dell'anno, cioè sette centesimi sopra la soglia AA del
+                    corpo — un margine che non è un margine.
    -------------------------------------------------------------------------- */
 
 :root {
@@ -447,7 +455,7 @@
    che restano gli unici comandi esterni onorati". Erano promessi e non
    costruiti: questi due blocchi sono quella promessa.
 
-   (Il comando in Torre, aggiunto dopo, non li rende inutili: chi forza il
+   (Il comando nel Profilo, aggiunto dopo, non li rende inutili: chi forza il
    contrasto lo vuole in entrambe le stanze.)
    -------------------------------------------------------------------------- */
 
@@ -509,6 +517,23 @@
   border: var(--border-width) solid var(--mtg-line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-1);
+}
+
+/* La zona di pericolo: la sola carta dell'app che non porta il bordo in
+   `line`. È il SECONDO e ultimo uso di `alert` in tutta l'app, dopo il
+   contatore delle richieste — non un terzo: resta vietato sugli errori,
+   sui nastri e su qualunque pulsante, cancellazione dell'account compresa
+   (design-frontend.md §17).
+
+   Sta qui e non come utility Tailwind in linea per una ragione di
+   cascata, non di gusto: `.plane-1` è fuori da ogni `@layer`, le utility
+   di Tailwind stanno in `@layer utilities`, e il CSS senza layer batte
+   quello dentro un layer. Un `border-alert` scritto sul componente
+   avrebbe perso contro il `border: … var(--mtg-line)` di `.plane-1`
+   senza che nulla lo segnalasse — lo stesso inciampo che per mesi ha
+   fatto vincere `.t-label` su `text-ink`. */
+.zona-pericolo {
+  border-color: var(--mtg-alert);
 }
 
 .plane-2 {

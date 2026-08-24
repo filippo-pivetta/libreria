@@ -25,9 +25,7 @@ router = APIRouter(tags=["sintesi"])
 
 _CONSENSO_REVOCATO = {
     "error_code": "consenso_revocato",
-    "message": (
-        "L'elaborazione assistita è disattivata. Puoi riattivarla dalle impostazioni nella Torre."
-    ),
+    "message": ("L'elaborazione assistita è disattivata. Puoi riattivarla dal tuo profilo."),
 }
 
 _CONTENUTO_INSUFFICIENTE = {

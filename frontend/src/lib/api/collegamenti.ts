@@ -49,7 +49,7 @@ export type CollegamentiResult =
   | { status: "error"; message: string };
 
 /** GET /collegamenti: richieste ricevute/inviate e collegamenti attivi
- * di chi chiama (design doc §17, sezione Torre). */
+ * di chi chiama (design doc §16, sezione Lettori). */
 export async function getCollegamenti(accessToken: string): Promise<CollegamentiResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;

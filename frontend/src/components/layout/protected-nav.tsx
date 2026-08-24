@@ -3,50 +3,52 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { SignOutButton } from "@/components/layout/sign-out-button";
+import { PortaProfilo } from "@/components/layout/porta-profilo";
 
 /**
- * The four nav items (design doc §5). The bar sits on plane 0, not on a
- * card: it isn't content, it's the room — no .plane-1/.plane-2 here. The
- * active item is marked with full-ink text and a rule, never a fill.
- *
- * Labels stay Italian: the product's UI language today, pending the i18n
- * layer (AGENTS.md notes this isn't built yet).
+ * La navigazione di casa propria (design doc §5).
  *
  * ---------------------------------------------------------------------------
- * DUE BARRE, NON UNA RESA ELASTICA (sessione UI, §8: "mobile pari a desktop").
+ * TRE VOCI, NON QUATTRO.
  *
- * Prima era una riga sola, senza `flex-wrap` e senza un solo breakpoint,
- * identica a 320px e a 1440px: quattro etichette maiuscole da 10.5px con
- * `tracking` largo, più il nome utente, più un pulsante. Su un telefono non ci
- * stava, e non si vedeva perché `overflow-x: hidden` sul body la tagliava in
- * silenzio invece di lasciarla scorrere. I bersagli erano alti ~14px.
+ * Erano Libreria, Annali, Lettori, Torre. Le prime tre si aprono ogni
+ * giorno; la quarta — collegamenti e impostazioni — si apriva una volta al
+ * mese, e tenerla alla pari delle altre mentiva sulla frequenza d'uso.
+ * Ora i collegamenti stanno in Lettori, dove stanno le persone, e ciò che
+ * resta è il proprio account: ci si arriva dalle proprie iniziali
+ * (`PortaProfilo`), che è il gesto che tutti già conoscono e che promette
+ * esattamente ciò che trova.
  *
- * Da 640px in su resta la barra in alto, ora **fissa allo scorrimento** — le
- * due barre contestuali (di un collegato, di un libro) erano già `sticky`, e
- * quella di casa propria no: un'asimmetria che non aveva ragione.
+ * Il nome "Profilo" non è inventato qui: è quello che il PRD usa per
+ * questa superficie ("Interruttore nel profilo dell'Utente", "una
+ * superficie dedicata nel profilo"), mentre riserva "impostazioni" alle
+ * azioni sui dati. "Torre" era anche l'unica voce metaforica su una barra
+ * di nomi letterali, contro §5: "il rimando letterario sta nell'insegna,
+ * non nella segnaletica interna".
  *
- * Sotto i 640px le stesse quattro voci diventano una barra in fondo, che è
- * dove sta la navigazione di un'app e dove arriva il pollice. Nome utente ed
- * "Esci" escono da lì e vanno in Torre, che è la loro sede naturale.
+ * ---------------------------------------------------------------------------
+ * DUE BARRE, NON UNA RESA ELASTICA.
  *
- * **Senza icone, di proposito.** Una tab bar di solito le ha, ma in tutta
- * l'app non esiste un vocabolario di icone: ci sono due chevron in un
- * selettore d'anno e qualche glifo tipografico. Inventarne quattro qui
- * significherebbe aprire un linguaggio visivo nuovo per un componente solo. Le
- * etichette bastano: sono quattro parole corte, e la voce attiva si legge dal
- * filetto e dall'inchiostro pieno, come in alto.
+ * Da 640px in su la barra sta in cima ed è fissa allo scorrimento. Sotto i
+ * 640px le stesse voci diventano una barra in fondo, dove sta la
+ * navigazione di un'app e dove arriva il pollice. Lo scambio è in CSS
+ * (`hidden` / `sm:flex`), non in JavaScript: nessun `matchMedia`, quindi
+ * nessun lampeggio della barra sbagliata prima dell'idratazione.
  *
- * Lo scambio è in CSS (`hidden` / `sm:flex`), non in JavaScript: nessun
- * `matchMedia`, quindi nessun lampeggio della barra sbagliata prima
- * dell'idratazione.
+ * Con tre linguette invece di quattro ciascuna guadagna un terzo di
+ * larghezza, e l'etichetta può tornare al maiuscoletto pieno di §4 senza
+ * doverne stringere la spaziatura per farcela stare.
+ *
+ * **Senza icone, di proposito.** In tutta l'app non esiste un vocabolario
+ * di icone: due chevron in un selettore d'anno e qualche glifo
+ * tipografico. Tre parole corte bastano, e la voce attiva si legge dal
+ * filetto e dall'inchiostro pieno.
  * ---------------------------------------------------------------------------
  */
 const NAV_ITEMS = [
   { href: "/", label: "Libreria" },
   { href: "/annals", label: "Annali" },
   { href: "/readers", label: "Lettori" },
-  { href: "/tower", label: "Torre" },
 ] as const;
 
 function attiva(pathname: string, href: string): boolean {
@@ -54,9 +56,13 @@ function attiva(pathname: string, href: string): boolean {
 }
 
 /**
- * Il contatore delle richieste ricevute: l'unico elemento in `alert` di tutta
- * l'app (design doc §5). `aria-label` esplicita perché il solo numero, letto
- * ad alta voce dopo "Torre", non dice di cosa è il conteggio.
+ * Il contatore delle richieste ricevute: l'unico elemento in `alert` di
+ * tutta l'app (design doc §5). Sta accanto a Lettori e non più accanto al
+ * profilo — prima segnalava una cosa che in quella pagina non si poteva
+ * fare, ora sta accanto al posto dove si agisce.
+ *
+ * `aria-label` esplicita perché il solo numero, letto ad alta voce dopo
+ * "Lettori", non dice di cosa è il conteggio.
  */
 function Contatore({ n }: { n: number }) {
   return (
@@ -75,10 +81,10 @@ export function ProtectedNav({
 }: {
   userName: string;
   /**
-   * Received-connection-request count (design doc §5): the only element
-   * in `alert` in the whole app. Populated by app/(protected)/layout.tsx
-   * from GET /collegamenti; stays optional so a failed fetch there just
-   * omits the badge instead of blocking the whole layout.
+   * Numero di richieste di collegamento ricevute (design doc §5).
+   * Popolato da app/(protected)/layout.tsx da GET /collegamenti; resta
+   * opzionale così che un fetch fallito lì ometta il contatore invece di
+   * bloccare tutto il layout.
    */
   receivedRequestCount?: number;
 }) {
@@ -106,7 +112,7 @@ export function ProtectedNav({
                   }`}
                 >
                   {item.label}
-                  {item.href === "/tower" && !!receivedRequestCount && (
+                  {item.href === "/readers" && !!receivedRequestCount && (
                     <span className="ml-1.5">
                       <Contatore n={receivedRequestCount} />
                     </span>
@@ -115,10 +121,7 @@ export function ProtectedNav({
               );
             })}
           </nav>
-          <div className="flex items-center gap-3">
-            <span className="font-ui text-sm text-ink-soft">{userName}</span>
-            <SignOutButton />
-          </div>
+          <PortaProfilo userName={userName} conNome />
         </div>
       </header>
 
@@ -145,15 +148,15 @@ export function ProtectedNav({
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex flex-1 flex-col items-center justify-center gap-1 px-1 ${
+              className={`relative flex flex-1 items-center justify-center gap-1.5 px-1 ${
                 active
-                  ? "text-ink before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-ink"
+                  ? "text-ink before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-ink"
                   : "text-ink-soft"
               }`}
               style={{ minHeight: "var(--tab-h)" }}
             >
               <span className="t-label tracking-[0.1em] text-current">{item.label}</span>
-              {item.href === "/tower" && !!receivedRequestCount && (
+              {item.href === "/readers" && !!receivedRequestCount && (
                 <Contatore n={receivedRequestCount} />
               )}
             </Link>

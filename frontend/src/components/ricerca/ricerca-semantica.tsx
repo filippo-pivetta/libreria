@@ -103,7 +103,7 @@ export function RicercaSemantica() {
       {spenta && (
         <EmptyState
           title="L’elaborazione assistita è spenta"
-          description="La ricerca semantica è una delle funzioni che dipendono dal consenso. Riaccendilo dalle impostazioni nella Torre e gli indici si ricostruiscono da soli."
+          description="La ricerca semantica è una delle funzioni che dipendono dal consenso. Riaccendilo dal tuo profilo e gli indici si ricostruiscono da soli."
         />
       )}
 

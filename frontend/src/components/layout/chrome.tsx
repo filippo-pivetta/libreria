@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import { PortaProfilo } from "@/components/layout/porta-profilo";
 import { ProtectedNav } from "@/components/layout/protected-nav";
 
 /**
@@ -39,7 +40,21 @@ export function Chrome({
   return (
     <>
       <ProtectedNav userName={userName} receivedRequestCount={receivedRequestCount} />
-      <main id="contenuto" className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-3 text-ink sm:p-6">{children}</main>
+      <main
+        id="contenuto"
+        className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-3 text-ink sm:p-6"
+      >
+        {/* Sotto i 640px la barra in alto non esiste — la navigazione è in
+            fondo — quindi la porta del profilo starebbe da nessuna parte.
+            Sta qui, in cima al contenuto e allineata a destra, sopra il
+            titolo di pagina: nessuna barra nuova da mantenere e nessuna
+            altezza sottratta a ogni schermata, perché la riga la occupa
+            solo qui e solo sul telefono. */}
+        <div className="mb-1 flex justify-end sm:hidden">
+          <PortaProfilo userName={userName} />
+        </div>
+        {children}
+      </main>
     </>
   );
 }

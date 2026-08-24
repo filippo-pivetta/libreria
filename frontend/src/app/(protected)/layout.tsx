@@ -56,7 +56,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     );
   }
 
-  // Il contatore delle richieste ricevute accanto a Torre (design doc
+  // Il contatore delle richieste ricevute accanto a Lettori (design doc
   // §5): un fallimento qui non deve bloccare il layout, a differenza di
   // getMe sopra — il badge resta semplicemente assente.
   const collegamenti = session

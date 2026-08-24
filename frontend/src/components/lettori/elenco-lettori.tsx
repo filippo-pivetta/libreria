@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getUtenti, type Membro } from "@/lib/api/utenti";
-import { inviaRichiesta } from "@/lib/api/collegamenti";
+import { getUtenti, MIN_RICERCA, type ElencoMembri, type Membro } from "@/lib/api/utenti";
+import {
+  accettaCollegamento,
+  inviaRichiesta,
+  terminaCollegamento,
+} from "@/lib/api/collegamenti";
 import { getAccessToken } from "@/lib/api/access-token";
 import { iniziali } from "@/lib/iniziali";
 import { Button } from "@/components/ui/button";
@@ -15,32 +19,148 @@ import { ScheletroElenco } from "@/components/states/scheletri";
 import { Messaggio } from "@/components/ui/messaggio";
 import { useTranslations } from "next-intl";
 
+// Stessa costante di providers/toast-provider.tsx (DURATA_MS), per
+// coerenza fra le finestre di "annulla" dell'app.
+const ATTESA_INTERRUZIONE_MS = 6000;
+
+// Quanto si aspetta prima di interrogare il server mentre si digita.
+// Sotto i ~200ms si manda una richiesta per battuta; sopra i ~400ms si
+// sente il ritardo.
+const ATTESA_DIGITAZIONE_MS = 250;
+
 /**
- * Lettori (design doc §16, emendamento 20 agosto 2026): due carte, non
- * una lista sola, perché fa due mestieri con frequenze opposte — andare
- * da qualcuno con cui sei già collegato (quotidiano) e trovare qualcuno
- * da chiedere (raro, in un gruppo chiuso). Iniziali in Fraunces, nessuna
- * immagine profilo, che il PRD non prevede.
+ * Lettori (design doc §16): le persone e l'intero ciclo di vita del
+ * rapporto con loro, in una pagina sola.
+ *
+ * ---------------------------------------------------------------------
+ * PERCHÉ NON È PIÙ COM'ERA
+ *
+ * Prima questa pagina mostrava i nomi e basta: accettare una richiesta,
+ * ritirarne una, interrompere un collegamento si facevano nella Torre,
+ * e qui una richiesta in attesa era testo inerte con una riga che
+ * rimandava altrove. Stesso oggetto in due pagine, e quella dove sta la
+ * persona era quella che non poteva agire — il contatore rosso in barra
+ * non era una funzione, era la toppa che serviva a portarti nell'altra.
+ *
+ * L'elenco era anche diviso in due carte, "i tuoi collegamenti" e "altri
+ * membri", per una ragione giusta (frequenze opposte) e con una
+ * soluzione che risolveva l'ORDINE e non il TROVARE: per chiedere un
+ * collegamento bisognava scorrere oltre tutti i collegati. Con
+ * un'istanza aperta quella lista non finisce più. Ora la ricerca sta in
+ * cima e raggiunge chiunque, e le sezioni servono solo a dire in che
+ * stato è ciascuno.
+ *
+ * ---------------------------------------------------------------------
+ * TRE SEZIONI, IN ORDINE DI URGENZA
+ *
+ * 1. Ti hanno chiesto il collegamento — l'unica cosa con una scadenza
+ *    sociale. Quando non ce n'è, la sezione sparisce insieme al
+ *    contatore: il caso normale non si annuncia.
+ * 2. I tuoi collegamenti — pura navigazione. Nessuno stato scritto
+ *    accanto (esserci è già lo stato) e nessun comando distruttivo a un
+ *    dito dal gesto quotidiano: "Interrompi" compare solo in modalità
+ *    Modifica.
+ * 3. Altri lettori — chi non ha ancora una relazione, con in cima le
+ *    richieste inviate. Ne arriva una fetta dal server, non l'anagrafica.
  */
-export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) {
+export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri }) {
   const queryClient = useQueryClient();
   const t = useTranslations();
-  const [errore, setErrore] = useState<{ utenteId: string; messaggio: string } | null>(null);
 
-  const { data, isPending, isError, error, refetch } = useQuery({
-    queryKey: ["utenti"],
+  const [ricerca, setRicerca] = useState("");
+  const [ricercaAttiva, setRicercaAttiva] = useState("");
+  const [modifica, setModifica] = useState(false);
+  const [errore, setErrore] = useState<{ id: string; messaggio: string } | null>(null);
+
+  // Un collegamento "in interruzione" non ha ancora chiamato il server:
+  // la DELETE parte solo quando i sei secondi scadono senza un Annulla.
+  // Interrompere non è simmetricamente reversibile — si interrompe da
+  // soli, ma per tornare indietro serve che l'altro accetti una nuova
+  // richiesta — e questa è la finestra che rende innocuo un clic sbagliato.
+  const [inInterruzione, setInInterruzione] = useState<Set<string>>(() => new Set());
+  const timer = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  useEffect(() => {
+    const timers = timer.current;
+    return () => {
+      timers.forEach((handle) => clearTimeout(handle));
+      timers.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    const termine = ricerca.trim();
+    // Sotto il minimo non si interroga l'anagrafica, e il campo svuotato
+    // torna subito all'elenco senza aspettare il ritardo.
+    const prossima = termine.length >= MIN_RICERCA ? termine : "";
+    if (prossima === ricercaAttiva) return;
+    const handle = setTimeout(() => setRicercaAttiva(prossima), ATTESA_DIGITAZIONE_MS);
+    return () => clearTimeout(handle);
+  }, [ricerca, ricercaAttiva]);
+
+  const { data, isPending, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ["utenti", ricercaAttiva],
     queryFn: async () => {
       const token = await getAccessToken();
-      const result = await getUtenti(token);
+      const result = await getUtenti(token, ricercaAttiva || undefined);
       if (result.status === "error") {
         throw new Error(result.message);
       }
       return result.data;
     },
-    initialData: membriIniziali,
+    // L'elenco senza ricerca è quello che il server ha già reso: non si
+    // rifà una richiesta per mostrare ciò che è già in pagina.
+    initialData: ricercaAttiva === "" ? elencoIniziale : undefined,
+    placeholderData: (precedente) => precedente,
   });
 
-  const mutazione = useMutation({
+  const invalida = () => {
+    void queryClient.invalidateQueries({ queryKey: ["utenti"] });
+    void queryClient.invalidateQueries({ queryKey: ["collegamenti"] });
+  };
+
+  const accetta = useMutation({
+    mutationFn: async (collegamentoId: string) => {
+      const token = await getAccessToken();
+      const result = await accettaCollegamento(token, collegamentoId);
+      if (result.status !== "ok") {
+        throw new Error(
+          result.status === "not_found" ? t("assenze.richiestaSparita") : result.message,
+        );
+      }
+    },
+    onMutate: () => setErrore(null),
+    onSuccess: invalida,
+    onError: (err: unknown, id: string) =>
+      setErrore({
+        id,
+        messaggio: err instanceof Error ? err.message : t("errori.richiestaNonAccettata"),
+      }),
+  });
+
+  // Una sola mutazione per rifiuta / ritira / interrompi: sono la stessa
+  // DELETE sulla riga della relazione, e distinguerle qui avrebbe
+  // significato tre copie dello stesso gestore d'errore.
+  const termina = useMutation({
+    mutationFn: async (collegamentoId: string) => {
+      const token = await getAccessToken();
+      const result = await terminaCollegamento(token, collegamentoId);
+      if (result.status !== "ok") {
+        throw new Error(
+          result.status === "not_found" ? t("assenze.collegamentoSparito") : result.message,
+        );
+      }
+    },
+    onMutate: () => setErrore(null),
+    onSuccess: invalida,
+    onError: (err: unknown, id: string) =>
+      setErrore({
+        id,
+        messaggio: err instanceof Error ? err.message : t("errori.collegamentoNonAggiornato"),
+      }),
+  });
+
+  const chiedi = useMutation({
     mutationFn: async (utenteId: string) => {
       const token = await getAccessToken();
       const result = await inviaRichiesta(token, utenteId);
@@ -55,20 +175,40 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
       }
     },
     onMutate: () => setErrore(null),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["utenti"] });
-      void queryClient.invalidateQueries({ queryKey: ["collegamenti"] });
-    },
-    onError: (mutationError: unknown, utenteId: string) => {
+    onSuccess: invalida,
+    onError: (err: unknown, id: string) =>
       setErrore({
-        utenteId,
-        messaggio:
-          mutationError instanceof Error
-            ? mutationError.message
-            : t("errori.richiestaNonInviata"),
-      });
-    },
+        id,
+        messaggio: err instanceof Error ? err.message : t("errori.richiestaNonInviata"),
+      }),
   });
+
+  function avviaInterruzione(collegamentoId: string) {
+    setInInterruzione((precedente) => new Set(precedente).add(collegamentoId));
+    const handle = setTimeout(() => {
+      timer.current.delete(collegamentoId);
+      setInInterruzione((precedente) => {
+        const successivo = new Set(precedente);
+        successivo.delete(collegamentoId);
+        return successivo;
+      });
+      termina.mutate(collegamentoId);
+    }, ATTESA_INTERRUZIONE_MS);
+    timer.current.set(collegamentoId, handle);
+  }
+
+  function annullaInterruzione(collegamentoId: string) {
+    const handle = timer.current.get(collegamentoId);
+    if (handle) {
+      clearTimeout(handle);
+      timer.current.delete(collegamentoId);
+    }
+    setInInterruzione((precedente) => {
+      const successivo = new Set(precedente);
+      successivo.delete(collegamentoId);
+      return successivo;
+    });
+  }
 
   if (isPending) {
     return (
@@ -88,94 +228,258 @@ export function ElencoLettori({ membriIniziali }: { membriIniziali: Membro[] }) 
     );
   }
 
-  if (data.length === 0) {
-    return (
-      <EmptyState
-        title="Nessun altro lettore"
-        description="Nessun altro membro è ancora entrato nel gruppo."
-      />
-    );
-  }
-
-  const collegati = data.filter((m) => m.statoRelazione === "attiva");
-  const altri = data.filter((m) => m.statoRelazione !== "attiva");
+  const cercando = ricercaAttiva !== "";
+  const vuoto =
+    data.richiesteRicevute.length === 0 &&
+    data.collegati.length === 0 &&
+    data.altri.length === 0;
 
   return (
     <div className="flex flex-col gap-8">
-      <p className="max-w-md text-sm text-ink-soft">
-        Diviso in due perché fa due mestieri con frequenze opposte: andare da qualcuno, che è
-        quotidiano, e trovare qualcuno da chiedere, che in un gruppo chiuso capita poche volte
-        l&apos;anno.
-      </p>
-
-      {collegati.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <p className="t-label">I tuoi collegamenti · {collegati.length}</p>
-          <div className="plane-1 grain divide-y divide-line overflow-hidden rounded-card">
-            {collegati.map((membro) => (
-              <Link
-                key={membro.id}
-                href={`/lettori/${membro.id}`}
-                className="flex items-center gap-3 p-4 hover:bg-surface-2"
-              >
-                <span
-                  aria-hidden
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 font-display text-sm text-ink-soft"
+      {data.richiesteRicevute.length > 0 && (
+        <Sezione titolo="Ti hanno chiesto il collegamento">
+          <Carta>
+            {data.richiesteRicevute.map((membro) => (
+              <Riga key={membro.id} membro={membro} errore={errore}>
+                <Button
+                  size="sm"
+                  onClick={() => accetta.mutate(membro.collegamentoId!)}
+                  disabled={accetta.isPending && accetta.variables === membro.collegamentoId}
                 >
-                  {iniziali(membro.nomeUtente)}
-                </span>
-                <span className="font-ui text-sm font-medium text-ink">{membro.nomeUtente}</span>
-                <span aria-hidden className="ml-auto text-ink-soft">
-                  ›
-                </span>
-              </Link>
+                  Accetta
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => termina.mutate(membro.collegamentoId!)}
+                  disabled={termina.isPending && termina.variables === membro.collegamentoId}
+                >
+                  Rifiuta
+                </Button>
+              </Riga>
             ))}
-          </div>
-        </section>
+          </Carta>
+        </Sezione>
       )}
 
-      {altri.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <p className="t-label">Altri membri · {altri.length}</p>
-          <div className="plane-1 grain divide-y divide-line overflow-hidden rounded-card">
-            {altri.map((membro) => (
-              <div key={membro.id} className="flex items-center gap-3 p-4">
-                <span
-                  aria-hidden
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 font-display text-sm text-ink-soft"
-                >
-                  {iniziali(membro.nomeUtente)}
-                </span>
-                <span className="font-ui text-sm font-medium text-ink">{membro.nomeUtente}</span>
+      <div className="flex flex-col gap-3">
+        {/* La ricerca sta in cima e raggiunge chiunque: è lei, e non
+            l'ordine delle sezioni, a risolvere un elenco che non finisce.
 
-                <div className="ml-auto flex flex-col items-end gap-1">
-                  {membro.statoRelazione === "assente" ? (
+            Campo a riga inferiore (`.field-line`), non il riquadro
+            arrotondato di `ui/input.tsx`: è la stessa forma della ricerca
+            dello scaffale e di quella del catalogo, che sono i due
+            precedenti diretti. `<Input>` è il campo dei moduli — dove si
+            compila qualcosa e si conferma; questo è un filtro su ciò che
+            sta sotto, e nell'app quelli non hanno riquadro.
+
+            Il conteggio a destra dice i COLLEGATI, che sono un dato di chi
+            guarda. Non c'è e non ci sarà un totale dei membri: su
+            un'istanza aperta quanti siano gli iscritti non è
+            un'informazione che questa pagina debba dare. */}
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+          <input
+            type="search"
+            value={ricerca}
+            onChange={(event) => setRicerca(event.target.value)}
+            placeholder="Nome di un lettore"
+            aria-label="Cerca un lettore per nome"
+            className="field-line min-w-0 flex-1 border-0 border-b border-line bg-transparent px-0 py-2 font-ui text-sm text-ink outline-none placeholder:text-ink-soft sm:max-w-sm sm:flex-none"
+          />
+          {data.collegati.length > 0 && (
+            <span className="t-meta t-num shrink-0 sm:ml-auto">
+              {data.collegati.length}{" "}
+              {data.collegati.length === 1 ? "collegato" : "collegati"}
+            </span>
+          )}
+        </div>
+
+        {/* "Modifica" sull'intestazione del gruppo che modifica, non sul
+            titolo di pagina: è il pattern dell'elenco iOS, e dice da sé su
+            quali righe agisce.
+
+            Passa dal primitivo `Button` come ogni altro comando dell'app —
+            prima era un `<button>` nudo con `text-accent-strong` scritto a
+            mano, quindi senza stato hover, senza il bersaglio a 44px sotto
+            il dito e con un accento come testo che nessun altro comando
+            usa. `ghost` per entrare, `secondary` per uscire: essere in una
+            modalità si dichiara con un riempimento, e `surface-2` è il
+            piano di ciò che è sollevato. */}
+        {data.collegati.length > 0 && (
+          <div className="flex items-center justify-between gap-4">
+            <p className="t-label">I tuoi collegamenti</p>
+            <Button
+              variant={modifica ? "secondary" : "ghost"}
+              size="sm"
+              aria-pressed={modifica}
+              onClick={() => {
+                setModifica((valore) => !valore);
+                setErrore(null);
+              }}
+            >
+              {modifica ? "Fine" : "Modifica"}
+            </Button>
+          </div>
+        )}
+
+        {data.collegati.length > 0 && (
+          <Carta>
+            {data.collegati.map((membro) => {
+              const id = membro.collegamentoId!;
+              if (inInterruzione.has(id)) {
+                return (
+                  <li
+                    key={membro.id}
+                    className="flex items-center justify-between gap-3 p-4"
+                  >
+                    <span className="t-meta">
+                      {membro.nomeUtente} — collegamento interrotto
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => annullaInterruzione(id)}>
+                      Annulla
+                    </Button>
+                  </li>
+                );
+              }
+              if (modifica) {
+                return (
+                  <Riga key={membro.id} membro={membro} errore={errore}>
+                    <Button variant="outline" size="sm" onClick={() => avviaInterruzione(id)}>
+                      Interrompi
+                    </Button>
+                  </Riga>
+                );
+              }
+              return (
+                <li key={membro.id}>
+                  <Link
+                    href={`/lettori/${membro.id}`}
+                    className="flex items-center gap-3 p-4 transition-colors duration-(--dur-micro) hover:bg-surface-2"
+                  >
+                    <Iniziali nome={membro.nomeUtente} />
+                    <span className="font-ui text-sm font-medium text-ink">
+                      {membro.nomeUtente}
+                    </span>
+                    <span aria-hidden className="ml-auto text-ink-soft">
+                      ›
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </Carta>
+        )}
+
+        {data.altri.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {data.collegati.length > 0 && (
+              <p className="t-label pt-2">{cercando ? "Non collegati" : "Altri lettori"}</p>
+            )}
+            <Carta>
+              {data.altri.map((membro) =>
+                membro.statoRelazione === "in_attesa" ? (
+                  <Riga key={membro.id} membro={membro} errore={errore}>
+                    <span className="t-meta">Richiesta inviata</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => termina.mutate(membro.collegamentoId!)}
+                      disabled={
+                        termina.isPending && termina.variables === membro.collegamentoId
+                      }
+                    >
+                      Ritira
+                    </Button>
+                  </Riga>
+                ) : (
+                  <Riga key={membro.id} membro={membro} errore={errore}>
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={mutazione.isPending && mutazione.variables === membro.id}
-                      onClick={() => mutazione.mutate(membro.id)}
+                      onClick={() => chiedi.mutate(membro.id)}
+                      disabled={chiedi.isPending && chiedi.variables === membro.id}
                     >
                       Chiedi il collegamento
                     </Button>
-                  ) : (
-                    <span className="t-meta">
-                      {membro.richiestaRicevuta ? "Ti ha chiesto il collegamento" : "Richiesta inviata"}
-                    </span>
-                  )}
-                  {errore?.utenteId === membro.id && (
-                    <Messaggio className="text-right">{errore.messaggio}</Messaggio>
-                  )}
-                </div>
-              </div>
-            ))}
+                  </Riga>
+                ),
+              )}
+            </Carta>
           </div>
-          <p className="max-w-md text-sm text-ink-soft">
-            Le richieste si accettano nella Torre, dove il contatore le rende visibili. Qui una
-            richiesta in attesa è testo e non un comando.
+        )}
+
+        {!cercando && data.altri.length > 0 && (
+          <p className="t-meta max-w-md">
+            Gli ultimi arrivati. Per trovare qualcun altro, cerca il nome.
           </p>
-        </section>
+        )}
+
+        {cercando && vuoto && !isFetching && (
+          <p className="t-meta">Nessun lettore con questo nome.</p>
+        )}
+      </div>
+
+      {!cercando && vuoto && (
+        <EmptyState
+          title="Nessun altro lettore"
+          description="Nessun altro è ancora entrato. Quando arriverà qualcuno lo troverai qui."
+        />
       )}
     </div>
+  );
+}
+
+function Sezione({ titolo, children }: { titolo: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="t-section">{titolo}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Carta({ children }: { children: React.ReactNode }) {
+  return (
+    <ul className="plane-1 grain divide-y divide-line overflow-hidden rounded-card">
+      {children}
+    </ul>
+  );
+}
+
+/** Iniziali in Fraunces, nessuna immagine di profilo — il PRD non la
+ * prevede, e su un'istanza aperta un avatar sarebbe anche la prima cosa
+ * da moderare. */
+function Iniziali({ nome }: { nome: string }) {
+  return (
+    <span
+      aria-hidden
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 font-display text-sm text-ink-soft"
+    >
+      {iniziali(nome)}
+    </span>
+  );
+}
+
+function Riga({
+  membro,
+  errore,
+  children,
+}: {
+  membro: Membro;
+  errore: { id: string; messaggio: string } | null;
+  children: React.ReactNode;
+}) {
+  const idErrore = membro.collegamentoId ?? membro.id;
+  return (
+    <li className="flex items-center gap-3 p-4">
+      <Iniziali nome={membro.nomeUtente} />
+      <span className="font-ui text-sm font-medium text-ink">{membro.nomeUtente}</span>
+      <div className="ml-auto flex flex-col items-end gap-1">
+        <div className="flex items-center gap-2">{children}</div>
+        {errore?.id === idErrore && (
+          <Messaggio className="text-right">{errore.messaggio}</Messaggio>
+        )}
+      </div>
+    </li>
   );
 }

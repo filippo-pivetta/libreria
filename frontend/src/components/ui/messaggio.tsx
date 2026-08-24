@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
  * Regole che questo primitivo tiene ferme:
  *
  * - **Mai un riquadro rosso.** `alert` ha un uso solo in tutta l'app, il
- *   contatore delle richieste accanto a Torre (§3). Un errore qui è testo,
+ *   contatore delle richieste accanto a Lettori (§3). Un errore qui è testo,
  *   e si distingue dalla conferma per l'inchiostro, non per il colore.
  * - **`aria-live="polite"` sempre**, anche sulla conferma. Un messaggio che
  *   compare accanto a un campo è invisibile a chi non guarda lo schermo:

@@ -65,7 +65,6 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
         annoMinimo={data.annoMinimo}
         annoMassimo={data.annoMassimo}
         onCambiaAnno={setAnno}
-        annoInCorso={anno === data.annoMassimo}
       />
       <CarteMetriche metriche={data} />
     </div>

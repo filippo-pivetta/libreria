@@ -27,9 +27,7 @@ router = APIRouter(tags=["preview"])
 
 _CONSENSO_REVOCATO = {
     "error_code": "consenso_revocato",
-    "message": (
-        "L'elaborazione assistita è disattivata. Puoi riattivarla dalle impostazioni nella Torre."
-    ),
+    "message": ("L'elaborazione assistita è disattivata. Puoi riattivarla dal tuo profilo."),
 }
 """409 e non 403: non è un permesso mancante, è una funzione che l'Utente
 ha scelto di spegnere, e l'interfaccia deve poterlo dire invece di far

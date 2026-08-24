@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 // Testi del PRD, parola per parola (docs/design-frontend.md §17):
-// dall'issue #6 servono anche nelle impostazioni della Torre.
+// dall'issue #6 servono anche nel profilo.
 import { AVVISO_VISIBILITA, TESTO_CONSENSO } from "@/lib/testi-consenso";
 import { useTranslations } from "next-intl";
 

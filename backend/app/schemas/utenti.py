@@ -25,9 +25,36 @@ class MembroResponse(UtenteEssenziale):
     stato_relazione: StatoRelazione
     # Significativo solo quando stato_relazione == "in_attesa": True se
     # la richiesta l'ha inviata l'altro (quindi accettabile/rifiutabile
-    # da chi guarda), False se l'ha inviata chi guarda (solo ritirabile
-    # dalla Torre). Sempre False per "assente"/"attiva".
+    # da chi guarda), False se l'ha inviata chi guarda (solo ritirabile).
+    # Sempre False per "assente"/"attiva".
     richiesta_ricevuta: bool
+    # L'id della riga `collegamento`, quando una relazione esiste. Senza,
+    # l'elenco potrebbe mostrare accetta/rifiuta/ritira/interrompi ma non
+    # eseguirli: le rotte di `/collegamenti` lavorano sull'id della
+    # relazione, non su quello della persona. È ciò che permette a Lettori
+    # di reggere l'intero ciclo di vita di un collegamento senza una
+    # seconda chiamata.
+    collegamento_id: UUID | None = None
+
+
+class ElencoMembriResponse(BaseModel):
+    """GET /utenti in tre gruppi, non una lista piatta.
+
+    `richieste_ricevute` e `collegati` sono sempre completi: nascere da
+    una relazione con chi guarda li rende suoi dati, e un tetto li
+    renderebbe inagibili — una richiesta fuori dal LIMIT non si potrebbe
+    accettare, un collegamento fuori dal LIMIT renderebbe irraggiungibile
+    una libreria.
+
+    `altri` è l'unico gruppo con un tetto (utenti_service.LIMITE_ELENCO) e
+    porta in cima le richieste inviate. Non esiste alcun campo di
+    conteggio totale: su un'istanza pubblica quanti siano gli iscritti non
+    è un'informazione che l'elenco membri debba dare.
+    """
+
+    richieste_ricevute: list[MembroResponse]
+    collegati: list[MembroResponse]
+    altri: list[MembroResponse]
 
 
 class LibreriaCollegatoResponse(BaseModel):

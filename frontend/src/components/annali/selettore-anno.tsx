@@ -23,11 +23,11 @@ const AMPIEZZA = 3;
  *
  * Ora è una finestra di tre che scorre con la selezione. La larghezza è
  * costante, la riga resta piccola, e i due vicini bastano a dire che
- * l'anno sta dentro una serie invece che da solo. Il resto
- * dell'intervallo lo dichiara una riga sotto, "dal 2019", che è
- * l'informazione vera che l'elenco completo dava: dove comincia la
- * storia. Il numero grande dell'intestazione dice già quale anno si
- * guarda, quindi qui non serve ripeterlo in grande.
+ * l'anno sta dentro una serie invece che da solo. Il numero grande
+ * dell'intestazione dice già quale anno si guarda, quindi qui non serve
+ * ripeterlo in grande. Una riga sotto, "dal 2019", dichiarava dove
+ * comincia la storia: è stata tolta, e con lei la sola informazione che
+ * l'elenco completo dava e che questa finestra non porta più.
  *
  * L'anno attivo si segna con inchiostro pieno e filetto, lo stesso
  * linguaggio della voce di navigazione attiva (§5), mai un riempimento.
@@ -92,13 +92,6 @@ export function SelettoreAnno({
           onClick={() => onCambiaAnno(anno + 1)}
         />
       </div>
-
-      {/* Solo quando c'è davvero dell'altro dietro la finestra: su un
-          intervallo di tre anni sarebbe una riga che ripete ciò che si
-          vede già. */}
-      {annoMinimo < primo && (
-        <p className="t-meta t-num text-xs">dal {annoMinimo}</p>
-      )}
     </div>
   );
 }
