@@ -272,8 +272,22 @@
      utility sul componente perché sotto i 640 cambia insieme a --cover-w e a
      --spine-max: sono i tre numeri che decidono quanti volumi entrano in una
      riga, e vanno letti in un posto solo (anche da `shelf-pack.ts`, che
-     impacchetta in JavaScript). */
-  --shelf-gap: var(--sp3);
+     impacchetta in JavaScript).
+
+     Un passo della scala sopra il precedente (--sp3, 12px): col margine di
+     un desktop la mensola può respirare di più senza perdere un volume a
+     riga. Fermo qui e non a --sp5 (24px): ci si è passati, e a container
+     piena (max-w-5xl, 976px di contenuto) il conto peggiore con --sp5 —
+     6×(spine + copertina) + 5 gap ≤ 976 — regge solo sotto i 22,7px di
+     costa media, cioè libri sotto le ~500 pagine: non un caso limite raro
+     ma la mensola di tutti i giorni, ed è esattamente quello che si è
+     visto (una riga di cinque romanzi normali con un vuoto a destra grande
+     quanto il sesto che non ci stava più). A --sp4 il conto peggiore vero
+     — sei coste tutte al tetto (28px, ~600+ pagine) — resta comunque 6:
+     6×148 + 5×16 = 968 su 976. Sotto i 640px lo spazio è già stretto (§ qui
+     sotto: tre volumi SEMPRE in riga anche su un telefono), quindi lì resta
+     --sp2 e non sale insieme. */
+  --shelf-gap: var(--sp4);
 
   /* ---------------------------------------------------------------------
      BREAKPOINT
@@ -332,9 +346,14 @@
    per una lettera. Tre numeri cambiano al breakpoint, e nessuno dei tre tocca
    il disegno del volume:
 
-     --cover-w   si adatta perché tre volumi stiano SEMPRE in riga. 88 = 32 di
-                 padding di pagina + 16 dei due gap + ~40 di coste. A 390 dà 96
-                 (il valore di prima), a 360 dà 90, sotto si ferma a 84.
+     --cover-w   si adatta perché tre volumi stiano SEMPRE in riga. 96 = 32 di
+                 padding di pagina + 16 dei due gap veri (tre volumi, due gap
+                 fra loro — mai un gap dopo l'ultimo) + 42 delle tre coste al
+                 tetto, con 6px di margine per l'arrotondamento di
+                 `clientWidth` (useMisureScaffale, che legge la sonda in
+                 pixel interi). A 390 dà 96 (il valore di prima, invariato:
+                 lì la clamp tocca già il tetto), a 360 dà 88, sotto si ferma
+                 a 84.
      --shelf-gap scende di un passo della scala, non di un valore a occhio.
      --spine-max la stessa clamp con un tetto più basso, esattamente come già
                  fa la copertina passando da 120 a 96: lo spessore continua a
@@ -342,13 +361,29 @@
 
    Caso peggiore, tre mattoni da mille pagine: 3×96 + 3×14 + 2×8 = 346 su 358.
 
+   Il conto sopra presume due gap veri per tre volumi, non tre: era
+   `shelf-pack.ts` a contarne tre — ogni volume portava il proprio, tacca
+   compresa nel conteggio della riga — cioè un gap che il CSS reale non
+   disegna mai, quello dopo l'ultimo. Sui 640px di margine del caso qui sopra
+   non si vedeva; sui 340-375px di un telefono comune (iPhone 6/7/8/SE/mini,
+   la maggior parte dell'Android compatto) bastava a far chiudere la riga a
+   due libri, con un vuoto a destra grande quanto il terzo che non c'entrava
+   più. La costante qui è stata scelta contando i gap giusti (due, non tre);
+   il gap fantasma è tolto alla radice in `impacchetta`.
+
+   Sotto ai ~348px il tetto minimo di --cover-w (84px) non basta più a far
+   stare tre volumi anche col conto corretto: un telefono da 320px (iPhone
+   5/SE di prima generazione, ormai raro) torna a due per riga. Restringere
+   ancora la copertina la renderebbe illeggibile: due file piene battono tre
+   file di francobolli.
+
    La quarta parte del guadagno è la tacca, che passa a larghezza zero e sta
    dentro il gap che c'era già — quella vale anche su desktop, vedi
    `.shelf-tick` più sotto.
    -------------------------------------------------------------------------- */
 @media (max-width: 640px) {
   :root {
-    --cover-w: clamp(84px, calc((100vw - 88px) / 3), 96px);
+    --cover-w: clamp(84px, calc((100vw - 96px) / 3), 96px);
     --cover-h: calc(var(--cover-w) * 3 / 2);
     --shelf-gap: var(--sp2);
     --spine-max: 14px;
