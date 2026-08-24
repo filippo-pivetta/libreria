@@ -71,19 +71,45 @@ async def genera(access_token: str, utente_id: UUID, voce_id: UUID) -> dict[str,
     if scheda is None:
         raise VoceNonTrovataError
 
-    profilo = await run_in_threadpool(preview_repository.profilo_suggerimenti, client, utente_id)
-    # La Voce su cui si chiede il parere non deve comparire come prova di
-    # sé stessa (vedi profilo_lettura.classifica).
-    pilastri, recenti, delusi, _esclusi = profilo_lettura.classifica(
-        profilo, escludi_voce_id=str(voce_id)
-    )
-
-    testo = await _genera_conforme(scheda, pilastri, recenti, delusi)
+    testo = await parere(access_token, utente_id, scheda, escludi_voce_id=str(voce_id))
 
     artefatto = await run_in_threadpool(
         artefatto_repository.create, client, utente_id, TIPO, voce_id, testo
     )
     return artefatto
+
+
+async def parere(
+    access_token: str,
+    utente_id: UUID,
+    scheda: dict[str, Any],
+    escludi_voce_id: str | None = None,
+) -> str:
+    """Il testo del parere, e nient'altro: né consenso né scrittura.
+
+    Estratta da `genera` quando la scheda pubblica (§13) ha avuto bisogno
+    dello stesso parere su un libro che non è in libreria — dove non c'è
+    una Voce a cui legare un artefatto, quindi non c'è niente da salvare.
+    Il profilo del richiedente e i vincoli della regola 20 sono gli stessi:
+    quello che cambia è solo da dove arriva la scheda del libro (una Voce
+    propria, una scheda di catalogo, un volume di Google) e se il testo
+    sopravvive alla pagina.
+
+    Il consenso resta a carico di chi chiama, come per ogni altra funzione
+    assistita (`ricerca_semantica_service`, `sintesi_service`,
+    `suggerimenti_service` lo chiedono ciascuna in cima): è una condizione
+    d'ingresso, non un passo della generazione, e metterla qui la
+    nasconderebbe due livelli sotto la rotta che la deve dichiarare.
+    """
+    client = get_user_client(access_token)
+    profilo = await run_in_threadpool(preview_repository.profilo_suggerimenti, client, utente_id)
+    # La Voce su cui si chiede il parere non deve comparire come prova di
+    # sé stessa (vedi profilo_lettura.classifica). Su un libro che non si
+    # ha in libreria non c'è nulla da escludere: `None`.
+    pilastri, recenti, delusi, _esclusi = profilo_lettura.classifica(
+        profilo, escludi_voce_id=escludi_voce_id
+    )
+    return await _genera_conforme(scheda, pilastri, recenti, delusi)
 
 
 async def _genera_conforme(

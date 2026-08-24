@@ -155,16 +155,32 @@ def _voci_per_libri(
     client = get_user_client(access_token)
     voci: dict[UUID, dict[str, Any]] = {}
     for libro_id in dict.fromkeys(libri):
-        riga = voce_repository.get_by_libro(client, libro_id, utente_id)
+        riga = voce_per_libro(client, utente_id, libro_id)
         if riga is not None:
-            voci[libro_id] = {
-                "id": riga["id"],
-                "stato": riga["stato"],
-                "voto": riga.get("voto"),
-                "pagina_corrente": None,
-                "anno_ultima_lettura": None,
-            }
+            voci[libro_id] = riga
     return voci
+
+
+def voce_per_libro(client: Any, utente_id: UUID, libro_id: UUID) -> dict[str, Any] | None:
+    """La propria Voce su un libro, nella forma che regge il verbo della
+    riga di ricerca e della scheda pubblica (`VoceDelRisultato`).
+
+    Pubblica e non più solo interna a `_voci_per_libri` perché la scheda di
+    un libro non ancora in libreria (§13) ha bisogno esattamente della
+    stessa riga, con lo stesso filtro esplicito su `utente_id`: un secondo
+    modo di leggere la propria Voce sarebbe un secondo posto in cui
+    dimenticarlo.
+    """
+    riga = voce_repository.get_by_libro(client, libro_id, utente_id)
+    if riga is None:
+        return None
+    return {
+        "id": riga["id"],
+        "stato": riga["stato"],
+        "voto": riga.get("voto"),
+        "pagina_corrente": None,
+        "anno_ultima_lettura": None,
+    }
 
 
 async def aggiungi_da_catalogo(

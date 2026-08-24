@@ -498,6 +498,10 @@ virgolette, e a consenso revocato l'interfaccia dice che la funzione è spenta i
 finta che non esista. Nessun comando di condivisione, in nessuna forma — l'operazione non esiste
 nemmeno nel database.
 
+Lo stesso parere si può chiedere **prima** di avere il libro, sulla scheda di §13: là non c'è una
+Voce a cui legarlo, quindi non viene salvato. Qui sì, ed è la ragione per cui questo blocco ha una
+forma retrospettiva e quello no.
+
 Lo **storico delle letture** è una carta con righe leggibili, sempre aperta, ordinata dal più
 recente, con un punto del colore del nastro per esito (in corso, conclusa, abbandonata). Non
 compare quando c'è una sola lettura ancora aperta: è già raccontata dalla zona 2.
@@ -722,8 +726,53 @@ risultati.
 
 **Nessuna preview nella riga dei risultati.** Senza descrizione conterrebbe gli stessi sei dati
 della riga stessa, e una riga di ricerca non è il posto per una chiamata al fornitore per
-risultato — il parere prima dell'aggiunta ha senso su una scheda di libro non ancora in libreria,
-non in un elenco, ma oggi manca sia la scheda sia la rotta.
+risultato. Il parere prima dell'aggiunta ha senso su una scheda di libro non ancora in libreria,
+non in un elenco: quella scheda ora c'è, ed è la sezione qui sotto.
+
+### La scheda di un libro che non hai
+
+`/book/catalogo/{libroId}` e `/book/google/{volumeId}` (URL in inglese, [#41](lavoro-rimandato.md)).
+Ci si arriva dal **titolo** di una riga di ricerca, che diventa un link: il verbo resta il verbo.
+Sono due gesti diversi — guardare e prendere — e fonderli in un bersaglio solo significherebbe
+sceglierne uno da perdere.
+
+**Stessa carta per tutti i libri, contenuto più magro dove la fonte è più magra.** Il PRD vuole i
+risultati "presentati insieme, senza distinzione": una carta che comparisse solo sulle righe già
+nel sistema renderebbe visibile la divisione interno/esterno che il prodotto nasconde, e la
+renderebbe visibile nel modo peggiore, apparentemente arbitraria ("perché di questo libro posso
+sapere di cosa parla e di quest'altro no?"). Fuori dal sistema mancano lingua originale e prosa di
+Wikipedia; la carta semplicemente non le mostra, e l'assenza resta muta.
+
+**Guardare non fa nascere una scheda.** La catena che risolve l'identità di un'opera costa oltre
+dieci secondi di chiamate esterne più quattro o cinque lavori in secondo piano, e sta dietro
+l'aggiunta per scelta (ADR 0002): farla scattare su ogni sguardo la sposterebbe dove non deve
+stare e riempirebbe il catalogo di schede che nessuno ha. Un volume di Google resta un volume di
+Google finché qualcuno non lo aggiunge. Un volume i cui identificativi sono già noti al catalogo è
+invece servito **dalla scheda vera**, con i suoi dati migliori.
+
+**L'anno cambia etichetta, non numero.** Quello dei cataloghi esterni è l'anno di *questa
+edizione*: la riga dice "Questa edizione" invece di "Prima pubblicazione", e per la stessa ragione
+le pagine dicono "pagine, questa edizione". Chiamarlo anno dell'opera sarebbe plausibile e
+sbagliato per ogni classico ristampato — e nemmeno il modello lo riceve come tale.
+
+**"Di cosa parla" sta nella colonna principale**, al contrario di §9. Là la colonna principale è
+occupata dalla tua copia e la descrizione è il contesto per leggerla; qui la tua copia non esiste e
+la descrizione *è* il contenuto della pagina. In 320px di colonna laterale sarebbe la "striscia
+lunga con il vuoto accanto" che §9 rimprovera alla vecchia scheda. Nessun taglio a sei righe: quel
+numero era tarato su quella colonna, e qui nasconderebbe la ragione per cui si è arrivati.
+
+**"Me lo consigli?" con una sola differenza: non viene salvato.** Stessi vincoli di §9 — privato,
+sotto le ottanta parole, nessun testo tra virgolette, spento a consenso revocato con l'interfaccia
+che lo dice. Ma un artefatto è legato alla Voce da cui è stato invocato (regola 23), e qui una Voce
+non c'è: il parere vive quanto la pagina, e la riga d'invito lo dice prima che qualcuno ci si
+affezioni, non dopo averlo perso. Nessun comando "Cancella" — ricaricare è già la cancellazione.
+Qui non serve nemmeno il "solo su da leggere" di §9: la decisione è aperta per definizione, è
+l'intera ragione della pagina. Appena il libro entra in libreria l'invito sparisce (da lì in poi la
+domanda ha un posto migliore, dove la risposta si conserva) ma un parere già letto resta dov'è.
+
+**Un comando solo, in cima:** "Aggiungi alla libreria", che diventa "Vai al libro" sul posto —
+come nella riga di ricerca, e per la stessa ragione: chi aggiunge non deve perdere la pagina che
+stava leggendo.
 
 **Velocità percepita.** Risultati che compaiono mentre si digita, con le schede già nel sistema
 mostrate per prime perché non richiedono una chiamata esterna.

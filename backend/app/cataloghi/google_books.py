@@ -10,6 +10,7 @@ Richiede una chiave. Senza, l'API non risponde affatto: restituisce 429
 con `quota_limit_value: "0"`, non un limite ridotto.
 """
 
+import html
 import re
 import time
 from dataclasses import dataclass, field
@@ -94,6 +95,32 @@ class Opera:
         """
         isbn = [v.isbn13 for v in [self.rappresentante, *self.alternativi] if v.isbn13]
         return list(dict.fromkeys(isbn))
+
+
+_MARCATURA = re.compile(r"<[^>]+>")
+"""La descrizione di Google arriva spesso con marcatura dentro: `<br>`
+fra un paragrafo e l'altro, `<i>` sul titolo dell'opera, `<b>` sul nome
+di chi firma la citazione in quarta di copertina.
+
+Va tolta qui, alla fonte, e non in chi la mostra: questo testo finisce
+in tre posti diversi — la scheda pubblica (§13), la descrizione salvata
+alla nascita del libro (`catalogo_repository.crea_scheda`) e il contesto
+che il lavoro di standardizzazione manda al modello — e in nessuno dei
+tre è marcatura da interpretare. Renderla come testo mostrerebbe i tag
+all'Utente; interpretarla significherebbe eseguire HTML di terzi in
+pagina, che non si fa. Le entità (`&amp;`, `&#39;`) si sciolgono per la
+stessa ragione: sono la stessa marcatura, scritta in un altro modo.
+
+Un tag diventa uno spazio e non il vuoto: senza, "gioventù.<br><b>Peter"
+si salderebbe in una parola sola."""
+
+
+def _senza_marcatura(testo: str | None) -> str | None:
+    if not testo:
+        return None
+    pulito = html.unescape(_MARCATURA.sub(" ", testo))
+    pulito = re.sub(r"\s+", " ", pulito).strip()
+    return pulito or None
 
 
 _RUMORE_EDIZIONE = re.compile(
@@ -234,7 +261,7 @@ def _volume(elemento: dict[str, Any]) -> Volume | None:
         pagine=info.get("pageCount"),
         isbn13=str(isbn13) if isbn13 else None,
         categorie=tuple(str(c) for c in info.get("categories") or []),
-        descrizione=info.get("description"),
+        descrizione=_senza_marcatura(info.get("description")),
         # https invece dell'http che Google restituisce: una pagina servita
         # in https non caricherebbe l'immagine, e il browser non lo
         # segnalerebbe in modo comprensibile.
@@ -296,6 +323,57 @@ async def cerca(termine: str, massimo: int = 20) -> list[Volume]:
     for volume in volumi:
         _per_volume[volume.volume_id] = (adesso, volume)
     return volumi
+
+
+async def per_identificativo(volume_id: str) -> Volume | None:
+    """Un solo volume, per identificativo. `None` se Google non lo conosce.
+
+    Serve alla scheda di un libro non ancora in libreria: quella pagina si
+    apre da un link e si ricarica, mentre `opera_dalla_cache` risponde solo
+    finché la ricerca che l'ha popolata è recente ed è stata servita dallo
+    stesso processo (la cache è di processo, cinque minuti). Senza questa
+    via la scheda si aprirebbe la prima volta e sparirebbe alla seconda.
+
+    Scrive in `_per_volume` esattamente come fa `cerca`, e non è un
+    dettaglio di efficienza: `POST /libri` ricompone l'opera SOLO da quella
+    cache, quindi senza questa riga si potrebbe guardare la scheda di un
+    libro e poi non riuscire ad aggiungerlo.
+    """
+    memorizzato = _per_volume.get(volume_id)
+    adesso = time.monotonic()
+    if memorizzato is not None and adesso - memorizzato[0] < _TTL_CACHE:
+        return memorizzato[1]
+
+    settings = get_settings()
+    if not settings.google_books_api_key:
+        raise FonteNonRaggiungibileError(_FONTE, "chiave API non configurata")
+
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            risposta = await client.get(
+                f"{_URL}/{volume_id}",
+                params={"key": settings.google_books_api_key, "country": "IT"},
+            )
+    except httpx.HTTPError as errore:
+        raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
+
+    # 404 non è una fonte irraggiungibile: è un volume che non esiste (o
+    # non esiste più), e chi chiama deve poterlo dire con parole diverse.
+    if risposta.status_code == 404:
+        return None
+    if risposta.status_code == 429:
+        raise FonteNonRaggiungibileError(_FONTE, "quota esaurita")
+    if risposta.status_code >= 400:
+        raise FonteNonRaggiungibileError(_FONTE, f"HTTP {risposta.status_code}")
+
+    trovato = _volume(risposta.json())
+    if trovato is None:
+        return None
+
+    if len(_per_volume) >= _MAX_CACHE * 20:
+        _per_volume.clear()
+    _per_volume[trovato.volume_id] = (adesso, trovato)
+    return trovato
 
 
 def collassa_per_opera(volumi: list[Volume]) -> list[Opera]:

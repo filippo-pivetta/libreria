@@ -23,6 +23,7 @@ from app.routers import (
     preview,
     recensioni,
     ricerca,
+    schede,
     sintesi,
     suggerimenti,
     utenti,
@@ -116,6 +117,7 @@ def create_app() -> FastAPI:
     app.include_router(metriche.router)
     app.include_router(ricerca.router)
     app.include_router(preview.router)
+    app.include_router(schede.router)
     app.include_router(sintesi.router)
     app.include_router(suggerimenti.router)
     return app
