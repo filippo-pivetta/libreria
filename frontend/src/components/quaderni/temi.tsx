@@ -110,28 +110,33 @@ function TemaCard({ tema }: { tema: Tema }) {
 }
 
 /**
- * La sintesi tematica trasversale (design doc §27, issue #27, riscritta
- * il 22 agosto 2026 da un unico paragrafo a un elenco di temi con le
- * prove attaccate — un primo giro d'uso ha mostrato che un paragrafo
- * generato non è verificabile, non porta da nessuna parte, e non ha
- * ragione di essere riletto).
+ * I temi che tornano: la sintesi tematica trasversale (design doc §22, era
+ * §24 quando aveva una pagina sua).
+ *
+ * **Non è più una pagina.** Stava su `/sintesi`, che nasceva vuota, era fatta
+ * di un titolo, un paragrafo di spiegazione e un pulsante, e si raggiungeva
+ * solo da un disclosure chiuso in mezzo ai filtri della Libreria. Ora è la
+ * regione a riposo dei Quaderni: la stessa materia della ricerca — ciò che
+ * hai scritto — vista da lontano invece che interrogata. Titolo e
+ * introduzione sono saliti nella pagina; qui è rimasta l'intestazione della
+ * regione, che dice cosa c'è sotto.
  *
  * **Sostituisce, non si accumula** — a differenza della preview
- * personalizzata (`preview-personalizzata.tsx`), che accumula apposta
- * perché un parere per ogni rilettura ha senso. Qui "Genera di nuovo"
- * dice esplicitamente che sostituisce, per non far credere che la
- * vecchia resti da qualche parte.
+ * personalizzata (`preview-personalizzata.tsx`), che accumula apposta perché
+ * un parere per ogni rilettura ha senso. Qui "Genera di nuovo" dice
+ * esplicitamente che sostituisce, per non far credere che la vecchia resti da
+ * qualche parte.
  *
- * **Nessun tema debole**: il backend non genera (e non sostituisce la
- * sintesi esistente) se non trova almeno un tema che attraversi libri
- * diversi. La pagina distingue i due modi in cui questo succede — non
- * hai ancora scritto nulla, oppure hai scritto ma nulla si collega
- * ancora — con un messaggio diverso per ciascuno.
+ * **Nessun tema debole**: il backend non genera (e non sostituisce la sintesi
+ * esistente) se non trova almeno un tema che attraversi libri diversi. La
+ * pagina distingue i due modi in cui questo succede — non hai ancora scritto
+ * nulla, oppure hai scritto ma nulla si collega ancora — con un messaggio
+ * diverso per ciascuno.
  *
  * Riusa `cancellaArtefatto` di `lib/api/preview.ts`: è già generico
  * (`DELETE /artefatti/{id}`), nulla di specifico alla preview.
  */
-export function SintesiTematica() {
+export function Temi() {
   const queryClient = useQueryClient();
   const t = useTranslations();
   const [spenta, setSpenta] = useState(false);
@@ -204,24 +209,14 @@ export function SintesiTematica() {
   const haTemi = !!sintesi && sintesi.temi.length > 0;
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-2">
-        <h1 className="t-title">Sintesi dei tuoi temi</h1>
-        <p className="t-meta max-w-prose">
-          I temi che tornano in ciò che hai scritto, quando attraversano libri diversi. Ogni
-          nuova sintesi sostituisce quella precedente.
-        </p>
-      </section>
-
-      {isLoading ? null : haTemi && sintesi ? (
-        <div className="flex flex-col gap-6">
-          <p className="t-meta">{sintesi.avviso}</p>
-          <div className="flex flex-col gap-4">
-            {sintesi.temi.map((tema, indice) => (
-              <TemaCard key={`${tema.nome}-${indice}`} tema={tema} />
-            ))}
-          </div>
-          <div className="flex gap-2">
+    <div className="flex flex-col gap-4">
+      {/* L'intestazione della regione: sotto il campo dei Quaderni ce n'è una
+          sola, e questa riga dice sempre cosa contiene — a riposo i temi,
+          dopo una domanda i risultati (`quaderni.tsx`). */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <p className="t-section">I temi che tornano</p>
+        {haTemi && sintesi && (
+          <div className="flex items-center gap-2">
             {!spentaDavvero && (
               <Button
                 variant="outline"
@@ -229,7 +224,7 @@ export function SintesiTematica() {
                 onClick={() => genera.mutate()}
                 disabled={genera.isPending}
               >
-                {genera.isPending ? t("attesa.cercoTemi") :"Genera di nuovo"}
+                {genera.isPending ? t("attesa.cercoTemi") : "Genera di nuovo"}
               </Button>
             )}
             <Button
@@ -241,22 +236,39 @@ export function SintesiTematica() {
               Cancella
             </Button>
           </div>
+        )}
+      </div>
+
+      {isLoading ? null : haTemi && sintesi ? (
+        <div className="flex flex-col gap-4">
+          <p className="t-meta">{sintesi.avviso}</p>
+          <div className="flex flex-col gap-4">
+            {sintesi.temi.map((tema, indice) => (
+              <TemaCard key={`${tema.nome}-${indice}`} tema={tema} />
+            ))}
+          </div>
         </div>
       ) : spentaDavvero ? (
         <EmptyState
           title="L’elaborazione assistita è spenta"
-          description="La sintesi tematica è una delle funzioni che dipendono dal consenso. Riaccendilo dal tuo profilo."
+          description="I temi trasversali sono una delle funzioni che dipendono dal consenso. Riaccendilo dal tuo profilo: ciò che hai scritto resta dov’è."
         />
       ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          className="self-start"
-          onClick={() => genera.mutate()}
-          disabled={genera.isPending}
-        >
-          {genera.isPending ? t("attesa.cercoTemi") :"Genera una sintesi"}
-        </Button>
+        <div className="flex flex-col gap-3">
+          <p className="t-meta max-w-prose">
+            I temi che tornano in ciò che hai scritto, quando attraversano libri diversi. Ogni
+            nuova sintesi sostituisce quella precedente.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={() => genera.mutate()}
+            disabled={genera.isPending}
+          >
+            {genera.isPending ? t("attesa.cercoTemi") : "Genera una sintesi"}
+          </Button>
+        </div>
       )}
 
       {/* Sotto entrambi i rami sopra: un tentativo di "Genera di nuovo" su

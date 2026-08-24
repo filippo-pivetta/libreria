@@ -268,6 +268,12 @@
   --spine-min: 6px;     /* spessore minimo leggibile della costa */
   --spine-max: 28px;    /* oltre, un mattone da 1200 pagine sfonda la riga */
   --spine-per-page: 22; /* pagine per pixel di spessore */
+  /* Distanza fra un volume e l'altro dentro una mensola. Sta qui e non come
+     utility sul componente perché sotto i 640 cambia insieme a --cover-w e a
+     --spine-max: sono i tre numeri che decidono quanti volumi entrano in una
+     riga, e vanno letti in un posto solo (anche da `shelf-pack.ts`, che
+     impacchetta in JavaScript). */
+  --shelf-gap: var(--sp3);
 
   /* ---------------------------------------------------------------------
      BREAKPOINT
@@ -317,8 +323,36 @@
   --tab-h: 56px;
 }
 
+/* -----------------------------------------------------------------------------
+   TRE VOLUMI PER MENSOLA SU UN TELEFONO, NON DUE.
+
+   Su 390px la colonna di contenuto è 358, e con i numeri del desktop una
+   mensola ne teneva due: 2×(96 di copertina + fino a 28 di costa) più due
+   tacche dell'autore da 30px l'una — trenta pixel, cioè un quarto di volume,
+   per una lettera. Tre numeri cambiano al breakpoint, e nessuno dei tre tocca
+   il disegno del volume:
+
+     --cover-w   si adatta perché tre volumi stiano SEMPRE in riga. 88 = 32 di
+                 padding di pagina + 16 dei due gap + ~40 di coste. A 390 dà 96
+                 (il valore di prima), a 360 dà 90, sotto si ferma a 84.
+     --shelf-gap scende di un passo della scala, non di un valore a occhio.
+     --spine-max la stessa clamp con un tetto più basso, esattamente come già
+                 fa la copertina passando da 120 a 96: lo spessore continua a
+                 dire le pagine, su una scala compressa.
+
+   Caso peggiore, tre mattoni da mille pagine: 3×96 + 3×14 + 2×8 = 346 su 358.
+
+   La quarta parte del guadagno è la tacca, che passa a larghezza zero e sta
+   dentro il gap che c'era già — quella vale anche su desktop, vedi
+   `.shelf-tick` più sotto.
+   -------------------------------------------------------------------------- */
 @media (max-width: 640px) {
-  :root { --cover-w: 96px; --cover-h: 144px; }
+  :root {
+    --cover-w: clamp(84px, calc((100vw - 88px) / 3), 96px);
+    --cover-h: calc(var(--cover-w) * 3 / 2);
+    --shelf-gap: var(--sp2);
+    --spine-max: 14px;
+  }
 }
 
 /* -----------------------------------------------------------------------------
@@ -648,6 +682,14 @@
 /* La mensola: doppia ombra come ogni oggetto, una corta sopra (lo spigolo su
    cui i libri appoggiano) e una lunga sotto (l'aria fra un ripiano e
    l'altro). DEVE restare più scura del piano 0 (--mtg-shelf, sezione 2). */
+ /* Una mensola: i volumi in riga, poi il ripiano su cui appoggiano. Il gap
+    viene dal token, non da una utility scritta sul componente, perché sotto i
+    640 cambia insieme a copertina e costa (vedi il blocco @media). */
+.shelf-row {
+  display: flex; flex-wrap: wrap; align-items: flex-end;
+  gap: var(--shelf-gap); padding-bottom: var(--sp3);
+}
+
 .shelf-board {
   height: var(--shelf-height);
   border-radius: 1px 1px 3px 3px;
@@ -683,9 +725,14 @@
    dall'id (lib/spine-color.ts), coerente in entrambe le stanze. */
 [data-light="notte"] .volume { --cover-color: var(--cover-color-notte, var(--cover-color)); }
 
+/* Lo spessore lo scrive il componente in `--spine-w` come numero grezzo
+   (pagine / --spine-per-page); il taglio ai due estremi lo fa qui la clamp,
+   così il tetto più basso del telefono (blocco @media in sezione 4) vale
+   senza che il componente sappia su che schermo sta. `shelf-pack.ts` rifà lo
+   stesso conto in JavaScript per impacchettare, leggendo gli stessi token. */
 .volume__spine {
   flex: 0 0 auto;
-  width: var(--spine-w, 12px);
+  width: clamp(var(--spine-min), var(--spine-w, 12px), var(--spine-max));
   border-radius: 2px 0 0 2px;
   background: linear-gradient(
     90deg,
@@ -753,6 +800,12 @@
    non dipende dalle pagine e resta quella normale: un libro senza
    pagine ma con copertina la mostra comunque, un libro senza copertina
    mostra comunque il suo colore. */
+.volume[data-no-pages] {
+  /* Spessore mediano: il componente non scrive `--spine-w` quando le pagine
+     non ci sono, così questa riga non deve battersi con uno style inline —
+     e la mediana segue da sé il tetto ridotto del telefono. */
+  --spine-w: calc((var(--spine-min) + var(--spine-max)) / 2);
+}
 .volume[data-no-pages] .volume__spine {
   background: transparent;
   border: 1px dashed var(--mtg-line-strong);
@@ -776,11 +829,23 @@
 .volume__prog i { display: block; height: 100%; background: var(--mtg-accent); }
 
 /* La lettera dell'autore: una tacca fra un volume e l'altro, non un ripiano
-   a sé — un filetto di 10px scende sulla mensola. */
+   a sé — un filetto di 10px scende sulla mensola.
+
+   A LARGHEZZA ZERO. Era un elemento in flusso di 18px più il proprio gap:
+   trenta pixel di mensola per una lettera, che su un telefono sono un quarto
+   di volume ed erano la ragione per cui una riga ne teneva due invece di tre.
+   Ora la lettera sta DENTRO il gap che separava già i due volumi — larghezza
+   zero e margini negativi di mezzo gap — quindi la tacca non toglie più nulla
+   alla riga e resta letteralmente ciò che il documento dice che è, "una tacca
+   fra un volume e l'altro". Il filetto che scende sulla mensola non cambia. */
 .shelf-tick {
-  flex: 0 0 auto; align-self: flex-end; width: 18px; text-align: center;
-  font-family: var(--font-ui); font-size: 10.5px; letter-spacing: 0.12em;
-  color: var(--mtg-ink-soft); padding-bottom: 3px; position: relative;
+  position: relative; flex: 0 0 auto; align-self: stretch;
+  width: 0; margin-inline: calc(var(--shelf-gap) / -2); overflow: visible;
+}
+.shelf-tick > span {
+  position: absolute; left: 50%; bottom: 3px; translate: -50% 0;
+  font-family: var(--font-ui); font-size: 10.5px;
+  color: var(--mtg-ink-soft);
 }
 .shelf-tick::after {
   content: ""; position: absolute; left: 50%; bottom: -10px;
@@ -791,7 +856,7 @@
    mobile. Su due o tre libri funziona; come vista principale era stata
    provata e scartata, perché costa dodici gesti per dodici libri. */
 .reading-band {
-  display: flex; gap: var(--sp3); align-items: flex-end;
+  display: flex; gap: var(--shelf-gap); align-items: flex-end;
   overflow-x: auto; overflow-y: visible;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
