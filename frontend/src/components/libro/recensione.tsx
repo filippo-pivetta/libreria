@@ -15,6 +15,9 @@ import {
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { useTranslations } from "next-intl";
+import { Invito } from "@/components/ui/invito";
+import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";
+import { IconaCollegati, IconaLucchetto } from "@/components/ui/icone";
 
 /**
  * Recensione (design doc §9): un paragrafo Literata sulla pagina destra,
@@ -115,8 +118,8 @@ export function Recensione({
     }
   }
 
-  function alternaVisibilita() {
-    const nuova: Visibilita = visibilita === "condiviso" ? "privato" : "condiviso";
+  function alternaVisibilita(condiviso: boolean) {
+    const nuova: Visibilita = condiviso ? "condiviso" : "privato";
     setVisibilita(nuova);
     if (testo.trim() !== "") {
       mutazioneScrivi.mutate({ testo: testo.trim(), visibilita: nuova });
@@ -126,46 +129,58 @@ export function Recensione({
   if (!isOwner) {
     if (recensione === null) return null;
     return (
-      <div className="mb-5">
-        <p className="t-label mb-2">Recensione</p>
-        <p className="t-appunto text-ink">{recensione.testo}</p>
+      <div>
+        <p className="t-section mb-3 font-medium text-ink-soft">La sua recensione</p>
+        <div className="rounded-field border border-line bg-surface-2 p-4 sm:px-[1.125rem]">
+          <p className="t-appunto text-ink">{recensione.testo}</p>
+        </div>
       </div>
     );
   }
 
   if (!aperta) {
-    return (
-      <button
-        type="button"
-        onClick={() => setAperta(true)}
-        className="t-meta tocco-esteso mb-5 block w-fit underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-      >
-        Scrivi una recensione
-      </button>
-    );
+    // Prima: testo sottolineato a corpo 12,5 in `ink-soft`. Per l'atto
+    // centrale del prodotto. Vedi components/ui/invito.tsx.
+    return <Invito onClick={() => setAperta(true)}>Scrivi una recensione</Invito>;
   }
 
   return (
-    <div className="pannello mb-5 rounded-card border border-line bg-surface-2 p-4">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="t-label">Recensione</p>
-        <button
-          type="button"
-          onClick={alternaVisibilita}
-          className="t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <span className="t-section font-medium text-ink-soft">Recensione</span>
+        {/* Prima era un comando testuale sottolineato la cui etichetta era
+            anche lo stato ("Condivisa con i collegati" / "Privata, solo
+            tua"), quindi da fermo non si sapeva se descrivesse o
+            promettesse. Ora è un interruttore premuto, con `aria-pressed`. */}
+        <PastigliaInterruttore
+          pressed={visibilita === "condiviso"}
+          onPressedChange={alternaVisibilita}
+          aria-label="Condividi la recensione con i collegati"
         >
-          {visibilita === "condiviso" ? "Condivisa con i collegati" : "Privata, solo tua"}
-        </button>
+          {visibilita === "condiviso" ? (
+            <>
+              <IconaCollegati />
+              Condivisa
+            </>
+          ) : (
+            <>
+              <IconaLucchetto />
+              Solo tua
+            </>
+          )}
+        </PastigliaInterruttore>
       </div>
-      <textarea
-        value={testo}
-        onChange={(event) => setTesto(event.target.value)}
-        onBlur={salvaSeCambiato}
-        rows={5}
-        placeholder="Cosa ne pensi?"
-        className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
-      />
-      <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? "Salvato." : ""}</Messaggio>
+      <div className="pannello rounded-field border border-line bg-surface-2 p-4 sm:px-[1.125rem]">
+        <textarea
+          value={testo}
+          onChange={(event) => setTesto(event.target.value)}
+          onBlur={salvaSeCambiato}
+          rows={5}
+          placeholder="Cosa ne pensi?"
+          className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
+        />
+        <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? "Salvato." : ""}</Messaggio>
+      </div>
     </div>
   );
 }

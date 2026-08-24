@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { ProtectedNav } from "@/components/layout/protected-nav";
 import { BarraContestoLibro } from "@/components/libro/barra-contesto-libro";
+import { BarraRitorno } from "@/components/libro/barra-ritorno";
 import { getTranslations } from "next-intl/server";
 
 function Pagina({ children }: { children: React.ReactNode }) {
@@ -73,6 +74,10 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
           userName={me.status === "ok" ? me.data.nomeUtente : ""}
           receivedRequestCount={receivedRequestCount}
         />
+        {/* Sotto i 640px `ProtectedNav` non monta niente in cima, quindi
+            senza questa barra la scheda del proprio libro non ha nessun
+            ritorno — mentre quella di un collegato ce l'ha. */}
+        <BarraRitorno />
         <Pagina>{props.children}</Pagina>
       </>
     );

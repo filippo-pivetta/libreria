@@ -53,10 +53,16 @@ export default async function LibroPage(props: PageProps<"/libro/[id]">) {
   const propriaVoce =
     mie.status === "ok" ? (mie.data.find((v) => v.libroId === result.data.libroId) ?? null) : null;
 
+  // "Nella tua libreria" entra nella colonna laterale della scheda invece
+  // di stare sotto come una fascia a sé: è l'unico comando della pagina, e
+  // in fondo a uno scorrimento lungo non lo trovava nessuno.
   return (
-    <div className="flex flex-col gap-6">
-      <Scheda voceIniziale={result.data} currentUserId={session.user.id} />
-      <NellaTuaLibreria libroId={result.data.libroId} propriaVoce={propriaVoce} />
-    </div>
+    <Scheda
+      voceIniziale={result.data}
+      currentUserId={session.user.id}
+      nellaTuaLibreria={
+        <NellaTuaLibreria libroId={result.data.libroId} propriaVoce={propriaVoce} />
+      }
+    />
   );
 }

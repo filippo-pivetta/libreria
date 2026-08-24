@@ -10,26 +10,11 @@ indicato. Effimeri per scelta di prodotto: il PRD non li elenca fra gli
 `artefatto_generato` (che cita solo preview e sintesi), quindi non si
 salvano — ogni richiesta ne genera di nuovi, senza riga nel database.
 
-**Il profilo, in tre gruppi** (costruiti da `_classifica` sui dati grezzi
-di `preview_repository.profilo_suggerimenti`):
-
-- **pilastri**: voto ≥ 4, di qualsiasi età — il gusto che dura nel tempo.
-  Un libro amato dieci anni fa dice ancora chi sei; uno tiepido di tre
-  anni fa non dice più niente. Nessuna funzione di decadimento sul voto:
-  il PRD non tiene uno storico dei voti ("riscrivendoli si perde la
-  versione precedente"), quindi il voto in tabella è già il tuo giudizio
-  di oggi, non quello di allora — non c'è una deriva da modellare.
-- **recenti**: le ultime letture concluse per data di chiusura vera
-  (`lettura.data_fine`, non `voce.aggiornato_at` che cambia anche
-  correggendo una pagina), qualsiasi voto — dove sei ora, delusioni
-  comprese.
-- **delusi**: voto ≤ 2,5 o abbandono, qualsiasi età — cosa evitare, non
-  materiale per proporre "altri libri così". Un libro non è più
-  invisibile solo perché non ti è piaciuto: prima lo era.
-
-Un libro entra in al più uno dei tre gruppi, con questa priorità:
-pilastro prima di deluso prima di recente — un libro amato non deve
-comparire due volte solo perché è anche la lettura più recente.
+**Il profilo a tre gruppi** — pilastri, recenti, delusi — vive in
+`app/services/profilo_lettura.py`, non qui: dal 24 agosto 2026 lo usa
+anche la preview personalizzata, e la classificazione dev'essere
+un'unica fonte di verità per le due funzioni (vedi il docstring di quel
+modulo per i criteri).
 
 **La verifica, dopo il modello**: si chiedono fino a otto candidati (non
 cinque) proprio perché alcuni non superano il passo successivo — ogni
@@ -52,22 +37,7 @@ from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.core.supabase import get_user_client
 from app.repositories import preview_repository
 from app.services import consenso as consenso_service
-from app.services import ricerca_service, risoluzione
-
-MASSIMO_PILASTRI = 12
-MASSIMO_RECENTI = 12
-MASSIMO_DELUSI = 8
-"""Tetti sui tre gruppi, non sul totale del profilo: oltre queste
-decine il prompt diventa un elenco in cui nessuna preferenza risalta,
-stessa ragione di `preview_repository.MASSIMO_LIBRI_STORICO`."""
-
-VOTO_PILASTRO = 4.0
-VOTO_DELUSO = 2.5
-"""Sopra `VOTO_PILASTRO` un libro è un pilastro; a `VOTO_DELUSO` o sotto
-è un deluso; in mezzo (2,5 < voto < 4) un libro non entra in nessuno dei
-due gruppi — non abbastanza amato per guidare una proposta, non
-abbastanza sgradito per escludere un territorio. Resta comunque negli
-esclusi."""
+from app.services import profilo_lettura, ricerca_service, risoluzione
 
 MASSIMO_CANDIDATI = 8
 MASSIMO_SUGGERIMENTI = 5
@@ -128,7 +98,7 @@ async def genera(
 
     client = get_user_client(access_token)
     profilo = await run_in_threadpool(preview_repository.profilo_suggerimenti, client, utente_id)
-    pilastri, recenti, delusi, esclusi = _classifica(profilo)
+    pilastri, recenti, delusi, esclusi = profilo_lettura.classifica(profilo)
     if not pilastri and not recenti and not delusi:
         raise ContenutoInsufficienteError
 
@@ -136,47 +106,6 @@ async def genera(
         pilastri, recenti, delusi, esclusi, nota=_nota_sicura(nota)
     )
     return await _verifica_e_diversifica(access_token, utente_id, grezzi, esclusi)
-
-
-def _classifica(
-    profilo: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], set[str]]:
-    """Un libro entra in al più uno dei tre gruppi: pilastro prima di
-    deluso prima di recente, così un libro amato di recente non compare
-    due volte con due ruoli diversi. `esclusi` copre invece **ogni**
-    Voce, in qualunque stato — anche quelle non classificate in nessun
-    gruppo, e anche quelle "da_leggere": un libro già in coda non va
-    riproposto solo perché non è né un pilastro né un deluso."""
-    esclusi = {riga["titolo"].strip().casefold() for riga in profilo if riga["titolo"]}
-
-    pilastri = sorted(
-        (r for r in profilo if r["voto"] is not None and r["voto"] >= VOTO_PILASTRO),
-        key=lambda r: (r["voto"], r["data_conclusa"] or ""),
-        reverse=True,
-    )[:MASSIMO_PILASTRI]
-    usati = {r["voce_id"] for r in pilastri}
-
-    delusi = sorted(
-        (
-            r
-            for r in profilo
-            if r["voce_id"] not in usati
-            and (
-                (r["voto"] is not None and r["voto"] <= VOTO_DELUSO) or r["stato"] == "abbandonato"
-            )
-        ),
-        key=lambda r: r["data_abbandonata"] or r["data_conclusa"] or "",
-        reverse=True,
-    )[:MASSIMO_DELUSI]
-    usati |= {r["voce_id"] for r in delusi}
-
-    recenti = sorted(
-        (r for r in profilo if r["voce_id"] not in usati and r["data_conclusa"]),
-        key=lambda r: r["data_conclusa"],
-        reverse=True,
-    )[:MASSIMO_RECENTI]
-
-    return pilastri, recenti, delusi, esclusi
 
 
 _TRATTINO = re.compile(r"\s*[—–]\s*")

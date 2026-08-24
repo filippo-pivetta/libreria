@@ -4,13 +4,26 @@ import { Stella, formattaVoto } from "@/components/libro/voto-stelle";
 
 /** Le stesse cinque stelline di `VotoStelle`, ma di sola lettura: qui non
  * si vota mai, si guardano due voti affiancati. */
-function VotoAffiancato({ etichetta, voto }: { etichetta: string; voto: number | null }) {
+function VotoAffiancato({
+  etichetta,
+  voto,
+  chiave,
+}: {
+  etichetta: string;
+  voto: number | null;
+  /** Gli `id` dei gradienti delle mezze stelle devono essere unici nel
+   * documento, e qui le stesse cinque stelle compaiono due volte per riga
+   * (il tuo voto e il suo) su ogni libro della striscia. */
+  chiave: string;
+}) {
   if (voto === null) return <p className="t-meta">{etichetta}: nessuno</p>;
   return (
     <p className="flex items-center gap-1.5">
-      <span className="flex text-sm text-accent-strong">
+      <span className="flex gap-px text-accent-strong">
         {[1, 2, 3, 4, 5].map((n) => (
-          <Stella key={n} riempimento={voto - (n - 1)} />
+          <span key={n} className="size-3.5">
+            <Stella riempimento={voto - (n - 1)} chiave={`${chiave}-${n}`} />
+          </span>
         ))}
       </span>
       <span className="t-meta">
@@ -83,8 +96,16 @@ export function LibriInComune({
                 {collegato.libro.titoloCanonico}
               </p>
               <div className="mt-1.5 flex flex-col gap-1">
-                <VotoAffiancato etichetta="il tuo voto" voto={propria.voto} />
-                <VotoAffiancato etichetta="il suo voto" voto={collegato.voto} />
+                <VotoAffiancato
+                  etichetta="il tuo voto"
+                  voto={propria.voto}
+                  chiave={`mio-${collegato.libro.id}`}
+                />
+                <VotoAffiancato
+                  etichetta="il suo voto"
+                  voto={collegato.voto}
+                  chiave={`suo-${collegato.libro.id}`}
+                />
               </div>
             </li>
           );

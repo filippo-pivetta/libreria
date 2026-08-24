@@ -19,8 +19,3 @@ class PreviewResponse(BaseModel):
     voce_id: UUID
     testo: str
     creato_at: datetime
-    avviso: str
-    """L'indicazione, imposta dalla regola 20, che il testo è una sintesi
-    generata. Campo obbligatorio e non frase dentro `testo`: così non
-    dipende dall'obbedienza del modello e non consuma nessuna delle
-    ottanta parole concesse."""

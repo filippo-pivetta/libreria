@@ -10,6 +10,8 @@ import { correggiNotaIntenzione } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { useTranslations } from "next-intl";
+import { Invito } from "@/components/ui/invito";
+import { IconaLucchetto } from "@/components/ui/icone";
 
 /**
  * Nota di intenzione (design doc §9): solo il proprietario la vede, mai
@@ -64,29 +66,31 @@ export function NotaIntenzione({
   }
 
   if (!aperta) {
-    return (
-      <button
-        type="button"
-        onClick={() => setAperta(true)}
-        className="t-meta tocco-esteso mb-5 block w-fit underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-      >
-        Aggiungi una nota di intenzione
-      </button>
-    );
+    return <Invito onClick={() => setAperta(true)}>Aggiungi una nota di intenzione</Invito>;
   }
 
   return (
-    <div className="pannello mb-5 rounded-card border border-line bg-surface-2 p-4">
-      <p className="t-label mb-2">Nota di intenzione</p>
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <span className="t-section font-medium text-ink-soft">Nota di intenzione</span>
+        {/* La nota nasce privata e resta tale, sempre (PRD): non c'è un
+            interruttore da offrire, quindi il segno è fermo e lo dice. */}
+        <span className="t-meta inline-flex items-center gap-2">
+          <IconaLucchetto className="size-[0.9375rem] shrink-0" />
+          Solo tua, mai condivisa
+        </span>
+      </div>
+      <div className="pannello rounded-field border border-line bg-surface-2 p-4 sm:px-[1.125rem]">
       <textarea
         value={testo}
         onChange={(event) => setTesto(event.target.value)}
         onBlur={salvaSeCambiato}
         rows={3}
         placeholder="Perché vuoi leggerlo, o chi te l’ha consigliato…"
-        className="w-full resize-none border-0 bg-transparent font-ui text-sm text-ink outline-none placeholder:text-ink-soft"
-      />
-      <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? "Salvato." : ""}</Messaggio>
+          className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
+        />
+        <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? "Salvato." : ""}</Messaggio>
+      </div>
     </div>
   );
 }

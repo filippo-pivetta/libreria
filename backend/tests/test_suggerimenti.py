@@ -85,52 +85,9 @@ def _candidato(
     }
 
 
-# --- classificazione (funzione pura, nessun mock necessario) -----------------
-
-
-def test_classifica_pilastri_recenti_delusi() -> None:
-    pilastro = _voce("Amato", voto=5.0, data_conclusa="2015-01-01")
-    deluso_per_voto = _voce("Deluso", voto=2.0, data_conclusa="2020-01-01")
-    abbandonato_senza_voto = _voce(
-        "Abbandonato", stato="abbandonato", data_abbandonata="2021-06-01"
-    )
-    recente_medio = _voce("Recente", voto=3.5, data_conclusa="2026-08-01")
-    da_leggere = _voce("In coda", stato="da_leggere")
-
-    pilastri, recenti, delusi, esclusi = suggerimenti_service._classifica(
-        [pilastro, deluso_per_voto, abbandonato_senza_voto, recente_medio, da_leggere]
-    )
-
-    assert [p["titolo"] for p in pilastri] == ["Amato"]
-    assert {d["titolo"] for d in delusi} == {"Deluso", "Abbandonato"}
-    assert [r["titolo"] for r in recenti] == ["Recente"]
-    # Ogni stato entra negli esclusi, anche "da_leggere" e ciò che non è
-    # classificato in nessun gruppo.
-    assert esclusi == {"amato", "deluso", "abbandonato", "recente", "in coda"}
-
-
-def test_un_libro_amato_non_compare_anche_fra_i_recenti() -> None:
-    """Priorità pilastro > deluso > recente: un libro amato di recente
-    ha comunque un solo ruolo."""
-    pilastro_recente = _voce("Amato di recente", voto=4.5, data_conclusa="2026-08-01")
-
-    pilastri, recenti, delusi, _ = suggerimenti_service._classifica([pilastro_recente])
-
-    assert len(pilastri) == 1
-    assert recenti == []
-    assert delusi == []
-
-
-def test_voto_intermedio_non_entra_in_nessun_gruppo() -> None:
-    """Fra `VOTO_DELUSO` e `VOTO_PILASTRO` un libro letto ma senza
-    Lettura conclusa registrata non guida né una proposta né un
-    avvertimento — resta comunque negli esclusi."""
-    tiepido = _voce("Tiepido", voto=3.0, data_conclusa=None)
-
-    pilastri, recenti, delusi, esclusi = suggerimenti_service._classifica([tiepido])
-
-    assert pilastri == recenti == delusi == []
-    assert "tiepido" in esclusi
+# La classificazione (funzione pura) ha i suoi test in
+# tests/test_profilo_lettura.py, dove vive anche il codice dal 24 agosto
+# 2026 — non duplicati qui.
 
 
 @pytest.mark.parametrize(
