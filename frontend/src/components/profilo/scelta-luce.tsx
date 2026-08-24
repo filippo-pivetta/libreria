@@ -4,12 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { type PreferenzaLuce } from "@/lib/light";
-import { impostaLuce } from "@/components/torre/azione-luce";
+import { impostaLuce } from "@/components/profilo/azione-luce";
 
 const OPZIONI: { valore: PreferenzaLuce; etichetta: string }[] = [
   { valore: "ora", etichetta: "Segui l’ora" },
-  { valore: "chiara", etichetta: "Chiara" },
-  { valore: "scura", etichetta: "Scura" },
+  { valore: "giorno", etichetta: "Giorno" },
+  { valore: "notte", etichetta: "Notte" },
 ];
 
 /**

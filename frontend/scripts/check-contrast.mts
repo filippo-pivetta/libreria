@@ -42,6 +42,13 @@ const CHECKS: Check[] = [
   { name: "ink-soft su surface-0",      min: MIN_BODY,  pick: (p) => [p.inkSoft, p.surface0] },
   { name: "accent-strong su surface-1", min: MIN_BODY,  pick: (p) => [p.accentStrong, p.surface1] },
   { name: "alert su surface-0",         min: MIN_LARGE, pick: (p) => [p.alert, p.surface0] },
+  // Il bordo della zona di cancellazione dell'account (design-frontend.md
+  // §17): è il secondo e ultimo uso di `alert` in tutta l'app, e sta su una
+  // carta, non sulla stanza. MIN_LARGE e non MIN_BODY perché è un bordo, non
+  // testo: la soglia AA per un componente d'interfaccia è 3:1. Se un giorno
+  // scendesse sotto, la zona smetterebbe di leggersi come tale proprio nelle
+  // ore in cui la stanza è più scura.
+  { name: "alert su surface-1",         min: MIN_LARGE, pick: (p) => [p.alert, p.surface1] },
 ];
 
 const worst = new Map<string, { ratio: number; when: string }>();

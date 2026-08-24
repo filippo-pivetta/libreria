@@ -135,7 +135,7 @@ export function ScheletroScheda() {
   );
 }
 
-/** Un elenco di righe su una carta lunga: Lettori (§16), Torre (§17). */
+/** Un elenco di righe su una carta lunga: Lettori (§16), Profilo (§17). */
 export function ScheletroElenco({ righe = 4 }: { righe?: number }) {
   return (
     <div aria-hidden className="plane-1 grain flex flex-col">

@@ -116,7 +116,7 @@ export function ParereEffimero({
         </div>
       ) : spentaDavvero ? (
         <p className="t-meta mt-2 max-w-[52ch]">
-          L&apos;elaborazione assistita è spenta. Puoi riaccenderla dalle impostazioni nella Torre.
+          L&apos;elaborazione assistita è spenta. Puoi riaccenderla dal tuo profilo.
         </p>
       ) : (
         <>

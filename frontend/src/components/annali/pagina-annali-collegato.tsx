@@ -112,7 +112,6 @@ export function PaginaAnnaliCollegato({
         annoMassimo={metriche.annoMassimo}
         onCambiaAnno={setAnno}
         nomeUtente={nomeUtente}
-        annoInCorso={anno === metriche.annoMassimo}
       />
 
       <CarteMetriche

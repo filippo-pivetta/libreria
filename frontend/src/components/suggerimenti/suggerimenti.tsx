@@ -258,7 +258,7 @@ export function Suggerimenti() {
       {spenta && (
         <EmptyState
           title="L’elaborazione assistita è spenta"
-          description="I suggerimenti di lettura sono una delle funzioni che dipendono dal consenso. Riaccendilo dalle impostazioni nella Torre."
+          description="I suggerimenti di lettura sono una delle funzioni che dipendono dal consenso. Riaccendilo dal tuo profilo."
         />
       )}
 

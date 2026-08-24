@@ -27,17 +27,39 @@ def get_utente(client: Client, utente_id: UUID) -> dict[str, Any] | None:
     return cast("dict[str, Any]", response.data)
 
 
-def list_altri(client: Client, self_id: UUID) -> list[dict[str, Any]]:
-    """Elenco membri (design-frontend.md §16), tutti tranne chi guarda:
-    non avrebbe senso mostrare a un Utente una relazione con se stesso."""
-    response = (
-        client.table("utente")
-        .select("id, nome_utente")
-        .neq("id", str(self_id))
-        .order("nome_utente")
-        .execute()
-    )
-    return cast("list[dict[str, Any]]", response.data)
+def cerca_membri(
+    client: Client,
+    self_id: UUID,
+    query: str | None,
+    limite: int,
+    soglia: float,
+) -> list[dict[str, Any]]:
+    """Una fetta dell'elenco membri (design-frontend.md §16): mai tutta la
+    tabella.
+
+    Sostituisce la vecchia `list_altri`, che faceva `select id, nome_utente
+    order by nome_utente` senza LIMIT. Reggeva finché il PRD prometteva
+    "unità o decine" di utenti; con un'istanza aperta la stessa query
+    diventa una scansione completa a ogni apertura di pagina e un censimento
+    dei membri servito in una richiesta sola.
+
+    Chi guarda, e chiunque abbia già una relazione con lui, sono esclusi
+    dalla funzione SQL: collegati e richieste pendenti hanno sezioni
+    proprie e complete nel servizio, e l'esclusione avviene prima del LIMIT
+    perché venticinque righe chieste siano venticinque righe utili.
+
+    `query` nulla o vuota = sfoglia gli ultimi arrivati.
+    """
+    response = client.rpc(
+        "cerca_membri",
+        {
+            "p_self": str(self_id),
+            "p_query": query,
+            "p_limite": limite,
+            "p_soglia": soglia,
+        },
+    ).execute()
+    return cast("list[dict[str, Any]]", response.data or [])
 
 
 def get_utente_privato(client: Client, utente_id: UUID) -> dict[str, Any] | None:

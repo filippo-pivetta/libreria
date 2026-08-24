@@ -5,7 +5,7 @@ import { PulsanteEsci } from "@/components/layout/pulsante-esci";
  *
  * Non è un affinamento: **prima non c'era.** `ProtectedNav` monta la
  * barra in cima dietro `hidden sm:block`, e sotto i 640px lascia solo i
- * quattro tab in fondo (Libreria, Annali, Lettori, Torre). Su un telefono
+ * tre tab in fondo (Libreria, Annali, Lettori). Su un telefono
  * la scheda di un proprio libro non aveva quindi nessun comando di
  * ritorno: si usciva col gesto di sistema, o toccando "Libreria" in
  * fondo — che non è tornare indietro, è ricominciare da capo, e sullo

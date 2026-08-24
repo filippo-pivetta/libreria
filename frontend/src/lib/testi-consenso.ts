@@ -9,7 +9,7 @@
  *
  * In un modulo a sé dall'issue #6, quando hanno smesso di servire in un
  * posto solo: compaiono al primo accesso (completamento dell'invito) e
- * nelle impostazioni della Torre. Due copie a mano sarebbero diventate
+ * nel profilo. Due copie a mano sarebbero diventate
  * due testi leggermente diversi alla prima correzione di una virgola —
  * su un testo che è la base di un consenso informato.
  */
@@ -30,12 +30,19 @@ export const NOTE_FUORI_DAL_CONSENSO =
   "Le note di intenzione non escono mai, in nessuno stato del consenso.";
 
 /**
- * Cosa succede spegnendo, e cosa no (design doc §17, regola 32 del PRD).
- * Distinguere le due cose è il punto: senza, spegnere sembrerebbe
- * cancellare anche i pareri già salvati.
+ * Cosa succede spegnendo, e cosa NON succede (design doc §17, regola 32
+ * del PRD). Distinguere le due cose è il punto: senza, spegnere
+ * sembrerebbe cancellare anche i pareri già salvati.
+ *
+ * Diceva anche "le cinque funzioni assistite si spengono e gli indici di
+ * ricerca costruiti sui tuoi testi vengono cancellati", ed era un
+ * doppione: è già l'ultima frase di `TESTO_CONSENSO`, che sta due righe
+ * sopra nella stessa carta e che il PRD detta parola per parola. Restava
+ * solo a far sembrare più lungo l'unico paragrafo che aggiungeva
+ * qualcosa — e che è anche il più rassicurante dei due.
  */
 export const EFFETTO_REVOCA =
-  "Le cinque funzioni assistite si spengono e gli indici di ricerca costruiti sui tuoi testi vengono cancellati. I pareri e le sintesi già generati restano nella tua libreria: sono contenuti tuoi.";
+  "Spegnendo, i pareri e le sintesi già generati restano nella tua libreria: sono contenuti tuoi.";
 
 export const EFFETTO_RIATTIVAZIONE =
   "Gli indici si ricostruiscono da capo. Finché non sono pronti la ricerca semantica è incompleta e te lo dice.";

@@ -66,8 +66,11 @@ mano. Raggi: 4px sugli oggetti piccoli (pastiglie, volumi, barre), 10px su campi
 mattino alla notte si scurisce e cambia calore, conseguenza dell'ora, come lo scaffale è
 conseguenza della libreria.
 
-**Il comando in Torre.** Un selettore a tre stati — **Segui l'ora / Chiara / Scura** — dà a chi
-ha una sensibilità particolare alla luce la possibilità di fissare la stanza. "Segui l'ora"
+**Il comando nel Profilo.** Un selettore a tre stati — **Segui l'ora / Giorno / Notte** — dà a chi
+ha una sensibilità particolare alla luce la possibilità di fissare la stanza. "Giorno" e "Notte"
+nominano l'ancoraggio che fissano, non un'invenzione a parte: si chiamavano "Chiara"/"Scura", un
+secondo vocabolario per gli stessi due ancoraggi (§2) che il resto del documento chiama "giorno" e
+"notte". "Segui l'ora"
 resta il valore predefinito: chi non lo tocca vede la stanza seguire l'ora, e due collegati
 senza preferenze espresse vedono la stessa stanza allo stesso momento. Il calcolo resta lato
 server, il cambio avviene solo al cambio pagina, nessun timer nel browser: la preferenza viaggia
@@ -145,10 +148,21 @@ accorgersi se un valore modificato rompe una fascia oraria che nessuno guarda ma
 superficie chiara, dove il contrasto crolla sotto 3:1. Per testo, icone e numeri esiste
 `accent-strong`.
 
-**Regola sul rosso.** `alert` compare in un solo posto in tutto il prodotto, il contatore delle
-richieste ricevute accanto a Torre, perché è l'unica cosa che chiede un'azione. Non sugli
-errori, che sono testuali. Non sulla cancellazione dell'account. Non sui nastri, che hanno un
-rosso proprio di stato.
+**Regola sul rosso.** `alert` compare in **due posti** in tutto il prodotto, e non ne esistono
+altri: il contatore delle richieste ricevute accanto a Lettori, perché è l'unica cosa che chiede
+un'azione, e il bordo della zona di cancellazione dell'account (§17). Non sugli errori, che sono
+testuali. Non sui nastri, che hanno un rosso proprio di stato. Non su un pulsante, quello della
+cancellazione compreso.
+
+*Era un posto solo.* Il secondo è arrivato quando la cancellazione dell'account è stata raccolta
+in una zona di pericolo: un riquadro che si annuncia come tale è la convenzione che chiunque
+riconosce, e spendere il rosso lì è più difendibile che spenderlo solo su un contatore. Due usi
+restano leggibili come "una cosa che chiede attenzione"; tre non lo sarebbero più, ed è per
+questo che l'elenco sopra è chiuso.
+
+E mai come **testo**: `alert` tiene 4.57:1 su `surface-1` nel punto peggiore dell'anno, cioè sette
+centesimi sopra la soglia AA del corpo. Sette centesimi non sono un margine, sono una coincidenza.
+Entrambi gli accostamenti sono verificati su tutto l'anno da `scripts/check-contrast.mts`.
 
 ---
 
@@ -201,31 +215,57 @@ ogni numero di metrica, sempre, altrimenti le colonne ballano al cambio d'anno. 
 
 ## 5. Navigazione
 
-Quattro voci: **Libreria, Annali, Lettori, Torre.** In inglese: Library, Annals, Readers, Tower.
+Tre voci: **Libreria, Annali, Lettori.** In inglese: Library, Annals, Readers.
 
 | Voce | Contenuto |
 |---|---|
 | Libreria | Scaffale, filtri, ricerca |
 | Annali | Metriche per anno |
-| Lettori | Elenco membri |
-| Torre | Collegamenti e impostazioni |
+| Lettori | Le persone e il rapporto con loro |
+
+**Erano quattro, e la quarta era "Torre".** Conteneva i collegamenti e le impostazioni, e ne è
+uscita per due ragioni indipendenti. La prima è la frequenza: le altre tre si aprono ogni giorno,
+quella si apriva una volta al mese, e tenerla alla pari mentiva su quanto servisse. La seconda è
+il nome — era l'unica voce metaforica su una barra di nomi letterali, contro la regola che questo
+stesso paragrafo enuncia poche righe più sotto ("il rimando letterario sta nell'insegna, non nella
+segnaletica interna").
+
+Dei suoi due contenuti, i **collegamenti** sono passati a Lettori (§16): accettare una richiesta
+non è un'impostazione, è la cosa più urgente dell'app, e stava sepolta accanto a "cancella
+l'account" mentre nella pagina dove compariva la persona la stessa richiesta era testo inerte. Ciò
+che resta è il proprio account, che ora si chiama **Profilo** (§17) e non sta in barra: ci si
+arriva dalle proprie iniziali, in alto a destra nella barra su desktop e in cima al contenuto su
+telefono, dove la barra in alto non esiste. "Profilo" non è una parola inventata qui: è quella che
+il PRD usa per questa superficie ("Interruttore nel profilo dell'Utente", "una superficie dedicata
+nel profilo"), mentre riserva "impostazioni" alle azioni sui dati — che sono infatti i titoli
+delle sezioni là dentro.
+
+Guadagno secondario, non l'obiettivo: con tre linguette in fondo invece di quattro ciascuna
+guadagna un terzo di larghezza, e l'etichetta resta nel maiuscoletto pieno di §4 senza doverne
+stringere la spaziatura per farla stare.
 
 La barra sta sul piano 0, non su una carta: non è contenuto, è la stanza. La voce attiva si
 segnala con l'inchiostro pieno e un filetto, non con un riempimento.
 
 **Due barre, non una resa elastica.** Da 640px in su la barra sta in cima ed è fissa allo
-scorrimento. Sotto i 640px le stesse quattro voci diventano una barra in fondo allo schermo,
-dove sta la navigazione di un'app e dove arriva il pollice; nome utente ed "Esci" passano in
-Torre, che è la loro sede naturale. Lo scambio è in CSS, non in JavaScript, quindi non c'è un
-istante in cui compare la barra sbagliata.
+scorrimento, con le proprie iniziali e il nome utente in fondo a destra. Sotto i 640px le stesse
+tre voci diventano una barra in fondo allo schermo, dove sta la navigazione di un'app e dove
+arriva il pollice; le iniziali passano in cima al contenuto, allineate a destra sopra il titolo
+di pagina, perché lassù non c'è più una barra che le ospiti. "Esci" non sta in nessuna delle due:
+è nel Profilo, prima sezione. Lo scambio è in CSS, non in JavaScript, quindi non c'è un istante
+in cui compare la barra sbagliata.
 
 **Senza icone, di proposito.** In tutta l'app non esiste un vocabolario di icone — due chevron
-in un selettore d'anno e qualche glifo tipografico. Quattro parole corte bastano, e la voce
-attiva si legge dal filetto come in alto.
+in un selettore d'anno e qualche glifo tipografico. Tre parole corte bastano, e la voce attiva si
+legge dal filetto come in alto. Le iniziali non fanno eccezione: sono già il modo in cui l'app
+rappresenta una persona (§16, §15), non un'icona nuova, e non portano il filetto della voce
+attiva nemmeno sul Profilo — non sono una destinazione fra le altre, sono chi sei.
 
-Il contatore delle richieste ricevute sta accanto a Torre ed è l'unico elemento in `alert` di
-tutta l'app: senza contatore una richiesta resterebbe invisibile per sempre, non avendo l'app
-notifiche.
+Il contatore delle richieste ricevute sta accanto a **Lettori** ed è l'unico elemento in `alert`
+di tutta l'app: senza contatore una richiesta resterebbe invisibile per sempre, non avendo l'app
+notifiche. Stava accanto a Torre, cioè accanto a una pagina diversa da quella in cui la richiesta
+compariva: segnalava una cosa da fare altrove. Ora sta accanto al posto dove si agisce, e quando
+non c'è nulla da fare sparisce insieme alla sua sezione.
 
 Questa barra è quella di "casa tua". Nel contesto di un collegato (§15) sparisce del tutto,
 sostituita da una barra contestuale diversa: non è una variazione di questa, è un'altra barra.
@@ -974,52 +1014,112 @@ che quella libreria non è più accessibile e riporta all'elenco. Una stanza chi
 L'elenco mostra nomi e i tre stati della relazione, e nient'altro: non relazioni fra terzi, non
 libri, non metriche, nessun conteggio di collegamenti, nessuna anteprima. È un registro di nomi.
 
-Le richieste compaiono solo nella Torre. Nell'elenco una richiesta in attesa è testo, non un
-pulsante.
+**Qui vive l'intero ciclo di vita di un collegamento**, dalla richiesta all'interruzione. Prima
+accettare, rifiutare, ritirare e interrompere si facevano nella Torre, e qui una richiesta in
+attesa era testo inerte con una riga che rimandava altrove: la stessa relazione in due pagine, e
+quella in cui compariva la persona era l'unica che non poteva agire. Il contatore rosso non era
+una funzione, era la toppa che serviva a portare l'Utente nell'altra pagina.
+
+Qui non c'è scaffale e non ci sono oggetti: sono persone, non volumi. Carte lunghe sul piano 1,
+righe separate da filetti, iniziali in Fraunces. Nessuna immagine di profilo, che il PRD non
+prevede — e su un'istanza aperta sarebbe anche la prima cosa da moderare.
+
+### La ricerca, non l'ordine delle sezioni
+
+L'elenco faceva due mestieri con frequenze opposte — andare da qualcuno con cui sei già collegato,
+quotidiano, e trovare qualcuno da chiedere, raro — e la risposta era stata **due carte**, "i tuoi
+collegamenti" e "altri membri". Il ragionamento era giusto, la soluzione risolveva l'ORDINE e non
+il TROVARE: per chiedere un collegamento bisognava scorrere oltre tutti i collegati, e più
+collegamenti si avevano più lontano finiva il gesto raro. Con l'istanza aperta (PRD, *Elenco dei
+membri*) quella lista non finisce nemmeno.
+
+**Un campo di ricerca in cima, che raggiunge chiunque.** Si digita il nome e si agisce sulla riga
+dov'è: che la persona sia il terzo collegato o il novantesimo iscritto non cambia nulla. È la
+ricerca, e non la disposizione delle sezioni, a reggere un elenco che non ha fine. Sotto le due
+lettere non parte alcuna interrogazione: una lettera sola restituirebbe una fetta arbitraria
+dell'anagrafica a ogni battuta, che è enumerazione travestita da ricerca.
+
+**Nessun conteggio dei membri accanto al titolo.** Il numero dei collegati sì — è un dato
+dell'Utente — ma quanti siano gli iscritti no, e il backend non lo calcola nemmeno.
+
+### Tre sezioni, in ordine di urgenza
+
+1. **Ti hanno chiesto il collegamento** — l'unica cosa con una scadenza sociale, e l'unica per cui
+   esiste il contatore. Righe con "Accetta" e "Rifiuta", non più testo inerte. Quando non ce n'è,
+   la sezione sparisce insieme al contatore: il caso normale non si annuncia, e un "Nessuna
+   richiesta ricevuta." che occupa una riga è rumore.
+2. **I tuoi collegamenti** — pura navigazione: iniziali, nome, un chevron, l'intera riga è il link
+   verso la sua libreria (§15). Nessuno stato scritto accanto, perché essere nell'elenco è già lo
+   stato, e nessun comando distruttivo a un dito dal gesto quotidiano.
+3. **Altri lettori** — chi non ha ancora una relazione, con in cima le richieste inviate
+   ("Richiesta inviata" più "Ritira"). Una richiesta inviata non è un altro tipo di persona, è la
+   stessa persona in un altro stato, e servirla in una sezione sua costringerebbe a una quarta
+   sezione per due righe. Senza ricerca questa sezione è una fetta breve degli ultimi arrivati,
+   non l'anagrafica, e una riga sotto lo dice.
+
+Una sezione vuota non mostra la sua carta. Non esiste alcun rimando a un'altra pagina: tutto ciò
+che si può fare a una persona si fa sulla sua riga.
+
+### Interrompere un collegamento
+
+**Sta dietro "Modifica"**, sull'intestazione dell'elenco: il comando compare al posto del chevron,
+e solo sulle righe di chi è collegato. Fuori da quella modalità la riga resta pura navigazione.
+
+La ragione è la reversibilità asimmetrica: si interrompe da soli, ma per tornare indietro serve
+che l'altro accetti una nuova richiesta. Un gesto così non sta a un dito di distanza da quello che
+si fa ogni giorno — entrare in una libreria — e "Modifica" è la distanza giusta: un tocco in più,
+visibile, dove stanno le persone, senza scorrere nulla.
+
+*Due posti scartati, per memoria.* In fondo alla pagina del collegato, come iOS fa nei Contatti:
+quella scheda è corta, una libreria può essere di centinaia di volumi, e in fondo a un elenco così
+il comando non lo trova nessuno. E sempre visibile sulla riga: a un tocco dalla navigazione
+quotidiana, sul telefono, è un errore che aspetta di accadere. Restando fuori dalla pagina del
+collegato, quella pagina torna anche ad avere **zero pulsanti**, come §15 prescrive.
+
+**Azione immediata, senza dialogo di conferma, con un annulla che resta sei secondi.** La DELETE
+parte solo allo scadere della finestra: fino a lì la riga si spegne e mostra "Annulla".
 
 **Il rifiuto non lascia traccia.** Chi ha chiesto vede la relazione tornare ad assente,
-indistinguibile da chi non ha mai chiesto. Nessun blocco, richiesta reinviabile.
-
-Qui non c'è scaffale e non ci sono oggetti: sono persone, non volumi. Una sola carta lunga sul
-piano 1, righe separate da filetti, iniziali in Fraunces. Nessuna immagine di profilo, che il PRD
-non prevede.
-
-**Due gruppi, non una lista sola.** L'elenco fa due mestieri con frequenze opposte: andare da
-qualcuno con cui sei già collegato, quotidiano, e trovare qualcuno da chiedere, che in un gruppo
-chiuso capita poche volte l'anno.
-
-- **I tuoi collegamenti** — solo chi ha una relazione attiva. Ogni riga è pura navigazione:
-  iniziali, nome, un chevron, l'intera riga è il link verso la sua libreria (§15). Nessuno stato
-  scritto accanto: essere nell'elenco è già lo stato.
-- **Altri membri** — chi non è (ancora) collegato. A destra della riga, tre varianti secondo la
-  relazione: un bottone "Chiedi il collegamento" quando è assente; il testo "Richiesta inviata"
-  quando l'hai chiesta tu; il testo "Ti ha chiesto il collegamento" quando l'ha chiesta lui.
-  Resta vero l'invariante sopra: qui è sempre testo, mai un pulsante che accetta o rifiuta.
-
-Sotto il secondo gruppo, una riga ricorda che le richieste si accettano nella Torre. Un gruppo
-vuoto non mostra la sua carta.
+indistinguibile da chi non ha mai chiesto, e la richiesta è reinviabile. Sull'assenza di un blocco
+e sul perché oggi sia una lacuna dichiarata e non una scelta, vedi PRD (*Collegamento tra utenti*)
+e `docs/lavoro-rimandato.md`.
 
 ---
 
-## 17. Torre
+## 17. Profilo
 
-Una superficie sola, due sezioni. Sopra i collegamenti (richieste ricevute, inviate, attivi con
-interruzione), sotto le impostazioni.
+**Si chiamava Torre, e conteneva anche i collegamenti.** Quelli sono passati a Lettori (§16); il
+nome è cambiato per le ragioni in §5. Non è più una voce di barra: ci si arriva dalle proprie
+iniziali.
 
-Le impostazioni contengono cinque cose: l'avviso di visibilità, la luce della stanza, il consenso
-all'elaborazione assistita, l'esportazione dei libri letti, la cancellazione dell'account. La
-luce sta per prima fra le cinque perché è la sola che non riguarda i dati: cambia come si vede
+Una superficie sola, sei sezioni, in un ordine che è un racconto da sé verso l'esterno e poi
+fuori: **il tuo account** (nome utente ed "Esci"), **chi vede cosa**, **la luce della stanza**,
+**il consenso all'elaborazione assistita**, **l'esportazione dei libri letti**, **la cancellazione
+dell'account**.
+
+"Il tuo account" era una didascalia sopra l'elenco dei collegamenti ("Sei entrato come …"); ora
+che la pagina è del solo account è la prima sezione e ha il peso di una riga vera. La luce viene
+prima delle tre che riguardano i dati perché è la sola che non li riguarda: cambia come si vede
 l'app, non cosa l'app fa dei tuoi testi.
-
-**Interrompere un collegamento: azione immediata, senza dialogo di conferma, con un annulla che
-resta per qualche secondo.** Interrompere non è simmetricamente reversibile: tu interrompi da
-solo, ma per tornare indietro serve che l'altro accetti una nuova richiesta.
 
 **I due testi lunghi sono quelli del PRD, parola per parola.** L'avviso di visibilità e il testo
 del consenso non vanno riscritti in forma più breve.
 
-Sotto il consenso, una riga sulle note di intenzione: non escono mai, in nessuno stato del
-consenso.
+### Il comando prima del testo
+
+La sezione del consenso metteva l'informativa — trecentosettanta battute — davanti
+all'interruttore, con altri tre paragrafi sotto: per sapere se il consenso fosse acceso bisognava
+leggere un muro. Ora l'ordine dentro la carta è quello in cui serve: **cos'è** ("Attiva" /
+"Spenta"), **com'è messo adesso** (la riga di stato reale sugli indici), l'interruttore, un
+filetto, e **poi** il testo del PRD per intero. Non una parola in meno: solo non più di traverso
+al comando.
+
+Un paragrafo è stato tolto perché era un doppione, non per accorciare: "le cinque funzioni
+assistite si spengono e gli indici di ricerca costruiti sui tuoi testi vengono cancellati" è già
+l'ultima frase del testo del PRD, due righe sopra nella stessa carta. Ne resta la sola metà che
+aggiungeva qualcosa, ed è la più rassicurante: i pareri e le sintesi già generati restano.
+
+Sotto, una riga sulle note di intenzione: non escono mai, in nessuno stato del consenso.
 
 L'interruttore nasce acceso. Spegnendolo va detto cosa succede subito e cosa no: le cinque
 funzioni si spengono e gli indici si cancellano, ma gli artefatti già generati restano come
@@ -1059,13 +1159,25 @@ cosa.
 
 ### Cancellazione dell'account
 
-Non è un pulsante rosso. È in fondo, in tono piano, sul piano 1 come tutto il resto. La
-difficoltà sta dove deve stare: bisogna scrivere il proprio nome utente, e il pulsante resta
-spento finché non coincide.
+**Una zona di pericolo**, come nella maggior parte dei prodotti: ultima della pagina, staccata da
+ciò che precede con un filetto e dello spazio, e raccolta in una carta il cui bordo è in `alert`.
+È il secondo e ultimo uso del rosso in tutta l'app (§3). Non è decorazione: la separazione e il
+bordo sono ciò che distingue un'azione irreversibile da una preferenza, e prima questa sezione era
+indistinguibile da "esporta i libri letti".
 
-Il rosso e i toni allarmati sono evitati di proposito: un'azione che richiede di digitare il
-proprio nome è già difficile da compiere per errore. Il rosso, in quest'app, vuol dire una cosa
-sola, ed è il contatore delle richieste.
+**Il rosso sta sul bordo, non sul testo, e non sul pulsante.** Sul testo non può stare per una
+ragione misurata: `alert` su `surface-1` tiene 4.57:1 nel punto peggiore dell'anno, sette
+centesimi sopra la soglia AA del corpo. Sul pulsante non sta perché non servirebbe a niente: la
+difficoltà sta dove deve stare, cioè nel dover **scrivere il proprio nome utente**, e il pulsante
+resta spento finché non coincide. Un pulsante rosso non ha mai fermato nessuno che non fosse già
+stato fermato da quello.
+
+*Diceva il contrario, e vale la pena dire perché è cambiato.* La regola era "non è un pulsante
+rosso… il rosso, in quest'app, vuol dire una cosa sola, ed è il contatore delle richieste", e il
+suo argomento — un'azione che richiede di digitare il proprio nome è già difficile da compiere per
+errore — resta vero e infatti il pulsante è rimasto piano. Quello che l'argomento non copriva è la
+**reperibilità**: la difficoltà di eseguirla non è la stessa cosa del riconoscerla mentre si scorre
+la pagina. La zona risolve il secondo problema senza toccare il primo.
 
 Schermata finale: due righe che dicono che l'account non c'è più e che per rientrare serve
 parlare con chi mantiene l'istanza.

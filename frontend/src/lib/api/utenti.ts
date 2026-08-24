@@ -15,9 +15,29 @@ export type Membro = {
   nomeUtente: string;
   statoRelazione: StatoRelazione;
   /** Significativo solo se statoRelazione === "in_attesa": true se la
-   * richiesta l'ha inviata l'altro (accettabile/rifiutabile dalla
-   * Torre), false se l'ha inviata chi guarda (solo ritirabile). */
+   * richiesta l'ha inviata l'altro (accettabile/rifiutabile), false se
+   * l'ha inviata chi guarda (solo ritirabile). */
   richiestaRicevuta: boolean;
+  /** L'id della riga `collegamento`, quando una relazione esiste. Le
+   * rotte di `/collegamenti` lavorano sull'id della RELAZIONE, non su
+   * quello della persona: senza questo campo l'elenco potrebbe mostrare
+   * accetta/rifiuta/ritira/interrompi ma non eseguirli. È ciò che
+   * permette a Lettori di reggere l'intero ciclo di vita di un
+   * collegamento senza una seconda chiamata. */
+  collegamentoId: string | null;
+};
+
+/** I tre gruppi di `GET /utenti` (design doc §16).
+ *
+ * `richiesteRicevute` e `collegati` sono sempre completi; `altri` ha un
+ * tetto lato server e porta in cima le richieste inviate. Non esiste un
+ * conteggio totale dei membri: su un'istanza pubblica quanti siano gli
+ * iscritti non è un'informazione che l'elenco debba dare, e infatti il
+ * backend non la calcola nemmeno. */
+export type ElencoMembri = {
+  richiesteRicevute: Membro[];
+  collegati: Membro[];
+  altri: Membro[];
 };
 
 type MembroBody = {
@@ -25,6 +45,13 @@ type MembroBody = {
   nome_utente: string;
   stato_relazione: StatoRelazione;
   richiesta_ricevuta: boolean;
+  collegamento_id: string | null;
+};
+
+type ElencoMembriBody = {
+  richieste_ricevute: MembroBody[];
+  collegati: MembroBody[];
+  altri: MembroBody[];
 };
 
 function toMembro(body: MembroBody): Membro {
@@ -33,6 +60,7 @@ function toMembro(body: MembroBody): Membro {
     nomeUtente: body.nome_utente,
     statoRelazione: body.stato_relazione,
     richiestaRicevuta: body.richiesta_ricevuta,
+    collegamentoId: body.collegamento_id,
   };
 }
 
@@ -45,18 +73,36 @@ function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: str
 }
 
 export type UtentiResult =
-  | { status: "ok"; data: Membro[] }
+  | { status: "ok"; data: ElencoMembri }
   | { status: "error"; message: string };
 
-/** GET /utenti: l'elenco membri (design doc §16), con lo stato della
- * relazione verso chi chiama. */
-export async function getUtenti(accessToken: string): Promise<UtentiResult> {
+/** Sotto le due lettere non si cerca: il backend non interroga
+ * l'anagrafica (`utenti_service.MIN_QUERY`) e questo modulo non lo
+ * chiama nemmeno, così una battuta sola non parte come richiesta. */
+export const MIN_RICERCA = 2;
+
+/** GET /utenti: l'elenco membri (design doc §16) in tre gruppi, con lo
+ * stato della relazione verso chi chiama.
+ *
+ * `cerca` filtra per nome utente: sottostringa e tolleranza agli errori
+ * di battitura sugli sconosciuti, sola sottostringa sui propri collegati
+ * (le due regole vivono lato server, vedi `utenti_service`). */
+export async function getUtenti(
+  accessToken: string,
+  cerca?: string,
+): Promise<UtentiResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
+  const url = new URL(`${config.baseUrl}/utenti`);
+  const termine = cerca?.trim();
+  if (termine) {
+    url.searchParams.set("cerca", termine);
+  }
+
   let response: Response;
   try {
-    response = await fetch(`${config.baseUrl}/utenti`, {
+    response = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     });
@@ -68,8 +114,15 @@ export async function getUtenti(accessToken: string): Promise<UtentiResult> {
     return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
   }
 
-  const body = (await response.json()) as MembroBody[];
-  return { status: "ok", data: body.map(toMembro) };
+  const body = (await response.json()) as ElencoMembriBody;
+  return {
+    status: "ok",
+    data: {
+      richiesteRicevute: body.richieste_ricevute.map(toMembro),
+      collegati: body.collegati.map(toMembro),
+      altri: body.altri.map(toMembro),
+    },
+  };
 }
 
 type LibreriaCollegatoBody = {

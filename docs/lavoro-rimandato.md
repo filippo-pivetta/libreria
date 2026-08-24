@@ -9,6 +9,33 @@ Registrare un avanzamento o cambiare stato con un tocco lungo (mobile) senza apr
 libro. Con la copertina vera lo spazio libero sul volume è ridotto rispetto al vecchio dorso, il
 gesto va ridisegnato da zero. Oggi il volume è solo un link alla scheda.
 
+## Nessuna difesa dalle richieste indesiderate (istanza aperta)
+
+**Decisione consapevole di non costruire, non una svista.** Aprendo l'istanza oltre il gruppo
+chiuso (24 agosto 2026) è caduta la motivazione che il PRD dava all'assenza di un blocco:
+"non esiste blocco, coerentemente con un gruppo chiuso e a invito". Fra persone invitate dalla
+stessa persona era una scelta proporzionata; fra sconosciuti no.
+
+Quello che oggi manca, in concreto: un rifiuto non lascia traccia visibile a chi ha chiesto e la
+richiesta è reinviabile senza limite, quindi nulla impedisce a qualcuno di rimandarla
+indefinitamente. Chi la subisce non ha alcun comando da usare — né un blocco, né un silenziamento,
+né un limite temporale al reinvio — e la richiesta ricompare in cima a Lettori ogni volta.
+
+Le tre strade valutate, in ordine di peso:
+
+1. **Blocco per utente.** Una tabella con RLS, un endpoint, una riga nel profilo. Il bloccato non
+   può reinviare, non trova più l'altro nella ricerca e sparisce dal suo elenco; nessuna notifica,
+   coerente con "chi viene rimosso non riceve alcun avviso". È lo standard di ogni prodotto sociale
+   pubblico e la sola difesa reale.
+2. **Limite temporale al reinvio.** Nessuna entità nuova: dopo un rifiuto la stessa persona non può
+   reinviare per un periodo, applicato lato server. Molto più leggero, ma non ferma chi insiste nel
+   tempo e non toglie il proprio nome dalla sua ricerca.
+3. **Niente**, che è dove siamo.
+
+Va affrontata prima che l'istanza abbia utenti che non si conoscono fra loro. Il PRD è stato
+corretto in modo da non giustificare più l'assenza con la chiusura del gruppo: la frase mentiva
+sullo stato del prodotto, e una motivazione sbagliata è peggio di una lacuna dichiarata.
+
 ## Chiuso nella sessione UI
 
 - Interfaccia bilingue (#34): le stringhe sono state estratte in `frontend/src/messaggi/it.ts`

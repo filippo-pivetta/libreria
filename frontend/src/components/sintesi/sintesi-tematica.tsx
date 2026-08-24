@@ -245,7 +245,7 @@ export function SintesiTematica() {
       ) : spentaDavvero ? (
         <EmptyState
           title="L’elaborazione assistita è spenta"
-          description="La sintesi tematica è una delle funzioni che dipendono dal consenso. Riaccendilo dalle impostazioni nella Torre."
+          description="La sintesi tematica è una delle funzioni che dipendono dal consenso. Riaccendilo dal tuo profilo."
         />
       ) : (
         <Button

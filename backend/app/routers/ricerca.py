@@ -173,8 +173,7 @@ async def get_ricerca_semantica(
             {
                 "error_code": "consenso_revocato",
                 "message": (
-                    "L'elaborazione assistita è disattivata. Puoi riattivarla dalle "
-                    "impostazioni nella Torre."
+                    "L'elaborazione assistita è disattivata. Puoi riattivarla dalle tuo profilo."
                 ),
             },
         ) from errore

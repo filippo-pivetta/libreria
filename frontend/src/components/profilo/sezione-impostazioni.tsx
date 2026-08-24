@@ -23,15 +23,25 @@ import {
   TESTO_CONSENSO,
 } from "@/lib/testi-consenso";
 import { Messaggio } from "@/components/ui/messaggio";
-import { SceltaLuce } from "@/components/torre/scelta-luce";
+import { SceltaLuce } from "@/components/profilo/scelta-luce";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { type PreferenzaLuce } from "@/lib/light";
 import { useTranslations } from "next-intl";
 
 /**
- * Sezione impostazioni della Torre (design doc §17): l'avviso di
- * visibilità, il consenso all'elaborazione assistita, l'esportazione dei
- * libri letti, la cancellazione dell'account — quattro cose e basta, in
- * quest'ordine (issue #6, issue #8, ADR 0011 rivisto).
+ * Il corpo del Profilo (design doc §17): il tuo account, l'avviso di
+ * visibilità, la luce della stanza, il consenso all'elaborazione
+ * assistita, l'esportazione dei libri letti, la cancellazione
+ * dell'account — in quest'ordine (issue #6, issue #8, ADR 0011 rivisto).
+ *
+ * L'ordine è un racconto che va da te verso l'esterno e poi fuori: chi
+ * sei, chi ti vede, come si vede l'app, cosa l'app fa dei tuoi testi,
+ * come porti via i tuoi dati, come te ne vai.
+ *
+ * La sezione dei collegamenti che stava qui sopra è passata a Lettori,
+ * dove stanno le persone: accettare una richiesta non è un'impostazione,
+ * ed era anche la cosa più urgente dell'app sepolta accanto a "cancella
+ * l'account".
  *
  * **Nessuna finestra di annullamento** come quella dei collegamenti,
  * benché spegnere il consenso cancelli davvero gli indici: interrompere
@@ -168,8 +178,23 @@ export function SezioneImpostazioni({
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Chi sei, e la via d’uscita. Era una didascalia sopra l’elenco dei
+          collegamenti ("Sei entrato come …"); ora che la pagina è del solo
+          account è la prima sezione e ha il peso di una riga vera. Su
+          desktop il nome resta anche in barra, e vederlo due volte nel
+          posto giusto non è un difetto. */}
       <section className="flex flex-col gap-2">
-        <p className="t-label">Chi vede cosa</p>
+        <h2 className="t-section">Il tuo account</h2>
+        <div className="plane-1 grain flex items-center gap-4 rounded-card p-4">
+          <span className="font-ui text-sm font-medium text-ink">{nomeUtente}</span>
+          <span className="ml-auto">
+            <SignOutButton />
+          </span>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="t-section">Chi vede cosa</h2>
         <p className="t-meta max-w-prose">{AVVISO_VISIBILITA}</p>
       </section>
 
@@ -180,7 +205,7 @@ export function SezioneImpostazioni({
           riguarda i dati — cambia come si vede l’app, non cosa l’app fa dei
           tuoi testi. */}
       <section className="flex flex-col gap-2">
-        <p className="t-label">Luce della stanza</p>
+        <h2 className="t-section">Luce della stanza</h2>
         <p className="t-meta max-w-prose">
           La stanza si scurisce da sé dal mattino alla notte. Se preferisci, puoi
           fermarla su una delle due.
@@ -188,11 +213,33 @@ export function SezioneImpostazioni({
         <SceltaLuce iniziale={preferenzaLuce} />
       </section>
 
+      {/* IL COMANDO PRIMA DEL TESTO.
+
+          Prima l'occhio incontrava trecentosettanta battute di informativa
+          e solo dopo l'interruttore, con altri tre paragrafi sotto: per
+          sapere se il consenso fosse acceso bisognava leggere un muro.
+          Ora legge nell'ordine in cui serve — che cos'è, com'è messo
+          adesso, e poi il testo del PRD per intero.
+
+          Non una parola in meno di quel testo: §17 lo dichiara
+          intoccabile, ed è la base di un consenso informato. Solo non più
+          di traverso al comando. */}
       <section className="flex flex-col gap-3">
-        <p className="t-label">Elaborazione assistita</p>
-        <div className="plane-1 grain flex flex-col gap-3 rounded-card p-4">
-          <div className="flex items-start justify-between gap-4">
-            <p className="max-w-prose font-ui text-sm text-ink">{TESTO_CONSENSO}</p>
+        <h2 className="t-section">Elaborazione assistita</h2>
+        <div className="plane-1 grain flex flex-col gap-3.5 rounded-card p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <p className="font-ui text-sm font-medium text-ink">
+                {consenso ? "Attiva" : "Spenta"}
+              </p>
+              <p className="t-meta">
+                {!consenso
+                  ? "Le cinque funzioni assistite sono spente."
+                  : indiciStato === "in_ricostruzione"
+                    ? "Gli indici si stanno ricostruendo: la ricerca semantica è incompleta finché non hanno finito."
+                    : "Gli indici sono pronti."}
+              </p>
+            </div>
             <Switch
               checked={consenso}
               onCheckedChange={(valore) => mutazione.mutate(valore)}
@@ -200,26 +247,21 @@ export function SezioneImpostazioni({
               aria-label="Consenti l’elaborazione assistita"
             />
           </div>
+          <div className="border-t border-line" />
+          <p className="max-w-prose font-ui text-sm text-ink">{TESTO_CONSENSO}</p>
           <p className="t-meta max-w-prose">
             {consenso ? EFFETTO_REVOCA : EFFETTO_RIATTIVAZIONE}
           </p>
-          {consenso && (
-            <p className="t-meta max-w-prose">
-              {indiciStato === "in_ricostruzione"
-                ? "Gli indici si stanno ricostruendo: la ricerca semantica è incompleta finché non hanno finito."
-                : "Gli indici sono pronti."}
-            </p>
-          )}
           <p className="t-meta max-w-prose">{NOTE_FUORI_DAL_CONSENSO}</p>
           <Messaggio>{errore}</Messaggio>
         </div>
       </section>
 
       <section className="flex flex-col gap-2">
-        <p className="t-label">Esporta i libri letti</p>
+        <h2 className="t-section">Esporta i libri letti</h2>
         <p className="t-meta max-w-prose">
-          Scarica un CSV con i libri che hai segnato come letti: titolo, autori, generi, date di
-          lettura, voto e recensione. Non include i tuoi insight né la nota di intenzione.
+          Un CSV con i libri che hai segnato come letti: titolo, autori, generi, date di lettura,
+          voto e recensione. Senza insight e senza la nota di intenzione.
         </p>
         <Button
           variant="secondary"
@@ -233,29 +275,54 @@ export function SezioneImpostazioni({
         <Messaggio>{erroreExport}</Messaggio>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <p className="t-label">Cancellazione dell&apos;account</p>
-        <p className="t-meta max-w-prose">
-          Scrivi il tuo nome utente («{nomeUtente}») per confermare. La cancellazione è immediata
-          e definitiva.
-        </p>
-        <div className="flex max-w-sm items-center gap-2">
-          <Input
-            value={confermaNomeUtente}
-            onChange={(event) => setConfermaNomeUtente(event.target.value)}
-            placeholder={nomeUtente}
-            aria-label="Nome utente di conferma"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => mutazioneCancellazione.mutate()}
-            disabled={confermaNomeUtente !== nomeUtente || mutazioneCancellazione.isPending}
-          >
-            Elimina l&apos;account
-          </Button>
+      {/* ZONA DI PERICOLO.
+
+          §17 diceva "non è un pulsante rosso… il rosso, in quest'app, vuol
+          dire una cosa sola, ed è il contatore delle richieste". Quella
+          regola cambia qui, e cambia in un punto solo: `alert` acquista un
+          SECONDO uso, il bordo di questo riquadro. Non un terzo — resta
+          vietato sugli errori, sui nastri e su qualunque pulsante.
+
+          Il rosso sta sul BORDO e non sul testo per una ragione misurata,
+          non estetica: `alert` su `surface-1` tiene 4.57:1 nel punto peggiore
+          dell'anno (scripts/check-contrast.mts, ora verificato anche su
+          questo accostamento). Sopra il 3:1 che AA chiede a un componente
+          d'interfaccia, ma con appena sette centesimi di margine sul 4.5:1
+          del testo: sette centesimi non sono un margine, sono una
+          coincidenza. Il titolo resta in `ink`.
+
+          Il pulsante resta `outline` e non diventa rosso: la difficoltà
+          sta dove §17 la mette, cioè nel dover scrivere il proprio nome
+          utente, e un pulsante rosso in fondo a una pagina non ha mai
+          fermato nessuno che non fosse già stato fermato da quello. */}
+      <section className="mt-4 flex flex-col gap-2 border-t border-line pt-8">
+        <div className="plane-1 grain zona-pericolo flex flex-col gap-3 rounded-card p-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="t-section">Cancellazione dell&apos;account</h2>
+            <p className="t-meta max-w-prose">
+              Immediata e definitiva, senza periodo di grazia. Porta via libreria, letture,
+              voti, recensioni, insight, note e collegamenti. Scrivi «{nomeUtente}» per
+              confermare.
+            </p>
+          </div>
+          <div className="flex max-w-sm items-center gap-2">
+            <Input
+              value={confermaNomeUtente}
+              onChange={(event) => setConfermaNomeUtente(event.target.value)}
+              placeholder={nomeUtente}
+              aria-label="Nome utente di conferma"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => mutazioneCancellazione.mutate()}
+              disabled={confermaNomeUtente !== nomeUtente || mutazioneCancellazione.isPending}
+            >
+              Elimina l&apos;account
+            </Button>
+          </div>
+          <Messaggio>{erroreCancellazione}</Messaggio>
         </div>
-        <Messaggio>{erroreCancellazione}</Messaggio>
       </section>
     </div>
   );
