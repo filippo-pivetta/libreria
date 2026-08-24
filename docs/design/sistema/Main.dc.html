@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,100..900,0..100&amp;family=Inter+Tight:wght@100..900&amp;family=Literata:opsz,wght@7..72,200..900&amp;display=swap">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --surface-0: oklch(0.912 0.014 78);
+      --surface-1: oklch(0.965 0.010 84);
+      --surface-2: oklch(0.985 0.008 86);
+      --ink: oklch(0.255 0.022 58);
+      --ink-soft: oklch(0.455 0.018 62);
+      --accent: oklch(0.635 0.105 76);
+      --accent-strong: oklch(0.470 0.100 72);
+      --on-accent: oklch(0.190 0.030 62);
+      --line: color-mix(in oklab, var(--ink) 13%, transparent);
+      --line-strong: color-mix(in oklab, var(--ink) 24%, transparent);
+      --rim: color-mix(in oklab, var(--surface-2) 70%, white);
+      --shelf: oklch(0.640 0.038 62);
+      --r-reading: oklch(0.550 0.170 27);
+      --r-paused: oklch(0.720 0.130 75);
+      --r-done: oklch(0.550 0.100 150);
+      --r-abandoned: oklch(0.600 0.010 80);
+      --shadow-1: 0 1px 2px -1px color-mix(in oklab, var(--ink) 18%, transparent), 0 8px 24px -12px color-mix(in oklab, var(--ink) 28%, transparent);
+      --shadow-2: 0 2px 4px -2px color-mix(in oklab, var(--ink) 22%, transparent), 0 20px 44px -22px color-mix(in oklab, var(--ink) 45%, transparent);
+      --lamp: radial-gradient(62% 48% at 22% 18%, oklch(0.985 0.030 85 / 0.55), transparent 72%);
+      --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-read: 'Literata', Georgia, serif;
+      --font-ui: 'Inter Tight', system-ui, sans-serif;
+      --radius-object: 4px; --radius-field: 10px; --radius-card: 14px;
+    }
+    body{font-family:var(--font-ui);background:var(--surface-0);color:var(--ink);-webkit-font-smoothing:antialiased}
+    a{color:var(--accent-strong);text-decoration:none} a:hover{color:var(--ink)}
+    .room{background-color:var(--surface-0);background-image:var(--lamp)}
+    .plane-1{position:relative;background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-1)}
+    .plane-2{position:relative;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-2)}
+    .plane-2::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 1px 0 var(--rim)}
+    .grain::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.035;background-image:var(--grain);mix-blend-mode:multiply}
+    .t-display{font-family:var(--font-display);font-variation-settings:"opsz" 72,"SOFT" 20;font-weight:300;letter-spacing:-.02em;line-height:1.05}
+    .t-title{font-family:var(--font-display);font-variation-settings:"opsz" 24,"SOFT" 10;font-weight:400;letter-spacing:-.015em;line-height:1.22}
+    .t-appunto{font-family:var(--font-read);font-variation-settings:"opsz" 12;font-weight:400;font-size:15px;line-height:1.65}
+    .t-sentenza{font-family:var(--font-read);font-variation-settings:"opsz" 32;font-weight:300;font-size:19px;line-height:1.55}
+    .t-label{font-family:var(--font-ui);font-size:10.5px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft)}
+    .t-meta{font-family:var(--font-ui);font-size:12.5px;color:var(--ink-soft)}
+    .t-num{font-variant-numeric:tabular-nums;letter-spacing:0}
+    /* --- ruoli tipografici proposti --- */
+    .t-section{font-family:var(--font-ui);font-size:14px;font-weight:600;letter-spacing:-.005em;color:var(--ink)}
+    .t-body{font-family:var(--font-ui);font-size:15px;line-height:1.5;color:var(--ink)}
+    .t-meta2{font-family:var(--font-ui);font-size:13px;line-height:1.45;color:var(--ink-soft)}
+    /* --- comandi proposti --- */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-field);font-family:var(--font-ui);font-weight:500;white-space:nowrap;border:1px solid transparent;cursor:pointer}
+    .btn-primary{height:44px;padding:0 20px;font-size:15px;background:var(--accent);color:var(--on-accent);box-shadow:inset 0 1px 0 color-mix(in oklab, white 38%, transparent), var(--shadow-1)}
+    .btn-secondary{height:38px;padding:0 15px;font-size:14px;border-color:var(--line-strong);color:var(--ink);background:var(--surface-1)}
+    .btn-ghost{height:38px;padding:0 12px;font-size:14px;color:var(--ink-soft);background:transparent}
+    .invito{display:flex;align-items:center;gap:11px;width:100%;height:48px;padding:0 15px;border:1px dashed var(--line-strong);border-radius:var(--radius-field);background:transparent;color:var(--ink-soft);font-family:var(--font-ui);font-size:14px;text-align:left}
+    .invito .plus{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid var(--line-strong);flex:none}
+    .chip{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px 0 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface-1);font-family:var(--font-ui);font-size:13px;font-weight:500;color:var(--ink)}
+    .chip .dot{width:8px;height:8px;border-radius:999px;flex:none}
+    .pill{font-family:var(--font-ui);font-size:13px;color:var(--ink-soft);border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+    .card{padding:24px}
+    .cover{position:relative;overflow:hidden;border-radius:6px}
+    .track{position:relative;height:10px;border-radius:999px;background:color-mix(in oklab, var(--ink) 10%, transparent)}
+    .track .fill{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--accent)}
+    .track .thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:999px;border:2px solid var(--surface-1);background:var(--accent);box-shadow:var(--shadow-2)}
+    .rows{display:flex;flex-direction:column}
+    .rows > div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+    .rows > div:first-child{border-top:0;padding-top:0}
+    .icon{display:block;flex:none}
+    .num{font-family:var(--font-display);font-variation-settings:"opsz" 72,"SOFT" 20;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
+    .colhead{font-family:var(--font-ui);font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase}
+    .row{display:grid;grid-template-columns:150px 1fr 1fr;gap:22px;align-items:center;padding:20px 0;border-top:1px solid var(--line)}
+    .rowlab{font-family:var(--font-ui);font-size:13px;font-weight:500;color:var(--ink)}
+    .rowlab em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.4}
+    /* comandi di oggi */
+    .old-sm{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border-radius:var(--radius-field);border:1px solid var(--line-strong);background:transparent;color:var(--ink);font-size:12.8px;font-weight:500}
+    .old-fill{border-color:transparent;background:var(--accent);color:var(--on-accent)}
+    .old-link{font-size:12.5px;color:var(--ink-soft);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:4px}
+    .measure{position:relative;display:inline-flex;align-items:center;gap:8px}
+    .measure b{font-family:var(--font-ui);font-size:11px;font-weight:600;color:oklch(0.470 0.170 27);font-variant-numeric:tabular-nums}
+    .measure b.ok{color:oklch(0.420 0.100 150)}
+  </style>
+</helmet>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="half"><stop offset="50%" stop-color="currentColor"></stop><stop offset="50%" stop-color="transparent"></stop></linearGradient>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.6l2.88 5.84 6.44.94-4.66 4.54 1.1 6.42L12 17.31l-5.76 3.03 1.1-6.42L2.68 9.38l6.44-.94z"></path></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 6.5v11M6.5 12h11"></path></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.75L12 15.25l5.5-5.5"></path></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10a2.5 2.5 0 10-3.5-3.5L4.5 16.5z"></path></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M3.5 10h17M8 3.5v4M16 3.5v4"></path></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5h6a3 3 0 013 3v12a2.5 2.5 0 00-2.5-2.5H4z"></path><path d="M20 4.5h-6a3 3 0 00-3 3v12a2.5 2.5 0 012.5-2.5H20z"></path></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 12h.01M12 12h.01M18 12h.01"></path></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"></rect><path d="M8 10.5V7.5a4 4 0 018 0v3"></path></symbol>
+  <symbol id="i-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0113 0M17 5.4a3.5 3.5 0 010 6.2M18.5 20a6.6 6.6 0 00-2-4.7"></path></symbol>
+</defs></svg>
+
+<div class="room" style="padding:34px 36px">
+  <p class="t-title" style="font-size:23px">I comandi</p>
+  <p class="t-meta2" style="margin-top:6px;max-width:82ch">Sette affordance che oggi hanno sette grammatiche diverse, ridotte a quattro: <span style="color:var(--ink);font-weight:500">piena</span> (una per zona), <span style="color:var(--ink);font-weight:500">di contorno</span>, <span style="color:var(--ink);font-weight:500">piana</span>, e <span style="color:var(--ink);font-weight:500">invito</span> (ciò che non c'è ancora). Le misure a destra valgono su desktop: sotto il dito ogni bersaglio è già a 44&nbsp;px.</p>
+
+  <div style="display:grid;grid-template-columns:150px 1fr 1fr;gap:22px;margin-top:28px">
+    <span></span>
+    <span class="colhead" style="color:oklch(0.470 0.170 27)">Oggi</span>
+    <span class="colhead" style="color:oklch(0.420 0.100 150)">Proposta</span>
+  </div>
+
+  <div class="row">
+    <span class="rowlab">Azione primaria<em>salva l'avanzamento</em></span>
+    <span class="measure"><span class="old-sm old-fill">Salva</span><b>28&thinsp;px &middot; 12,8</b></span>
+    <span class="measure"><button class="btn btn-primary">Segna la pagina</button><b class="ok">44&thinsp;px &middot; 15</b></span>
+  </div>
+
+  <div class="row">
+    <span class="rowlab">Azione secondaria<em>cambio di stato</em></span>
+    <span class="measure"><span class="old-sm">Metti in pausa</span><b>28&thinsp;px</b></span>
+    <span class="measure"><button class="btn btn-secondary">Metti in pausa</button><b class="ok">38&thinsp;px</b></span>
+  </div>
+
+  <div class="row">
+    <span class="rowlab">Azione piana<em>terza per importanza</em></span>
+    <span class="measure"><span style="display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 10px;font-size:12.5px;color:var(--ink-soft)">Altro <span style="font-size:9px">&#9662;</span></span><b>glifo &#9662;</b></span>
+    <span class="measure"><button class="btn btn-ghost">Altro<svg class="icon" width="15" height="15" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg></button><b class="ok">icona SVG</b></span>
+  </div>
+
+  <div class="row">
+    <span class="rowlab">Invito a scrivere<em>recensione, nota, insight</em></span>
+    <span class="measure"><span class="old-link">Scrivi una recensione</span><b>12,5 &middot; ink-soft</b></span>
+    <span><button class="invito"><span class="plus"><svg class="icon" width="15" height="15" viewBox="0 0 24 24"><use href="#i-plus"></use></svg></span>Scrivi una recensione</button></span>
+  </div>
+
+  <div class="row">
+    <span class="rowlab">Campo correggibile<em>pagine della tua copia</em></span>
+    <span class="measure"><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:64px;border-bottom:1px dashed var(--line-strong);font-size:14px;color:var(--ink-soft);padding-bottom:1px">correggi</span></span><b>tratteggio 1&thinsp;px</b></span>
+    <span class="measure"><button class="btn btn-ghost" style="border:1px solid var(--line);background:var(--surface-1);color:var(--ink);gap:7px">712<svg class="icon" width="14" height="14" viewBox="0 0 24 24" style="color:var(--ink-soft)"><use href="#i-pencil"></use></svg></button><b class="ok">bottone</b></span>
+  </div>
+
+  <div class="row">
+    <span class="rowlab">Voto<em>mezze stelle comprese</em></span>
+    <span class="measure"><span style="font-size:18px;color:var(--accent-strong);letter-spacing:1px">&#9733;&#9733;&#9733;&#9733;&#9734;</span><b>caratteri, 18&thinsp;px</b></span>
+    <span class="measure"><span style="display:flex;gap:3px;color:var(--accent-strong)">
+      <svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor"><use href="#i-star"></use></svg>
+      <svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor"><use href="#i-star"></use></svg>
+      <svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor"><use href="#i-star"></use></svg>
+      <svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor"><use href="#i-star"></use></svg>
+      <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" style="opacity:.45"><use href="#i-star"></use></svg>
+    </span><b class="ok">SVG, 27&thinsp;px</b></span>
+  </div>
+
+  <div class="row">
+    <span class="rowlab">Stato della copia<em>letto da tutta l'app</em></span>
+    <span class="measure"><span style="position:relative;display:inline-block;width:60px;height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface-1)"><span style="position:absolute;top:0;right:12px;width:12px;height:20px;border-radius:0 0 3px 3px;background:var(--r-reading)"></span></span><b>senza parole</b></span>
+    <span class="measure"><span class="chip"><span class="dot" style="background:var(--r-reading)"></span>In lettura</span><b class="ok">colore + parola</b></span>
+  </div>
+
+  <div class="row" style="align-items:start">
+    <span class="rowlab">Menù<em>&#8943; e "Altro"</em></span>
+    <span class="t-meta2" style="line-height:1.6">Un <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)">&lt;details&gt;</span> che si apre al <span style="color:var(--ink)">passaggio del mouse</span>, con un timer di 350&thinsp;ms per la chiusura. Sotto il dito il <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)">mouseleave</span> non arriva mai; non c'è Escape; non c'è ritorno del fuoco.</span>
+    <span class="t-meta2" style="line-height:1.6">Un menù su <span style="color:var(--ink)">clic</span>, dal primitivo <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)">Menu</span> di Base UI (già una dipendenza): Escape chiude, il fuoco torna al comando, le frecce scorrono le voci, e il pannello si posiziona da sé senza tagliarsi.</span>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

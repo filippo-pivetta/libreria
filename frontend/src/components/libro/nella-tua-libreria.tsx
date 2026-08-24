@@ -7,15 +7,8 @@ import { aggiungiVoce, type Voce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { PastigliaStato } from "@/components/ui/pastiglia-stato";
 import { useTranslations } from "next-intl";
-
-const ETICHETTA_STATO: Record<string, string> = {
-  da_leggere: "Da leggere",
-  in_lettura: "In lettura",
-  in_pausa: "In pausa",
-  letto: "Letto",
-  abbandonato: "Abbandonato",
-};
 
 /** "una recensione, tre insight" — un conteggio, non un'anteprima:
  * nessun gating spoiler in gioco qui. */
@@ -65,33 +58,37 @@ export function NellaTuaLibreria({
   });
 
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-4 rounded-card border border-line-strong bg-surface-2 p-5">
-      <div className="min-w-0">
-        <p className="t-label mb-1">Nella tua libreria</p>
+    <section className="plane-2 grain p-5">
+      <h2 className="t-section">Nella tua libreria</h2>
+      {propriaVoce ? (
+        <div className="mt-3 flex flex-col items-start gap-2.5">
+          <PastigliaStato stato={propriaVoce.stato} />
+          {(propriaVoce.voto !== null || formattaContenuti(propriaVoce)) && (
+            <p className="t-meta">
+              {propriaVoce.voto !== null && `${propriaVoce.voto} stelle`}
+              {propriaVoce.voto !== null && formattaContenuti(propriaVoce) && " · "}
+              {formattaContenuti(propriaVoce)}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="t-body mt-2 text-sm text-ink-soft">Non ce l&rsquo;hai.</p>
+      )}
+
+      <div className="mt-4">
         {propriaVoce ? (
-          <p className="font-ui text-sm text-ink">
-            {ETICHETTA_STATO[propriaVoce.stato]}
-            {propriaVoce.voto ? ` · ${propriaVoce.voto} stelle` : ""}
-            {formattaContenuti(propriaVoce) && ` · ${formattaContenuti(propriaVoce)}`}
-          </p>
-        ) : (
-          <p className="font-ui text-sm text-ink-soft">Non è nella tua libreria.</p>
-        )}
-      </div>
-      <div className="ml-auto shrink-0">
-        {propriaVoce ? (
-          <Link
-            href={`/libro/${propriaVoce.id}`}
-            className="t-meta inline-flex h-7 items-center rounded-field border border-line-strong px-2.5 text-ink hover:bg-surface-1"
-          >
+          <Button render={<Link href={`/libro/${propriaVoce.id}`} />} variant="outline" className="w-full">
             Vai alla tua copia
-          </Link>
+          </Button>
         ) : (
-          <Button size="sm" disabled={mutazione.isPending} onClick={() => mutazione.mutate()}>
-            Aggiungi
+          // L'unica azione della pagina, e agisce sulla TUA libreria, non
+          // sulla sua: per questo è piena, e per questo sta in una carta a
+          // sé sul piano 2 invece che dentro la scheda (§15).
+          <Button className="w-full" disabled={mutazione.isPending} onClick={() => mutazione.mutate()}>
+            Aggiungilo
           </Button>
         )}
       </div>
-    </div>
+    </section>
   );
 }

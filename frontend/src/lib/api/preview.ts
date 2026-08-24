@@ -2,10 +2,13 @@
  * Fetcher della preview personalizzata "me lo consigli?" (issue #6).
  *
  * `POST` e non `GET` per generarla: crea un artefatto nella libreria e
- * costa una chiamata al fornitore. `avviso` è un campo della risposta e
- * non una frase dentro il testo — la regola 20 impone che una preview
- * "riporti l'indicazione di essere una sintesi generata", e un campo
- * obbligatorio è l'unico modo perché quell'indicazione non possa mancare.
+ * costa una chiamata al fornitore.
+ *
+ * Non c'è più un campo `avviso`: la regola 20 pretendeva che la preview
+ * "riportasse l'indicazione di essere una sintesi generata", e quella
+ * terza condizione è caduta dal PRD. La preview la legge solo chi l'ha
+ * chiesta un momento prima, sotto il titolo che è la domanda stessa; non
+ * restava nessuno da avvertire.
  */
 
 export type Preview = {
@@ -13,7 +16,6 @@ export type Preview = {
   voceId: string;
   testo: string;
   creatoAt: string;
-  avviso: string;
 };
 
 type Body = {
@@ -21,7 +23,6 @@ type Body = {
   voce_id: string;
   testo: string;
   creato_at: string;
-  avviso: string;
 };
 
 export type PreviewResult =
@@ -44,7 +45,6 @@ function toPreview(body: Body): Preview {
     voceId: body.voce_id,
     testo: body.testo,
     creatoAt: body.creato_at,
-    avviso: body.avviso,
   };
 }
 

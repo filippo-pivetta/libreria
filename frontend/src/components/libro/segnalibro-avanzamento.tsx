@@ -9,6 +9,7 @@ import type { Lettura, VoceDettaglio } from "@/lib/api/voci";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CampoData } from "@/components/ui/campo-data";
+import { IconaCalendario } from "@/components/ui/icone";
 import { useTranslations } from "next-intl";
 
 const MESSAGGI_ERRORE: Record<string, string> = {
@@ -193,28 +194,65 @@ export function SegnalibroAvanzamento({
   const incremento = paginaFinale - minimo;
 
   return (
-    <form onSubmit={handleSubmit} className="mb-5 rounded-card border border-line bg-surface-2 p-5" noValidate>
-      <p className="t-label mb-4">Registra un avanzamento</p>
+    <form onSubmit={handleSubmit} noValidate>
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="t-section">Il segnalibro</span>
+        <span className="t-meta t-num">
+          {massimo !== null ? `${Math.round((paginaFinale / massimo) * 100)}\u2009%` : "\u00a0"}
+        </span>
+      </div>
+
+      {/* Il numero è il dato, quindi è grande e ci si scrive dentro. Prima
+          era un campo di 96px a corpo 30 sotto l'etichetta "Pagina
+          raggiunta" in `t-meta`: il valore e la sua etichetta pesavano
+          quanto la data accanto e quanto il bottone accanto ancora. Qui la
+          pagina è la cosa, e "di 712" è solo la scala. */}
+      <div className="mt-4 flex items-baseline gap-3">
+        <input
+          id="pagina-avanzamento"
+          type="number"
+          inputMode="numeric"
+          aria-label="Pagina raggiunta"
+          value={testoPagina}
+          onChange={(event) => {
+            const testo = event.target.value;
+            const valore = Number(testo);
+            if (massimo !== null && Number.isFinite(valore) && valore > massimo) {
+              setTestoPagina(String(massimo));
+            } else {
+              setTestoPagina(testo);
+            }
+          }}
+          onBlur={() => setTestoPagina(String(clamp(paginaDigitata)))}
+          className="field-line min-w-[2.5ch] border-0 border-b border-line-strong bg-transparent px-0 font-display text-5xl leading-none font-light tracking-tight tabular-nums text-ink outline-none"
+          style={{ width: `${Math.max(2.5, testoPagina.length + 0.6)}ch` }}
+        />
+        {massimo !== null && <span className="t-body text-base text-ink-soft">di {massimo}</span>}
+      </div>
 
       {massimo !== null && (
         <div
           ref={trackRef}
           onPointerDown={onPointerDown}
-          className="relative mb-4 h-3 touch-none rounded-full bg-ink/11"
+          className="relative mt-5 h-2.5 touch-none rounded-full bg-ink/10"
         >
+          {/* Quanto era già salvato, in accento smorzato. */}
           <span
             aria-hidden
             className="absolute inset-y-0 left-0 rounded-full bg-accent/40"
             style={{ width: `${percentoAvuto}%` }}
           />
+          {/* Quanto stai aggiungendo ORA, in accento pieno: è la sola parte
+              della barra che cambia mentre trascini, quindi è la sola che
+              deve essere satura. */}
           <span
             aria-hidden
-            className="absolute inset-y-0 rounded-full bg-accent"
+            className="absolute inset-y-0 bg-accent"
             style={{ left: `${percentoAvuto}%`, width: `${Math.max(percentoOra - percentoAvuto, 0)}%` }}
           />
           <span
             aria-hidden
-            className="absolute top-[-3px] bottom-[-3px] w-[1.5px] bg-line-strong"
+            className="absolute top-[-4px] bottom-[-4px] w-[1.5px] bg-line-strong"
             style={{ left: `${percentoAvuto}%` }}
           />
           <button
@@ -227,55 +265,46 @@ export function SegnalibroAvanzamento({
             aria-valuetext={`pagina ${paginaFinale} di ${massimo}`}
             onPointerDown={onPointerDown}
             onKeyDown={onKeyDownSegnalibro}
-            className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none rounded-full border-2 border-surface-1 bg-accent shadow-plane-2 active:cursor-grabbing"
+            className="absolute top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none rounded-full border-2 border-surface-1 bg-accent shadow-plane-2 active:cursor-grabbing"
             style={{ left: `${percentoOra}%` }}
           />
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="t-meta" htmlFor="pagina-avanzamento">
-            Pagina raggiunta
-          </label>
-          <div className="flex items-baseline gap-2">
-            <input
-              id="pagina-avanzamento"
-              type="number"
-              inputMode="numeric"
-              value={testoPagina}
-              onChange={(event) => {
-                const testo = event.target.value;
-                const valore = Number(testo);
-                if (massimo !== null && Number.isFinite(valore) && valore > massimo) {
-                  setTestoPagina(String(massimo));
-                } else {
-                  setTestoPagina(testo);
-                }
-              }}
-              onBlur={() => setTestoPagina(String(clamp(paginaDigitata)))}
-              className="field-line w-24 border-0 border-b border-line-strong bg-transparent px-0 font-ui text-3xl font-medium text-ink outline-none"
-            />
-            {massimo !== null && <span className="font-ui text-sm text-ink-soft">di {massimo}</span>}
-          </div>
-        </div>
-        <CampoData
-          ariaLabel="Data dell’avanzamento"
-          value={data}
-          min={dataMinima}
-          max={oggiISO()}
-          onChange={setData}
-        />
-        <Button type="submit" size="sm" disabled={mutazione.isPending}>
-          Salva
-        </Button>
-      </div>
-
-      <p className="t-meta t-num mt-3">
-        {incremento > 0
-          ? `Aggiungi ${incremento} pagine a quelle di questa lettura.`
-          : "Trascina la barra o digita il numero."}
+      <p className="t-meta mt-3">
+        {incremento > 0 ? (
+          <>
+            {minimo > 0 && `Eri a ${minimo}. `}
+            <span className="font-medium text-ink">
+              {incremento === 1 ? "1 pagina da salvare." : `${incremento} pagine da salvare.`}
+            </span>
+          </>
+        ) : massimo !== null ? (
+          "Trascina il segnalibro o scrivi il numero."
+        ) : (
+          "Scrivi il numero della pagina."
+        )}
       </p>
+
+      {/* Una sola azione piena in tutta la zona, e a 44px anche col mouse.
+          Prima era `size="sm"` — 28px, corpo 12,8 — esattamente come i
+          quattro comandi di cambio stato sotto, uno dei quali annulla la
+          lettura in corso. */}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button type="submit" size="lg" disabled={mutazione.isPending || incremento <= 0}>
+          Segna la pagina
+        </Button>
+        <span className="inline-flex items-center gap-2 rounded-field border border-line-strong bg-surface-1 px-3 text-ink">
+          <IconaCalendario className="size-[1.0625rem] shrink-0 text-ink-soft" />
+          <CampoData
+            ariaLabel="Data dell’avanzamento"
+            value={data}
+            min={dataMinima}
+            max={oggiISO()}
+            onChange={setData}
+          />
+        </span>
+      </div>
     </form>
   );
 }

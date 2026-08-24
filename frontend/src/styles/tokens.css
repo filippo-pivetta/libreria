@@ -268,16 +268,17 @@
      scritto e i valori vanno ripetuti, ma almeno esiste un posto dove
      leggerli.
        640px   la copertina rimpicciolisce, le ombre si accorciano, la
-               navigazione passa dalla barra in alto alla barra in fondo
-       768px   la scheda del libro apre le due pagine affiancate
-       1024px  larghezza massima del contenuto
+               navigazione passa dalla barra in alto alla barra in fondo,
+               e sulla scheda del libro compare il ritorno "‹ Libreria"
+      1024px   larghezza massima del contenuto, e soglia in cui la scheda
+               del libro stacca la colonna laterale dell'opera
 
-     Allineati ai valori realmente usati (correzione della sessione UI).
-     Prima dicevano 640/900/1180 mentre il codice usava 640, 768 (la piega
-     della scheda, in .pagina-opera/.pagina-copia e in scheda.tsx) e 1024
-     (`max-w-5xl` su ogni contenitore): 900 e 1180 non comparivano in
-     nessuna regola. Una soglia dichiarata e mai applicata è peggio di una
-     non dichiarata, perché chi legge il documento progetta su di essa.
+     Due soglie, non tre. La terza era 768px, la "piega" che apriva le due
+     pagine affiancate della scheda: quella metafora non c'è più, e con
+     essa il breakpoint. La colonna laterale si stacca a 1024 perché è lì
+     che il contenuto raggiunge la sua larghezza massima — sotto, una
+     colonna di 320px lascerebbe alla principale meno della misura di
+     lettura.
      -------------------------------------------------------------------- */
   --bp-s: 640px;
   --bp-m: 768px;
@@ -529,26 +530,22 @@
   mix-blend-mode: multiply;
 }
 
-/* Scheda del libro (§9): le due pagine leggono come un volume aperto, non
-   due carte indipendenti, sia impilate (mobile) sia affiancate (tablet
-   in su) — angoli esterni arrotondati come ogni .plane-1, angoli interni
-   (verso la piega) squadrati. La piega centrale è il VUOTO di 2px fra le
-   due carte (il gap nel markup, che lascia intravedere il piano 0 sotto),
-   non una linea disegnata con l'ombra: "il vuoto dice la stessa cosa e
-   non imita una rilegatura" — niente pseudo-elemento con inset shadow qui
-   (rimosso: era esattamente quella linea disegnata). La piega è
-   orizzontale su mobile (pagina-opera sopra, bordo arrotondato solo in
-   alto; pagina-copia sotto, solo in basso) e verticale da tablet in su
-   (opera a sinistra, copia a destra). Nomi semantici (opera/copia, non
-   sinistra/destra): la posizione cambia con il breakpoint, il significato
-   no. */
-.pagina-opera { border-radius: var(--radius-card) var(--radius-card) 0 0; }
-.pagina-copia { border-radius: 0 0 var(--radius-card) var(--radius-card); }
+/* La scheda del libro non ha più "due pagine". Qui vivevano
+   `.pagina-opera` e `.pagina-copia`, che squadravano gli angoli interni
+   delle due carte affiancate perché leggessero come un volume aperto.
 
-@media (min-width: 768px) {
-  .pagina-opera { border-radius: var(--radius-card) 0 0 var(--radius-card); }
-  .pagina-copia { border-radius: 0 var(--radius-card) var(--radius-card) 0; }
-}
+   La metafora è caduta con il ridisegno (components/libro/scheda.tsx):
+   parlava dell'OGGETTO — un libro aperto — mentre la pagina deve parlare
+   del LETTORE, e in cambio costringeva le due colonne a fingere la stessa
+   altezza con un `min-h-[640px]` scelto a occhio, e su mobile metteva il
+   dato bibliografico condiviso davanti alla propria copia. Al suo posto
+   c'è una griglia: colonna principale e colonna laterale, ciascuna alta
+   quanto il suo contenuto, e nessun angolo da squadrare.
+
+   Le due classi sono state tolte invece di essere lasciate inutilizzate:
+   una regola che non colpisce nulla è peggio di una regola assente,
+   perché chi legge il file progetta su di essa. */
+
 [data-light="notte"] .grain::before { mix-blend-mode: screen; opacity: calc(var(--grain-opacity) * 0.8); }
 
 /* Salto di piano animato.
@@ -936,7 +933,36 @@ body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); colo
     text-transform: uppercase;
     color: var(--mtg-ink-soft);
   }
-  .t-meta { font-family: var(--font-ui); font-size: 0.78125rem; color: var(--mtg-ink-soft); }
+  /* Titolo di sezione. Prima questo ruolo non esisteva e lo faceva `.t-label`,
+     cioè un maiuscoletto a corpo 10,5 con 0.13em di spaziatura: illeggibile
+     come titolo, e per giunta in `ink-soft`, quindi ogni sezione dell'app si
+     annunciava con il carattere piu' piccolo della pagina. `.t-label` resta,
+     ma torna a fare solo la micro-etichetta sopra un dato. */
+  .t-section {
+    font-family: var(--font-ui);
+    font-size: 0.875rem;    /* 14px */
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--mtg-ink);
+  }
+
+  /* Testo di interfaccia che e' CONTENUTO, non didascalia. Mancava: la scala
+     non aveva un solo ruolo Inter Tight in inchiostro pieno a corpo di
+     lettura, quindi venti punti dell'app se lo scrivevano a mano come
+     `font-ui text-sm text-ink` e tutto il resto finiva in `.t-meta`, cioe'
+     vestito da nota a pie' di pagina. */
+  .t-body {
+    font-family: var(--font-ui);
+    font-size: 0.9375rem;   /* 15px */
+    line-height: 1.5;
+    color: var(--mtg-ink);
+  }
+
+  /* 13px, non 12,5: `.t-meta` porta metadati veri (date, conteggi, unita'),
+     mai contenuto e mai un comando. Mezzo pixel non e' una rifinitura
+     estetica — e' la soglia sotto cui una riga di metadati in `ink-soft`
+     smette di essere scandibile su uno schermo denso. */
+  .t-meta { font-family: var(--font-ui); font-size: 0.8125rem; line-height: 1.45; color: var(--mtg-ink-soft); }
 
   /* Numeri delle metriche: tabulari SEMPRE, altrimenti le colonne ballano al
      cambio d'anno. */

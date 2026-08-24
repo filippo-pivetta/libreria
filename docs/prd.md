@@ -221,8 +221,10 @@ Non esiste alcun livello rivolto agli utenti registrati in quanto tali, né ora 
  *Test:* registrare un libro a tre autori; la somma dei pesi in "autori più letti" vale uno, non tre.
 19. Nessun contenuto appartenente a un Utente diverso da chi ha richiesto l'operazione viene mai inviato a un fornitore esterno di modelli.
  *Test:* eseguire ogni funzione assistita di A e ispezionare il contenuto inviato; nessun testo, voto o dato di lettura di B vi compare.
-20. Una preview generata non supera le ottanta parole, non contiene testo tra virgolette e riporta l'indicazione di essere una sintesi generata.
- *Test:* generare preview su un campione di libri e verificare le tre condizioni, che sono misurabili senza possedere l'originale.
+20. Una preview generata non supera le ottanta parole e non contiene testo tra virgolette.
+ *Test:* generare preview su un campione di libri e verificare le due condizioni, che sono misurabili senza possedere l'originale.
+
+ La terza condizione originaria — "riporta l'indicazione di essere una sintesi generata" — è stata tolta. L'indicazione nasceva per proteggere l'Utente dallo scambiare un parere generato per un giudizio proprio, ma la preview vive sotto un titolo che è già la domanda che le si è posta ("Me lo consigli?"), dietro un pulsante che si preme apposta, e nessun altro la vede mai (regola 23). L'unico lettore possibile è chi l'ha chiesta un momento prima: non c'è nessuno da avvertire, e l'etichetta finiva per essere un tag di servizio in cima al testo. Resta la disciplina che conta, cioè le due condizioni misurabili sul testo.
 21. Il genere non è modificabile da alcun Utente attraverso l'app: è dato condiviso, corretto solo fuori banda.
  *Test:* ogni tentativo di scrittura sul genere da parte di qualsiasi Utente viene rifiutato.
 22. Una correzione di genere effettuata fuori banda è visibile a tutti gli Utenti dalla richiesta successiva, e nessuna esecuzione automatica la sovrascrive.

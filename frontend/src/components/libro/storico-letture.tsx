@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { cancellaLettura } from "@/lib/api/letture";
@@ -9,6 +9,9 @@ import type { Lettura } from "@/lib/api/voci";
 import { formattaData } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
 import { useLocale, useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
+import { IconaAltro } from "@/components/ui/icone";
 
 const ETICHETTA_ESITO: Record<string, string> = {
   conclusa: "conclusa",
@@ -52,29 +55,6 @@ export function StoricoLetture({
   const t = useTranslations();
   const lingua = useLocale();
   const [inConfermaId, setInConfermaId] = useState<string | null>(null);
-  // Chiusura ritardata del menù "⋯" (non al primo mouseleave): un
-  // timer per riga, non uno solo — righe diverse possono essere aperte
-  // e richiuse in rapida successione (design doc §9).
-  const timerAltreAzioni = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-
-  function annullaChiusuraAltreAzioni(letturaId: string) {
-    const timer = timerAltreAzioni.current.get(letturaId);
-    if (timer) {
-      clearTimeout(timer);
-      timerAltreAzioni.current.delete(letturaId);
-    }
-  }
-
-  function programmaChiusuraAltreAzioni(letturaId: string, dettagli: HTMLDetailsElement) {
-    timerAltreAzioni.current.set(
-      letturaId,
-      setTimeout(() => {
-        dettagli.open = false;
-        timerAltreAzioni.current.delete(letturaId);
-      }, 350),
-    );
-  }
-
   const mutazione = useMutation({
     mutationFn: async (letturaId: string) => {
       const token = await getAccessToken();
@@ -100,72 +80,97 @@ export function StoricoLetture({
   const unicaLetturaAperta = letture.length === 1 && letture[0].dataFine === null;
   if (letture.length === 0 || unicaLetturaAperta) return null;
 
-  return (
-    <details className="mt-6" open={letture.length === 1}>
-      <summary className="t-label cursor-pointer">Storico delle letture</summary>
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {letture.map((lettura) => (
-          <li key={lettura.id} className="flex items-center justify-between gap-2">
-            {inConfermaId === lettura.id ? (
-              <span className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={mutazione.isPending}
-                  onClick={() => mutazione.mutate(lettura.id)}
-                  className="t-meta text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-                >
-                  Cancella davvero
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInConfermaId(null)}
-                  className="t-meta text-ink-soft underline decoration-line underline-offset-4 hover:decoration-ink"
-                >
-                  Annulla
-                </button>
-              </span>
-            ) : (
-              <span className="t-meta">
-                {formattaData(lettura.dataInizio, lingua)}
-                {lettura.dataFine ? ` – ${formattaData(lettura.dataFine, lingua)}` : " – in corso"}
-                {lettura.esito ? ` · ${ETICHETTA_ESITO[lettura.esito]}` : ""}
-                {" · "}
-                {lettura.avanzamenti.length}{" "}
-                {lettura.avanzamenti.length === 1 ? "avanzamento" : "avanzamenti"}
-              </span>
-            )}
+  // Dal più recente, come gli insight: un elenco di letture è una
+  // cronologia, e una cronologia si legge dall'ultima cosa successa.
+  const recenti = [...letture].reverse();
 
-            {isOwner && inConfermaId !== lettura.id && (
-              <details
-                className="relative shrink-0"
-                onMouseEnter={() => annullaChiusuraAltreAzioni(lettura.id)}
-                onMouseLeave={(event) => programmaChiusuraAltreAzioni(lettura.id, event.currentTarget)}
-              >
-                <summary
-                  aria-label="Altre azioni"
-                  className="t-meta flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-object text-ink-soft hover:bg-surface-2 hover:text-ink"
-                >
-                  ⋯
-                </summary>
-                {/* `pt-1.5` invece di un margine: niente spazio morto fra
-                    "⋯" e il menù dove il mouse potrebbe uscire dal
-                    `<details>` a metà del movimento. */}
-                <div className="absolute top-full right-0 z-10 pt-1.5">
-                  <div className="min-w-32 rounded-field border border-line bg-surface-1 p-1.5 shadow-plane-2">
-                    <button
-                      type="button"
-                      onClick={() => setInConfermaId(lettura.id)}
-                      className="w-full rounded-object px-3 py-2 text-left font-ui text-sm text-ink hover:bg-surface-2"
-                    >
-                      Cancella
-                    </button>
-                  </div>
-                </div>
-              </details>
+  const puntoLettura = (lettura: Lettura) =>
+    lettura.dataFine === null
+      ? "bg-ribbon-reading ring-1 ring-inset ring-surface-2/70"
+      : lettura.esito === "abbandonata"
+        ? "bg-ribbon-abandoned"
+        : "bg-ribbon-done";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h2 className="t-section text-[0.9375rem]">
+        {isOwner ? "Le letture" : "Le sue letture"}
+      </h2>
+
+      {/* Prima era un `<details>` con `summary` in `t-label` — corpo 10,5
+          maiuscoletto — e sotto un elenco di righe di solo testo in
+          `t-meta`: cioè una sezione della pagina annunciata dal carattere
+          più piccolo dello schermo, e il suo contenuto vestito da
+          didascalia. Ora è una carta con righe leggibili, sempre aperta:
+          non c'è niente da nascondere in due o tre letture. */}
+      <ul className="plane-1 grain flex flex-col px-4 sm:px-5">
+        {recenti.map((lettura) => (
+          <li
+            key={lettura.id}
+            className="flex min-h-[3.25rem] flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line py-3 first:border-t-0"
+          >
+            {inConfermaId === lettura.id ? (
+              <>
+                <span className="t-body min-w-0 flex-1 text-sm text-ink-soft">
+                  Cancellare questa lettura?
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={mutazione.isPending}
+                    onClick={() => mutazione.mutate(lettura.id)}
+                  >
+                    Cancella davvero
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setInConfermaId(null)}>
+                    Annulla
+                  </Button>
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="flex min-w-0 items-center gap-3">
+                  <span
+                    aria-hidden
+                    className={`size-2.5 shrink-0 rounded-full ${puntoLettura(lettura)}`}
+                  />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="t-body text-sm">
+                      {formattaData(lettura.dataInizio, lingua)}
+                      {lettura.dataFine
+                        ? ` – ${formattaData(lettura.dataFine, lingua)}`
+                        : " – in corso"}
+                      {lettura.esito ? ` · ${ETICHETTA_ESITO[lettura.esito]}` : ""}
+                    </span>
+                    <span className="t-meta">
+                      {lettura.avanzamenti.length}{" "}
+                      {lettura.avanzamenti.length === 1 ? "avanzamento" : "avanzamenti"}
+                      {lettura.insight.length > 0 &&
+                        ` · ${lettura.insight.length} insight`}
+                    </span>
+                  </span>
+                </span>
+
+                {isOwner && (
+                  <Menu>
+                    <MenuTrigger
+                      render={
+                        <Button variant="ghost" size="icon-sm" aria-label="Altre azioni">
+                          <IconaAltro />
+                        </Button>
+                      }
+                    />
+                    <MenuContenuto align="end">
+                      <MenuVoce onClick={() => setInConfermaId(lettura.id)}>Cancella</MenuVoce>
+                    </MenuContenuto>
+                  </Menu>
+                )}
+              </>
             )}
           </li>
         ))}
       </ul>
-    </details>
+    </div>
   );
 }

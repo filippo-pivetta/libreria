@@ -96,6 +96,26 @@ def test_embedding_senza_chiave_non_genera_traffico(monkeypatch: pytest.MonkeyPa
 # --- preview -----------------------------------------------------------------
 
 
+# Stessa forma del profilo dei suggerimenti (`profilo_lettura.classifica`):
+# un pilastro con voto alto e un insight legato al libro da cui viene, non
+# più uno storico piatto per conto suo (issue #6 riallineata il 24 agosto
+# 2026, vedi il docstring di `preview_service.py`).
+def _pilastro(titolo: str, insight: str) -> dict[str, Any]:
+    return {
+        "voce_id": f"voce-{titolo}",
+        "stato": "letto",
+        "titolo": titolo,
+        "autori": ["Italo Calvino"],
+        "generi": ["Classici"],
+        "descrizione": None,
+        "voto": 4.5,
+        "recensione": None,
+        "insight": [insight],
+        "data_conclusa": "2024-01-01",
+        "data_abbandonata": None,
+    }
+
+
 def test_preview_invia_solo_cio_che_riceve(monkeypatch: pytest.MonkeyPatch) -> None:
     con_chiave(monkeypatch)
     inviate = con_risposta(monkeypatch, risposta_chat({"testo": "Direi di sì."}))
@@ -107,8 +127,9 @@ def test_preview_invia_solo_cio_che_riceve(monkeypatch: pytest.MonkeyPatch) -> N
             generi=["Classici"],
             anno_prima_pubblicazione=1972,
             descrizione="Un dialogo fra Marco Polo e Kublai Khan.",
-            libri_letti=[("Il barone rampante", ["Italo Calvino"], ["Classici"], 4.5)],
-            testi_propri=["Mi piace quando gioca con la struttura."],
+            pilastri=[_pilastro("Il barone rampante", "Mi piace quando gioca con la struttura.")],
+            recenti=[],
+            delusi=[],
         )
     )
 
@@ -122,10 +143,10 @@ def test_preview_invia_solo_cio_che_riceve(monkeypatch: pytest.MonkeyPatch) -> N
     assert "OTTANTA PAROLE" in testo_inviato
 
 
-def test_preview_senza_storico_non_inventa_contesto(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Un lettore appena entrato non ha storico: il prompt deve dirlo
-    esplicitamente, non lasciare una sezione vuota che il modello
-    riempirebbe da sé."""
+def test_preview_senza_profilo_non_inventa_contesto(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Un lettore appena entrato non ha profilo: il prompt deve dirlo
+    esplicitamente in tutti e tre i gruppi, non lasciare una sezione
+    vuota che il modello riempirebbe da sé."""
     con_chiave(monkeypatch)
     inviate = con_risposta(monkeypatch, risposta_chat({"testo": "Non ho abbastanza da dire."}))
 
@@ -136,13 +157,15 @@ def test_preview_senza_storico_non_inventa_contesto(monkeypatch: pytest.MonkeyPa
             generi=[],
             anno_prima_pubblicazione=None,
             descrizione=None,
-            libri_letti=[],
-            testi_propri=[],
+            pilastri=[],
+            recenti=[],
+            delusi=[],
         )
     )
 
     corpo = json.loads(inviate[0].content)
-    assert "(nessuno)" in corpo["messages"][1]["content"]
+    testo_inviato = corpo["messages"][1]["content"]
+    assert testo_inviato.count("(nessuno)") == 3
 
 
 def test_preview_senza_chiave_non_genera_traffico(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -157,8 +180,9 @@ def test_preview_senza_chiave_non_genera_traffico(monkeypatch: pytest.MonkeyPatc
                 generi=[],
                 anno_prima_pubblicazione=None,
                 descrizione=None,
-                libri_letti=[],
-                testi_propri=[],
+                pilastri=[],
+                recenti=[],
+                delusi=[],
             )
         )
     assert inviate == []

@@ -27,11 +27,6 @@ from supabase import Client
 
 LINGUA_INTERFACCIA = "it"
 
-MASSIMO_LIBRI_STORICO = 40
-"""Quanti libri finiti si raccontano al modello. Non un limite di costo
-ma di segnale: oltre qualche decina di titoli il prompt diventa un elenco
-in cui nessuna preferenza risalta, e il parere torna generico."""
-
 MASSIMO_TESTI_PROPRI = 30
 """Quanti fra insight e recensioni. Stessa ragione, più una pratica: sono
 testi senza limite di lunghezza (PRD), e il più recente dice di più del
@@ -102,95 +97,20 @@ def scheda_del_libro(client: Client, voce_id: UUID, utente_id: UUID) -> dict[str
     }
 
 
-def storico_personale(
-    client: Client, utente_id: UUID, escludi_voce_id: UUID | None = None
-) -> list[tuple[str, list[str], list[str], float | None]]:
-    """I libri finiti dal richiedente, con il suo voto.
-
-    Solo `stato = 'letto'`: "a partire dallo storico" del PRD sono le
-    letture concluse, non la coda dei desideri, che dice cosa si spera di
-    leggere e non cosa è piaciuto. `escludi_voce_id` esclude la Voce su
-    cui si sta chiedendo un parere, che altrimenti comparirebbe come già
-    letta: solo la preview lo passa. I suggerimenti di lettura (issue
-    #27) chiamano questa funzione senza esclusione, perché non c'è una
-    singola Voce a cui la richiesta si riferisce.
-    """
-    query = (
-        client.table("voce_di_libreria")
-        .select(f"id, voto, libro:libro_id ({_SELECT_LIBRO})")
-        .eq("utente_id", str(utente_id))
-        .eq("stato", "letto")
-    )
-    if escludi_voce_id is not None:
-        query = query.neq("id", str(escludi_voce_id))
-    response = query.order("aggiornato_at", desc=True).limit(MASSIMO_LIBRI_STORICO).execute()
-    storico = []
-    for riga in cast("list[dict[str, Any]]", response.data):
-        libro = riga.get("libro") or {}
-        voto = riga.get("voto")
-        storico.append(
-            (
-                str(libro.get("titolo_canonico") or ""),
-                _autori(libro),
-                _generi(libro),
-                float(voto) if voto is not None else None,
-            )
-        )
-    return storico
-
-
-def testi_propri(client: Client, utente_id: UUID) -> list[str]:
-    """Insight e recensioni del richiedente, privati compresi.
+def testi_propri_con_riferimenti(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
+    """Insight e recensioni del richiedente, privati compresi, ciascuno
+    con da dove viene (issue #27, sintesi tematica a temi): titolo e id
+    della Voce — per collegare un tema al libro invece di limitarsi a
+    nominarlo — più tipo, id e data del contenuto, per poter mostrare
+    l'insight o la recensione vera dietro un tema invece di un riassunto
+    del riassunto.
 
     I privati non sono un'eccezione strappata: il testo del consenso li
     nomina esplicitamente ("I testi che scrivi, insight e recensioni
-    compresi"), ed è la ragione per cui il consenso esiste. Lo spoiler non
-    filtra nulla qui: è una regola di presentazione verso altri lettori
-    (regola 10), non un segreto verso se stessi.
-
-    Le due tabelle si ordinano e si tagliano **insieme**, non una alla
-    volta. Fino al 22 agosto 2026 il tetto si applicava dopo aver
-    concatenato prima tutti gli insight e poi tutte le recensioni: con
-    trenta o più insight — normale, sono molti per Voce contro una sola
-    recensione per Voce — nessuna recensione arrivava mai al fornitore,
-    e la funzione prometteva "insight e recensioni" mandando solo i
-    primi. Stesso rimedio già applicato a `testi_propri_con_riferimenti`.
-
-    Le due date non sono lo stesso tipo (`insight.data` è una data scelta
-    dall'Utente, `recensione.aggiornato_at` un istante): si troncano
-    entrambe al giorno prima di confrontarle, quindi fra un insight e una
-    recensione dello stesso giorno l'ordine è arbitrario ma stabile. A
-    questa scala non vale una colonna in più per risolverlo.
-    """
-    grezzi: list[tuple[str, str]] = []
-    for tabella, colonna_data in (("insight", "data"), ("recensione", "aggiornato_at")):
-        response = (
-            client.table(tabella)
-            .select(f"testo, {colonna_data}")
-            .eq("utente_id", str(utente_id))
-            .order(colonna_data, desc=True)
-            .limit(MASSIMO_TESTI_PROPRI)
-            .execute()
-        )
-        for r in cast("list[dict[str, Any]]", response.data):
-            if not r.get("testo"):
-                continue
-            data = r.get(colonna_data)
-            grezzi.append(
-                (str(data)[:10] if data else "", str(r["testo"])[:LUNGHEZZA_MASSIMA_TESTO])
-            )
-    grezzi.sort(key=lambda coppia: coppia[0], reverse=True)
-    return [testo for _, testo in grezzi[:MASSIMO_TESTI_PROPRI]]
-
-
-def testi_propri_con_riferimenti(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
-    """Come `testi_propri`, ma ogni testo porta con sé da dove viene (issue
-    #27, sintesi tematica a temi): titolo e id della Voce — per collegare
-    un tema al libro invece di limitarsi a nominarlo — più tipo, id e data
-    del contenuto, per poter mostrare l'insight o la recensione vera dietro
-    un tema invece di un riassunto del riassunto. Stessi due insiemi di
-    `testi_propri`, stesso filtro su `utente_id`, mai
-    `voce_di_libreria_privata`.
+    compresi"), ed è la ragione per cui il consenso esiste. Lo spoiler
+    non filtra nulla qui: è una regola di presentazione verso altri
+    lettori (regola 10), non un segreto verso se stessi. Stesso filtro
+    su `utente_id`, mai `voce_di_libreria_privata`.
 
     L'embed verso `voce_di_libreria` si scrive per nome di tabella
     (`voce:voce_di_libreria(...)`) e non per colonna (`voce:voce_id(...)`):
@@ -203,8 +123,12 @@ def testi_propri_con_riferimenti(client: Client, utente_id: UUID) -> list[dict[s
     volta: prendere i trenta insight più recenti e le trenta recensioni
     più recenti e poi tagliare la somma a trenta affamerebbe
     sistematicamente la tabella più numerosa (di solito gli insight,
-    molti per Voce, contro una sola recensione per Voce) — un difetto
-    preesistente di `testi_propri`, non ripetuto qui.
+    molti per Voce, contro una sola recensione per Voce). Le due date non
+    sono lo stesso tipo (`insight.data` è una data scelta dall'Utente,
+    `recensione.creato_at` un istante): si troncano entrambe al giorno
+    prima di confrontarle, quindi fra un insight e una recensione dello
+    stesso giorno l'ordine è arbitrario ma stabile. A questa scala non
+    vale una colonna in più per risolverlo.
     """
     embed_voce = "voce:voce_di_libreria (id, libro:libro_id (titolo_canonico))"
     grezzi: list[dict[str, Any]] = []
@@ -276,11 +200,12 @@ def profilo_suggerimenti(client: Client, utente_id: UUID) -> list[dict[str, Any]
     Lettura, il testo della recensione, gli insight sopra la soglia di
     rumore (issue #27, suggerimenti di lettura a profilo).
 
-    Nessun filtro su `stato`, a differenza di `storico_personale` (solo
-    "letto"): i suggerimenti hanno bisogno anche degli abbandoni, il
-    segnale negativo più diretto che esiste e che prima non arrivava mai
-    al modello, e di ogni Voce esistente (comprese quelle "da_leggere")
-    per non riproporre un libro già in libreria in qualunque forma.
+    Nessun filtro su `stato`: sia i suggerimenti sia la preview hanno
+    bisogno anche degli abbandoni, il segnale negativo più diretto che
+    esiste, e di ogni Voce esistente (comprese quelle "da_leggere") per
+    non riproporre un libro già in libreria in qualunque forma — o, per
+    la preview, per poter escludere la Voce in esame dal proprio stesso
+    profilo (`profilo_lettura.classifica`, parametro `escludi_voce_id`).
     `suggerimenti_service` decide come classificare le righe in
     pilastri/recenti/delusi/esclusi — la classificazione è una decisione
     di prodotto, l'appiattimento no, stessa divisione fra "cosa si legge"

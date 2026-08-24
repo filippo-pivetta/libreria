@@ -63,44 +63,73 @@ export function ScheletroScaffale() {
 }
 
 /**
- * La scheda del libro (§9): due pagine, impilate sotto i 768px e affiancate
- * sopra, separate dal vuoto di 2px che è la piega.
+ * La scheda del libro (§9). Rispecchia la forma vera di `Scheda`: tre
+ * blocchi diretti della griglia, non due — segnalibro+giudizio, cos'è il
+ * libro, e la storia — nello stesso ordine di markup, così su mobile si
+ * stackano già nell'ordine giusto (la tua copia, poi il libro, poi la
+ * storia) invece di quello che annidare la storia dentro il primo blocco
+ * aveva rotto una volta. Uno scheletro che promette una forma diversa da
+ * quella che arriva fa saltare la pagina invece di prepararla.
  */
 export function ScheletroScheda() {
   return (
-    <div aria-hidden className="flex flex-col gap-0.5 md:flex-row">
-      <div className="plane-1 pagina-opera grain flex-1 p-6">
-        <Skeleton className="mb-4 h-48 w-32 rounded-object" />
-        <Skeleton className="h-7 w-3/4" />
-        <Skeleton className="mt-2 h-4 w-1/2" />
-        <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 border-b border-line pb-4">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="flex flex-col gap-1.5">
-              <Skeleton className="h-2.5 w-24" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ))}
+    <div aria-hidden className="flex flex-col">
+      {/* Zona 1, testata: copertina accanto al titolo. */}
+      <div className="grid grid-cols-[6.25rem_minmax(0,1fr)] items-start gap-4 border-b border-line pb-6 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-7 sm:pb-8">
+        <Skeleton className="aspect-[2/3] w-full rounded-object" />
+        <div className="flex flex-col gap-3 sm:pt-1">
+          <Skeleton className="h-7 w-28 rounded-full" />
+          <Skeleton className="h-9 w-4/5" />
+          <Skeleton className="h-4 w-1/3" />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {Array.from({ length: 2 }, (_, i) => (
-            <Skeleton key={i} className="h-6 w-24 rounded-object" />
-          ))}
-        </div>
-        <Skeleton className="mt-4 h-4 w-full" />
-        <Skeleton className="mt-2 h-4 w-full" />
-        <Skeleton className="mt-2 h-4 w-2/3" />
       </div>
-      <div className="plane-1 pagina-copia grain flex-1 p-6">
-        <Skeleton className="h-2.5 w-20" />
-        <Skeleton className="mt-5 h-1.5 w-full rounded-object" />
-        <Skeleton className="mt-2 h-3 w-40" />
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Skeleton className="h-8 w-28" />
-          <Skeleton className="h-8 w-24" />
+
+      <div className="mt-6 grid items-start gap-5 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-6">
+        {/* Segnalibro + giudizio. */}
+        <div className="flex flex-col gap-5 lg:col-start-1 lg:row-start-1">
+          <div className="plane-1 grain p-5 sm:p-6">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="mt-4 h-12 w-32" />
+            <Skeleton className="mt-5 h-2.5 w-full rounded-full" />
+            <Skeleton className="mt-3 h-3 w-48" />
+            <Skeleton className="mt-5 h-11 w-44" />
+          </div>
+          <div className="plane-1 grain flex flex-col gap-5 p-5 sm:p-6">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-12 w-full rounded-field" />
+          </div>
         </div>
-        <Skeleton className="mt-6 h-5 w-32" />
-        <Skeleton className="mt-6 h-4 w-full" />
-        <Skeleton className="mt-2 h-4 w-5/6" />
+
+        {/* Cos'è il libro: i fatti, poi l'abstract. Sticky su entrambe
+            le righe, come l'aside vera. */}
+        <div className="flex flex-col gap-5 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+          <div className="plane-1 grain flex flex-col gap-3 p-5">
+            <Skeleton className="h-4 w-20" />
+            {Array.from({ length: 3 }, (_, i) => (
+              <Skeleton key={i} className="h-4 w-full" />
+            ))}
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {Array.from({ length: 2 }, (_, i) => (
+                <Skeleton key={i} className="h-6 w-24 rounded-full" />
+              ))}
+            </div>
+          </div>
+          <div className="plane-1 grain flex flex-col gap-2.5 p-5">
+            <Skeleton className="h-4 w-28" />
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-3.5 w-full" />
+            ))}
+          </div>
+        </div>
+
+        {/* La storia: terzo figlio diretto, non annidato nel primo — è
+            quello che tiene l'ordine corretto anche mentre carica. */}
+        <div className="flex flex-col gap-4 border-t border-line pt-6 lg:col-start-1 lg:row-start-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-16 w-full rounded-field" />
+          <Skeleton className="h-16 w-full rounded-field" />
+        </div>
       </div>
     </div>
   );

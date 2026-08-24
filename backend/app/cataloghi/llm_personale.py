@@ -25,9 +25,9 @@ Le regole di questo modulo, tutte verificabili sulle firme:
   `voce_di_libreria_privata`, una tabella che i service di questo
   perimetro non interrogano mai.
 - Il rispetto della regola 20 (ottanta parole, nessun testo tra
-  virgolette, indicazione di sintesi generata) e della stessa disciplina
-  applicata alla sintesi tematica con un tetto di parole diverso (issue
-  #27, nessun numero di regola proprio nel PRD) è chiesto nel prompt ma
+  virgolette) e della stessa disciplina applicata alla sintesi tematica
+  con un tetto di parole diverso (issue #27, nessun numero di regola
+  proprio nel PRD) è chiesto nel prompt ma
   **verificato dal service** (`app/services/testo_generato.py`): un
   prompt è una richiesta, non una garanzia. I suggerimenti di lettura non
   hanno questa disciplina: sono un elenco strutturato, non prosa.
@@ -44,19 +44,48 @@ _SCHEMA_PREVIEW = {
     "additionalProperties": False,
 }
 
+_LUNGHEZZA_DESCRIZIONE_PROMPT = 300
+_LUNGHEZZA_RECENSIONE_PROMPT = 500
+_LUNGHEZZA_INSIGHT_PROMPT = 300
 
-def _riga_libro_letto(titolo: str, autori: list[str], generi: list[str], voto: float | None) -> str:
-    # Nessuna virgoletta nemmeno nell'input: la regola 20 vieta le
-    # virgolette in uscita, e non conviene mostrarne un esempio in
-    # ingresso a un modello che tende a rispecchiare la forma.
-    pezzi = [titolo]
-    if autori:
-        pezzi.append(f"di {', '.join(autori)}")
-    if generi:
-        pezzi.append(f"({', '.join(generi)})")
+
+def _riga_profilo(voce: dict[str, Any], *, con_descrizione: bool) -> str:
+    """Una Voce del profilo formattata per il prompt: titolo, autori,
+    generi, voto, più — quando c'è — la descrizione dell'opera (solo per
+    i pilastri: è lì che il segnale tematico conta), la recensione e gli
+    insight che l'hanno prodotta. Nessuna virgoletta nemmeno in ingresso:
+    la regola 20 vieta le virgolette in uscita dalla preview, e non
+    conviene mostrarne un esempio in ingresso a un modello che tende a
+    rispecchiare la forma.
+
+    Condivisa da `genera_preview` e `genera_suggerimenti` dal 24 agosto
+    2026: prima la preview aveva una formattazione sua, più povera
+    (`_riga_libro_letto`, rimossa quello stesso giorno), che non
+    collegava insight e recensioni al libro da cui venivano.
+    """
+    pezzi = [str(voce["titolo"])]
+    autori = voce.get("autori")
+    if isinstance(autori, list) and autori:
+        pezzi.append(f"di {', '.join(str(a) for a in autori)}")
+    generi = voce.get("generi")
+    if isinstance(generi, list) and generi:
+        pezzi.append(f"({', '.join(str(g) for g in generi)})")
+    voto = voce.get("voto")
     if voto is not None:
         pezzi.append(f"— {voto:g} stelle")
-    return "- " + " ".join(pezzi)
+    if voce.get("stato") == "abbandonato":
+        pezzi.append("[abbandonato]")
+
+    righe = ["- " + " ".join(pezzi)]
+    descrizione = voce.get("descrizione")
+    if con_descrizione and descrizione:
+        righe.append(f"  Di cosa parla: {str(descrizione)[:_LUNGHEZZA_DESCRIZIONE_PROMPT]}")
+    recensione = voce.get("recensione")
+    if recensione:
+        righe.append(f"  Recensione: {str(recensione)[:_LUNGHEZZA_RECENSIONE_PROMPT]}")
+    for testo in voce.get("insight") or []:
+        righe.append(f"  Ha scritto: {str(testo)[:_LUNGHEZZA_INSIGHT_PROMPT]}")
+    return "\n".join(righe)
 
 
 async def genera_preview(
@@ -65,25 +94,39 @@ async def genera_preview(
     generi: list[str],
     anno_prima_pubblicazione: int | None,
     descrizione: str | None,
-    libri_letti: list[tuple[str, list[str], list[str], float | None]],
-    testi_propri: list[str],
+    pilastri: list[dict[str, Any]],
+    recenti: list[dict[str, Any]],
+    delusi: list[dict[str, Any]],
 ) -> str:
     """La preview personalizzata "me lo consigli?" (PRD, "Funzioni
-    assistite da modello"): un parere su *questo* titolo a partire dallo
-    storico e dagli insight di chi la chiede.
+    assistite da modello"): un parere su *questo* titolo a partire dal
+    profilo di chi la chiede.
 
-    `libri_letti` e `testi_propri` appartengono tutti al richiedente:
-    titolo/autori/generi/voto dei suoi libri finiti, e il testo dei suoi
-    insight e delle sue recensioni — inclusi quelli che ha lasciato
-    privati, che il consenso copre esplicitamente ("I testi che scrivi,
-    insight e recensioni compresi"). Mai una riga di un collegato, mai una
-    nota di intenzione.
+    `pilastri`/`recenti`/`delusi` sono lo stesso profilo a tre gruppi dei
+    suggerimenti di lettura (`app/services/profilo_lettura.classifica`),
+    non più uno storico piatto per conto suo: fino al 24 agosto 2026 la
+    preview vedeva solo i libri `letto` (mai gli abbandoni), li ordinava
+    per una colonna che cambia anche correggendo una pagina, e passava
+    insight e recensioni come un pool slegato dal libro che li aveva
+    ispirati — tre difetti già risolti per i suggerimenti e mai
+    riportati qui. Appartengono tutti al richiedente, privati compresi
+    (il consenso li copre esplicitamente: "I testi che scrivi, insight e
+    recensioni compresi"). Mai una riga di un collegato, mai una nota di
+    intenzione.
 
-    Il testo dei libri e la descrizione sono invece dato di catalogo
-    condiviso: uscirebbero comunque con le funzioni bibliografiche.
+    Il testo del libro su cui si chiede il parere e la sua descrizione
+    sono invece dato di catalogo condiviso: uscirebbero comunque con le
+    funzioni bibliografiche.
     """
-    storico = "\n".join(_riga_libro_letto(*libro) for libro in libri_letti) or "(nessuno)"
-    propri = "\n".join(f"- {t}" for t in testi_propri) or "(nessuno)"
+    sezione_pilastri = (
+        "\n".join(_riga_profilo(v, con_descrizione=True) for v in pilastri) or "(nessuno)"
+    )
+    sezione_recenti = (
+        "\n".join(_riga_profilo(v, con_descrizione=False) for v in recenti) or "(nessuno)"
+    )
+    sezione_delusi = (
+        "\n".join(_riga_profilo(v, con_descrizione=False) for v in delusi) or "(nessuno)"
+    )
     scheda = [f"Titolo: {titolo}"]
     if autori:
         scheda.append(f"Autori: {', '.join(autori)}")
@@ -98,10 +141,18 @@ async def genera_preview(
         {
             "role": "system",
             "content": (
-                "Dici a un lettore se un libro fa per lui, a partire da ciò "
-                "che ha già letto e da ciò che ha scritto sulle proprie "
-                "letture. Parli a lui, dandogli del tu, senza convenevoli e "
-                "senza entusiasmo pubblicitario.\n\n"
+                "Dici a un lettore se un libro fa per lui, a partire da tre "
+                "gruppi di informazioni sul suo gusto, in ordine di "
+                "importanza:\n\n"
+                "1. LIBRI CHE HA AMATO (voto alto, qualsiasi epoca): il "
+                "gusto che dura nel tempo, il segnale più forte.\n"
+                "2. LE SUE LETTURE PIÙ RECENTI (qualsiasi voto): dove si "
+                "trova ora.\n"
+                "3. LIBRI CHE NON GLI SONO PIACIUTI O CHE HA ABBANDONATO: "
+                "usali per capire cosa lo allontana da un libro, non per "
+                "escludere un intero genere o autore.\n\n"
+                "Parli a lui, dandogli del tu, senza convenevoli e senza "
+                "entusiasmo pubblicitario.\n\n"
                 "VINCOLI ASSOLUTI sulla risposta:\n"
                 "- MASSIMO OTTANTA PAROLE. Meno va benissimo.\n"
                 '- NESSUN testo tra virgolette di alcun tipo: niente ", '
@@ -110,11 +161,12 @@ async def genera_preview(
                 "con parole tue.\n"
                 "- Nessun titolo di sezione, nessun elenco puntato: prosa "
                 "continua.\n\n"
-                "Motiva il parere su cose concrete dello storico (un autore "
-                "già letto, un genere ricorrente, un tema che torna nei suoi "
-                "appunti), non su generalità. Se lo storico non dice "
-                "abbastanza per un parere onesto, dillo in una frase invece "
-                "di inventare un'affinità."
+                "Motiva il parere su cose concrete del profilo (un autore "
+                "già letto, un genere ricorrente, un tema che torna nei "
+                "suoi appunti o nelle sue recensioni, un abbandono che dice "
+                "qualcosa su cosa non regge per lui), non su generalità. Se "
+                "il profilo non dice abbastanza per un parere onesto, "
+                "dillo in una frase invece di inventare un'affinità."
             ),
         },
         {
@@ -122,8 +174,9 @@ async def genera_preview(
             "content": (
                 "Libro su cui voglio un parere:\n"
                 + "\n".join(scheda)
-                + f"\n\nLibri che ho finito:\n{storico}"
-                + f"\n\nCose che ho scritto sulle mie letture:\n{propri}"
+                + f"\n\nLIBRI CHE HO AMATO:\n{sezione_pilastri}"
+                + f"\n\nLE MIE LETTURE PIÙ RECENTI:\n{sezione_recenti}"
+                + f"\n\nLIBRI CHE NON MI SONO PIACIUTI O HO ABBANDONATO:\n{sezione_delusi}"
                 + "\n\nMe lo consigli?"
             ),
         },
@@ -248,41 +301,6 @@ insieme senza taglio (`suggerimenti_service._verifica_e_diversifica`) —
 è solo il tetto oltre cui l'elenco appesantirebbe il prompt senza
 aggiungere segnale: un modello che rispetta il vincolo sui primi
 sessanta lo rispetta anche sul sessantunesimo."""
-
-_LUNGHEZZA_DESCRIZIONE_PROMPT = 300
-_LUNGHEZZA_RECENSIONE_PROMPT = 500
-_LUNGHEZZA_INSIGHT_PROMPT = 300
-
-
-def _riga_profilo(voce: dict[str, Any], *, con_descrizione: bool) -> str:
-    """Una Voce del profilo formattata per il prompt: titolo, autori,
-    generi, voto, più — quando c'è — la descrizione dell'opera (solo per
-    i pilastri: è lì che il segnale tematico conta), la recensione e gli
-    insight che l'hanno prodotta. Nessuna virgoletta nemmeno in ingresso,
-    stessa cautela di `_riga_libro_letto`."""
-    pezzi = [str(voce["titolo"])]
-    autori = voce.get("autori")
-    if isinstance(autori, list) and autori:
-        pezzi.append(f"di {', '.join(str(a) for a in autori)}")
-    generi = voce.get("generi")
-    if isinstance(generi, list) and generi:
-        pezzi.append(f"({', '.join(str(g) for g in generi)})")
-    voto = voce.get("voto")
-    if voto is not None:
-        pezzi.append(f"— {voto:g} stelle")
-    if voce.get("stato") == "abbandonato":
-        pezzi.append("[abbandonato]")
-
-    righe = ["- " + " ".join(pezzi)]
-    descrizione = voce.get("descrizione")
-    if con_descrizione and descrizione:
-        righe.append(f"  Di cosa parla: {str(descrizione)[:_LUNGHEZZA_DESCRIZIONE_PROMPT]}")
-    recensione = voce.get("recensione")
-    if recensione:
-        righe.append(f"  Recensione: {str(recensione)[:_LUNGHEZZA_RECENSIONE_PROMPT]}")
-    for testo in voce.get("insight") or []:
-        righe.append(f"  Ha scritto: {str(testo)[:_LUNGHEZZA_INSIGHT_PROMPT]}")
-    return "\n".join(righe)
 
 
 async def genera_suggerimenti(

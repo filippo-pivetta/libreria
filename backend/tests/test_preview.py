@@ -6,8 +6,7 @@ Regole del PRD verificate qui:
   consenso. Verificata sul **corpo HTTP reale**, come chiede il test
   scritto nel PRD ("ispezionare il contenuto inviato"), non su ciò che il
   service crede di aver passato;
-- 20, ottanta parole, nessun testo tra virgolette, indicazione di sintesi
-  generata;
+- 20, ottanta parole, nessun testo tra virgolette;
 - 23, nessuna operazione può rendere condivisa una preview: lo schema non
   ha alcun campo di visibilità e la rotta di modifica non esiste;
 - 30, a interruttore spento non parte;
@@ -44,8 +43,24 @@ _SCHEDA = {
     "anno_prima_pubblicazione": 1972,
     "descrizione": "Un dialogo fra Marco Polo e Kublai Khan.",
 }
-_STORICO = [("Il barone rampante", ["Italo Calvino"], ["Classici"], 4.5)]
-_TESTI_PROPRI = ["Calvino mi piace quando gioca con la struttura."]
+# Stessa forma del profilo dei suggerimenti (`profilo_lettura.classifica`,
+# issue #6 riallineata il 24 agosto 2026): un pilastro con voto alto e un
+# insight legato al libro, non più uno storico piatto per conto suo.
+_PROFILO = [
+    {
+        "voce_id": "voce-barone",
+        "stato": "letto",
+        "titolo": "Il barone rampante",
+        "autori": ["Italo Calvino"],
+        "generi": ["Classici"],
+        "descrizione": None,
+        "voto": 4.5,
+        "recensione": None,
+        "insight": ["Calvino mi piace quando gioca con la struttura."],
+        "data_conclusa": "2024-01-01",
+        "data_abbandonata": None,
+    }
+]
 
 
 def _run(coro: Any) -> Any:
@@ -75,8 +90,7 @@ def dati(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(consenso_service, "esigi_consenso", _esigi)
     monkeypatch.setattr(preview_service, "get_user_client", lambda token: object())
     monkeypatch.setattr(preview_repository, "scheda_del_libro", lambda c, v, u: registro["scheda"])
-    monkeypatch.setattr(preview_repository, "storico_personale", lambda c, u, e: _STORICO)
-    monkeypatch.setattr(preview_repository, "testi_propri", lambda c, u: _TESTI_PROPRI)
+    monkeypatch.setattr(preview_repository, "profilo_suggerimenti", lambda c, u: _PROFILO)
 
     def _create(
         client: Any, utente_id: UUID, tipo: str, voce_id: UUID, testo: str
@@ -110,7 +124,6 @@ def test_genera_e_salva_una_preview_conforme(
 
     artefatto = _run(preview_service.genera("t", _USER_ID, _VOCE_ID))
 
-    assert artefatto["avviso"] == preview_service.AVVISO
     assert len(dati["salvati"]) == 1
     # Regola 23: nessun campo di visibilità, in nessuna forma.
     assert "visibilita" not in artefatto
@@ -128,9 +141,10 @@ def test_niente_esce_che_non_sia_del_richiedente(
     corpo = inviate[0].content.decode()
     assert _NOTA_DI_INTENZIONE not in corpo
     assert _TESTO_DI_UN_ALTRO not in corpo
-    # Ciò che invece deve esserci: il libro e i propri testi.
+    # Ciò che invece deve esserci: il libro e il profilo del richiedente.
     assert "Le città invisibili" in corpo
-    assert _TESTI_PROPRI[0] in corpo
+    assert "Il barone rampante" in corpo
+    assert _PROFILO[0]["insight"][0] in corpo
 
 
 def test_oltre_ottanta_parole_viene_rifiutata(
@@ -234,7 +248,6 @@ def test_post_preview_201(
     response = authenticated.post(f"/voci/{_VOCE_ID}/preview")
 
     assert response.status_code == 201
-    assert response.json()["avviso"] == "Sintesi generata"
 
 
 def test_post_preview_409_a_consenso_revocato(

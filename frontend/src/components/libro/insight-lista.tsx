@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   cancellaInsight,
+  correggiInsight,
   creaInsight,
   rivelaInsightTesto,
   type InsightEssenziale,
@@ -14,6 +15,17 @@ import type { Lettura } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { formattaData } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
+import { Button } from "@/components/ui/button";
+import { Invito } from "@/components/ui/invito";
+import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
+import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";
+import {
+  IconaAltro,
+  IconaCollegati,
+  IconaCoperto,
+  IconaLucchetto,
+  IconaMatita,
+} from "@/components/ui/icone";
 import { useLocale, useTranslations } from "next-intl";
 
 // Soglia tra i due trattamenti tipografici (design doc §10): sotto,
@@ -21,6 +33,129 @@ import { useLocale, useTranslations } from "next-intl";
 // troncato a otto righe con "mostra tutto").
 const SOGLIA_SENTENZA = 200;
 
+// Oltre questo numero la lista si chiude e offre di aprirsi. Il PRD dice
+// "insight nell'ordine delle unità o decine per libro": a otto sentenze
+// in Literata si è già a uno schermo pieno, e uno schermo pieno di prosa
+// senza un appiglio è esattamente ciò che rende "caotica" una pagina che
+// non ha nessun difetto di dato.
+const PRIMI = 8;
+
+/**
+ * Il modulo dell'insight: lo STESSO per scriverne uno nuovo e per
+ * correggerne uno esistente.
+ *
+ * Il PRD è netto — "l'Utente può correggere e cancellare ogni contenuto
+ * proprio: avanzamenti sbagliati, Letture aperte per errore, insight,
+ * recensioni, note" — e la correzione dell'insight era l'unica delle
+ * cinque a non avere una superficie: la rotta `PATCH /insight/{id}`
+ * esisteva sul server e il fetcher `correggiInsight` esisteva nel
+ * client, ma niente in pagina li chiamava. Nel menù c'era solo
+ * "Cancella", cioè l'unico modo di rimediare a un refuso era distruggere
+ * il testo e riscriverlo — su un contenuto che il PRD dichiara
+ * correggibile e che i collegati stanno già leggendo.
+ *
+ * Un modulo solo per i due gesti, e non due che si somigliano: spoiler e
+ * visibilità decidono cosa i collegati vedranno, e devono avere la
+ * stessa forma quando li scegli la prima volta e quando li cambi. Le
+ * uniche differenze sono l'etichetta del bottone di conferma e il fatto
+ * che in correzione i tre valori partono da quelli dell'insight.
+ */
+function ModuloInsight({
+  testoIniziale = "",
+  spoilerIniziale = false,
+  visibilitaIniziale = "condiviso",
+  etichettaSalva,
+  inCorso,
+  onSalva,
+  onAnnulla,
+}: {
+  testoIniziale?: string;
+  spoilerIniziale?: boolean;
+  visibilitaIniziale?: Visibilita;
+  etichettaSalva: string;
+  inCorso: boolean;
+  onSalva: (campi: { testo: string; spoiler: boolean; visibilita: Visibilita }) => void;
+  onAnnulla: () => void;
+}) {
+  const [testo, setTesto] = useState(testoIniziale);
+  const [spoiler, setSpoiler] = useState(spoilerIniziale);
+  const [visibilita, setVisibilita] = useState<Visibilita>(visibilitaIniziale);
+
+  return (
+    <div className="pannello plane-1 grain p-4 sm:px-5">
+      <textarea
+        value={testo}
+        onChange={(event) => setTesto(event.target.value)}
+        rows={4}
+        autoFocus
+        placeholder="Cosa ti ha colpito?"
+        className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
+      />
+      <div className="mt-3.5 flex flex-wrap items-center gap-2.5 border-t border-line pt-3.5">
+        {/* Prima erano due comandi testuali sottolineati la cui etichetta
+            era anche lo stato ("Segna come spoiler" ⇄ "Contrassegnato
+            spoiler"), quindi da fermo non si sapeva se descrivessero o
+            promettessero — su una scelta che decide cosa i collegati
+            leggeranno. Ora sono interruttori premuti, con `aria-pressed`. */}
+        <PastigliaInterruttore pressed={spoiler} onPressedChange={setSpoiler}>
+          <IconaCoperto />
+          Copri lo spoiler
+        </PastigliaInterruttore>
+        <PastigliaInterruttore
+          pressed={visibilita === "condiviso"}
+          onPressedChange={(condiviso) => setVisibilita(condiviso ? "condiviso" : "privato")}
+        >
+          {visibilita === "condiviso" ? (
+            <>
+              <IconaCollegati />
+              Condiviso
+            </>
+          ) : (
+            <>
+              <IconaLucchetto />
+              Solo tuo
+            </>
+          )}
+        </PastigliaInterruttore>
+
+        <span className="ml-auto flex items-center gap-1.5">
+          <Button variant="ghost" onClick={onAnnulla}>
+            Annulla
+          </Button>
+          <Button
+            disabled={testo.trim() === "" || inCorso}
+            onClick={() => onSalva({ testo: testo.trim(), spoiler, visibilita })}
+          >
+            {etichettaSalva}
+          </Button>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Un insight. Il testo è l'oggetto; tutto il resto è marginalia.
+ *
+ * Tre cose cambiano rispetto a prima:
+ *
+ * 1. **il `⋯` esce dal testo.** Era `absolute top-2 right-2`, cioè
+ *    sospeso sopra l'angolo del paragrafo, a corpo 12,5 — un bersaglio
+ *    di 13px a due centimetri da dove il pollice scorre. Ora sta nel
+ *    piede, in riga con la data, ed è un menù vero (Escape, fuoco,
+ *    frecce) invece di un bottone che rivelava due comandi al suo posto;
+ * 2. **privato e spoiler diventano segni nel margine.** Prima un insight
+ *    privato era indistinguibile da uno condiviso: la visibilità per
+ *    singolo insight è una promessa del PRD ed è reversibile, quindi
+ *    dev'essere scandibile con l'occhio, non deducibile. Condiviso è il
+ *    default e NON prende segno — assenza, non colore, come "da leggere"
+ *    non ha nastro (§7);
+ * 3. **la sentenza guadagna il margine.** Misura stretta contro la misura
+ *    piena dell'appunto. È così che si mantiene la promessa di §10 — "in
+ *    un libro con dodici insight, le due frasi buone risaltano da sole" —
+ *    che prima non poteva realizzarsi, perché i due trattamenti stavano
+ *    nella stessa riga a piena larghezza divisi da un filetto.
+ */
 function UnSoloInsight({
   voceId,
   insight,
@@ -37,6 +172,7 @@ function UnSoloInsight({
   const [testoRivelato, setTestoRivelato] = useState<string | null>(null);
   const [espansa, setEspansa] = useState(false);
   const [confermaCancella, setConfermaCancella] = useState(false);
+  const [inCorrezione, setInCorrezione] = useState(false);
 
   const mutazioneRivela = useMutation({
     mutationFn: async () => {
@@ -53,6 +189,31 @@ function UnSoloInsight({
     onError: (error: unknown) => {
       showError(
         error instanceof Error ? error.message : t("errori.insightNonScoperto"),
+      );
+    },
+  });
+
+  const mutazioneCorreggi = useMutation({
+    mutationFn: async (campi: { testo: string; spoiler: boolean; visibilita: Visibilita }) => {
+      const token = await getAccessToken();
+      const result = await correggiInsight(token, insight.id, campi);
+      if (result.status !== "ok") {
+        throw new Error(
+          result.status === "not_found" ? t("assenze.insightSparito") : result.message,
+        );
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["voce", voceId] });
+      // Il testo rivelato di un collegato non c'entra qui (si corregge
+      // solo il proprio), ma azzerarlo evita che una copia vecchia resti
+      // a schermo se il refetch tarda.
+      setTestoRivelato(null);
+      setInCorrezione(false);
+    },
+    onError: (error: unknown) => {
+      showError(
+        error instanceof Error ? error.message : t("errori.insightNonSalvato"),
       );
     },
   });
@@ -77,127 +238,188 @@ function UnSoloInsight({
   // scoprirlo in questa sessione (design doc §11: "il server manda solo
   // il fatto che esiste, il gesto di scoprire fa una richiesta") — ma
   // solo per un collegato: la regola 10 protegge da uno spoiler altrui,
-  // non da un proprio testo, quindi il proprietario lo vede sempre per
-  // intero (`insight.testo` non è mai `null` per lui, il backend non lo
-  // taglia). `tagliata` resta comunque falsa anche per un `isOwner` con
-  // `insight.testo === null`, che a questo punto non può capitare.
+  // non da un proprio testo.
   const tagliata = !isOwner && insight.spoiler && testoRivelato === null;
   const testo = testoRivelato ?? insight.testo ?? "";
   const isAppunto = testo.length > SOGLIA_SENTENZA;
 
-  return (
-    <div className="relative px-4 py-3">
-      {tagliata ? (
-        <button
-          type="button"
+  if (tagliata) {
+    return (
+      <article className="flex flex-wrap items-center justify-between gap-4 rounded-field bg-surface-2/60 p-5">
+        <span className="t-body flex items-center gap-3 text-sm text-ink-soft">
+          <IconaCoperto aria-hidden className="size-[1.125rem] shrink-0" />
+          Un insight con spoiler, del {formattaData(insight.data, lingua)}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
           disabled={mutazioneRivela.isPending}
           onClick={() => mutazioneRivela.mutate()}
-          className="t-meta w-full py-3 text-left text-ink-soft underline decoration-line-strong underline-offset-4 hover:decoration-ink"
         >
           Taglia per leggere
-        </button>
-      ) : (
-        <>
-          <p className={isAppunto ? "t-appunto" : "t-sentenza"} data-clamped={isAppunto && !espansa ? "" : undefined}>
-            {testo}
-          </p>
-          {isAppunto && !espansa && (
-            <button
-              type="button"
-              onClick={() => setEspansa(true)}
-              className="t-meta mt-1 underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-            >
-              Mostra tutto
-            </button>
-          )}
-          <p className="t-meta mt-2">
-            {formattaData(insight.data, lingua)}
-            {isOwner && insight.spoiler ? " · spoiler per i tuoi collegati" : ""}
-          </p>
-        </>
-      )}
-      {/* Cancellazione di un insight: due passaggi, non uno.
+        </Button>
+      </article>
+    );
+  }
 
-          Il glifo "⋯" cancellava al primo tocco. Era l’unica azione
-          irreversibile dell’app senza attrito — la cancellazione di una
-          lettura (storico-letture.tsx) e quella di una Voce intera
-          (elimina-voce.tsx) ne hanno tre entrambe, e questo bersaglio da 13px
-          stava a due centimetri dal testo su cui si scorre con il pollice.
-          Ora rivela "Cancella davvero" / "Annulla" al posto suo, che è lo
-          stesso gesto già usato dallo storico delle letture. Restano due
-          passaggi e non tre: un insight è un testo breve e riscrivibile, non
-          una Voce con letture e avanzamenti appesi. */}
-      {isOwner && (
-        <div className="absolute top-2 right-2">
-          {confermaCancella ? (
-            <span className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => mutazioneCancella.mutate()}
-                disabled={mutazioneCancella.isPending}
-                className="t-meta tocco-esteso text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink disabled:opacity-40"
-              >
-                Cancella davvero
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfermaCancella(false)}
-                className="t-meta tocco-esteso text-ink-soft underline decoration-line underline-offset-4 hover:decoration-ink"
-              >
-                Annulla
-              </button>
+  // In correzione l'insight cede il posto al modulo, esattamente come
+  // l'invito cede il posto al modulo di scrittura: è la stessa
+  // transizione dei pannelli in pagina (§19, l'app non ha modali), e il
+  // testo si corregge dove sta invece che altrove.
+  if (inCorrezione) {
+    return (
+      <ModuloInsight
+        testoIniziale={testo}
+        spoilerIniziale={insight.spoiler}
+        visibilitaIniziale={insight.visibilita}
+        etichettaSalva="Salva le correzioni"
+        inCorso={mutazioneCorreggi.isPending}
+        onSalva={(campi) => mutazioneCorreggi.mutate(campi)}
+        onAnnulla={() => setInCorrezione(false)}
+      />
+    );
+  }
+
+  // Il segno nel margine. Condiviso non ne ha: è il default.
+  const segno =
+    insight.visibilita === "privato"
+      ? { Icona: IconaLucchetto, parola: "solo tuo" }
+      : isOwner && insight.spoiler
+        ? { Icona: IconaCoperto, parola: "coperto per i collegati" }
+        : null;
+
+  return (
+    <article className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-4 rounded-field bg-surface-2/60 p-5">
+      <span aria-hidden className="flex justify-center pt-1 text-ink-soft opacity-60">
+        {segno && <segno.Icona className="size-[1.0625rem] shrink-0" />}
+      </span>
+
+      <div className="min-w-0">
+        <p
+          className={isAppunto ? "t-appunto" : "t-sentenza max-w-[34ch]"}
+          data-clamped={isAppunto && !espansa ? "" : undefined}
+        >
+          {testo}
+        </p>
+        {isAppunto && !espansa && (
+          <Button
+            variant="link"
+            size="sm"
+            className="mt-1 px-0"
+            onClick={() => setEspansa(true)}
+          >
+            Mostra tutto
+          </Button>
+        )}
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className="t-meta">{formattaData(insight.data, lingua)}</span>
+          {segno && <span className="t-meta">· {segno.parola}</span>}
+
+          {isOwner && (
+            <span className="ml-auto">
+              {confermaCancella ? (
+                <span className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={mutazioneCancella.isPending}
+                    onClick={() => mutazioneCancella.mutate()}
+                  >
+                    Cancella davvero
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setConfermaCancella(false)}>
+                    Annulla
+                  </Button>
+                </span>
+              ) : (
+                <Menu>
+                  <MenuTrigger
+                    render={
+                      <Button variant="ghost" size="icon-sm" aria-label="Altre azioni sull’insight">
+                        <IconaAltro />
+                      </Button>
+                    }
+                  />
+                  <MenuContenuto align="end">
+                    <MenuVoce onClick={() => setInCorrezione(true)}>
+                      <IconaMatita />
+                      Modifica
+                    </MenuVoce>
+                    <MenuVoce onClick={() => setConfermaCancella(true)}>Cancella</MenuVoce>
+                  </MenuContenuto>
+                </Menu>
+              )}
             </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfermaCancella(true)}
-              aria-label="Altre azioni sull’insight"
-              className="t-meta tocco-esteso text-ink-soft hover:text-ink"
-            >
-              ⋯
-            </button>
           )}
         </div>
-      )}
-    </div>
+      </div>
+    </article>
   );
 }
 
+/**
+ * La lettura come CAPO, non come carta.
+ *
+ * Prima ogni gruppo era una carta il cui fondo veniva calcolato con
+ * `Math.max(70, 100 - indice * 10)`, cioè una rampa di luminanza verso
+ * `surface-0` che avrebbe dovuto dire "più vecchia". Non lo diceva: fra
+ * un gruppo e il successivo la differenza è del 10% su una superficie già
+ * chiarissima, sotto la soglia in cui si legge come intenzione. E in
+ * cambio rendeva la CARTA l'unità visibile, invece del testo.
+ *
+ * Qui la profondità nel tempo la porta un punto del colore del nastro —
+ * lo stesso vocabolario dello scaffale e della pastiglia di stato — e il
+ * gruppo torna a essere solo un'intestazione con dello spazio sotto.
+ */
 function GruppoInsight({
   voceId,
   titolo,
+  spiegazione,
+  colorePunto,
   insightList,
   isOwner,
-  indice,
 }: {
   voceId: string;
-  titolo: string | null;
+  titolo: string;
+  spiegazione?: string;
+  /** `null` per gli orfani: un cerchio vuoto, che non è una lettura. */
+  colorePunto: string | null;
   insightList: InsightEssenziale[];
   isOwner: boolean;
-  indice: number;
 }) {
+  const [tutti, setTutti] = useState(false);
   if (insightList.length === 0) return null;
 
-  // Le letture più vecchie stanno su una carta di luminanza appena più
-  // vicina al fondo (design doc §10): una miscela continua verso
-  // surface-0 invece di un piano nuovo — "tre piani soli" resta valido,
-  // questa è una variazione dentro plane-1, non un piano 3.
-  const percentualeSurface1 = Math.max(70, 100 - indice * 10);
+  const visibili = tutti ? insightList : insightList.slice(0, PRIMI);
+  const nascosti = insightList.length - visibili.length;
 
   return (
-    <div
-      className="overflow-hidden rounded-card"
-      style={{
-        backgroundColor: `color-mix(in oklab, var(--mtg-surface-1) ${percentualeSurface1}%, var(--mtg-surface-0))`,
-      }}
-    >
-      {titolo && <p className="t-label px-4 pt-3 pb-1">{titolo}</p>}
-      <div className="divide-y divide-line">
-        {insightList.map((insight) => (
-          <UnSoloInsight key={insight.id} voceId={voceId} insight={insight} isOwner={isOwner} />
-        ))}
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-3 px-0.5 pb-1">
+        <span
+          aria-hidden
+          className={`size-2.5 shrink-0 rounded-full ${
+            colorePunto ?? "border-[1.5px] border-line-strong"
+          }`}
+        />
+        <span className="t-section font-medium text-ink-soft">{titolo}</span>
+        <span className="t-meta t-num">{insightList.length}</span>
       </div>
-    </div>
+      {spiegazione && <p className="t-meta -mt-1.5 px-0.5 pb-1">{spiegazione}</p>}
+
+      {visibili.map((insight) => (
+        <UnSoloInsight key={insight.id} voceId={voceId} insight={insight} isOwner={isOwner} />
+      ))}
+
+      {nascosti > 0 && (
+        <Button variant="link" size="sm" className="self-start px-0" onClick={() => setTutti(true)}>
+          {nascosti === 1
+            ? "Mostra l’altro insight di questa lettura"
+            : `Mostra gli altri ${nascosti} insight di questa lettura`}
+        </Button>
+      )}
+    </section>
   );
 }
 
@@ -206,14 +428,11 @@ function InsightForm({ voceId }: { voceId: string }) {
   const { showError } = useToast();
   const t = useTranslations();
   const [aperto, setAperto] = useState(false);
-  const [testo, setTesto] = useState("");
-  const [spoiler, setSpoiler] = useState(false);
-  const [visibilita, setVisibilita] = useState<Visibilita>("condiviso");
 
   const mutazione = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (campi: { testo: string; spoiler: boolean; visibilita: Visibilita }) => {
       const token = await getAccessToken();
-      const result = await creaInsight(token, voceId, testo.trim(), spoiler, visibilita);
+      const result = await creaInsight(token, voceId, campi.testo, campi.spoiler, campi.visibilita);
       if (result.status !== "ok") {
         throw new Error(
           result.status === "not_found" ? t("assenze.voceSparita") : result.message,
@@ -222,9 +441,6 @@ function InsightForm({ voceId }: { voceId: string }) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["voce", voceId] });
-      setTesto("");
-      setSpoiler(false);
-      setVisibilita("condiviso");
       setAperto(false);
     },
     onError: (error: unknown) => {
@@ -233,62 +449,37 @@ function InsightForm({ voceId }: { voceId: string }) {
   });
 
   if (!aperto) {
-    return (
-      <button
-        type="button"
-        onClick={() => setAperto(true)}
-        className="t-meta self-start underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-      >
-        Scrivi un insight
-      </button>
-    );
+    return <Invito onClick={() => setAperto(true)}>Annota un insight</Invito>;
   }
 
+  // I tre valori vivono dentro `ModuloInsight`, che qui si smonta
+  // insieme all'invito: chiudere e riaprire dà un modulo pulito senza
+  // doverli azzerare a mano dopo il salvataggio.
   return (
-    <div className="pannello rounded-card border border-line bg-surface-2 p-4">
-      <textarea
-        value={testo}
-        onChange={(event) => setTesto(event.target.value)}
-        rows={4}
-        placeholder="Cosa ti ha colpito?"
-        className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
-      />
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setSpoiler((valore) => !valore)}
-            className="t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-          >
-            {spoiler ? "Contrassegnato spoiler" : "Segna come spoiler"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setVisibilita((valore) => (valore === "condiviso" ? "privato" : "condiviso"))}
-            className="t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-          >
-            {visibilita === "condiviso" ? "Condiviso con i collegati" : "Privato, solo tuo"}
-          </button>
-        </div>
-        <button
-          type="button"
-          disabled={testo.trim() === "" || mutazione.isPending}
-          onClick={() => mutazione.mutate()}
-          className="t-meta text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink disabled:opacity-40"
-        >
-          Salva
-        </button>
-      </div>
-    </div>
+    <ModuloInsight
+      etichettaSalva="Salva l’insight"
+      inCorso={mutazione.isPending}
+      onSalva={(campi) => mutazione.mutate(campi)}
+      onAnnulla={() => setAperto(false)}
+    />
   );
 }
 
 /**
- * Insight raggruppati per Lettura (design doc §10, "come impone il PRD,
- * che lega ogni insight alla lettura in cui è nato"). Sta a piena
- * larghezza sotto le due pagine (§9, "Sotto le due pagine"), non nella
- * colonna stretta della copia. Solo dentro la scheda del libro: nessuna
- * vista trasversale (rinviata).
+ * Gli insight, raggruppati per Lettura come impone il PRD, che lega ogni
+ * insight alla lettura in cui è nato.
+ *
+ * Due cose che prima non c'erano e che sono metà del disordine:
+ *
+ * - **l'ordine è dichiarato, ed è dal più recente.** Prima i gruppi
+ *   scorrevano dalla lettura più vecchia alla più nuova e niente lo
+ *   diceva. Un quaderno a cui si torna mostra per prima l'ultima cosa che
+ *   ci hai scritto;
+ * - **gli orfani vanno in fondo, con un nome.** Prima stavano in cima,
+ *   in una carta SENZA titolo: la prima cosa che vedevi era un gruppo di
+ *   testi di cui niente spiegava la provenienza. Sono il residuo (scritti
+ *   prima di cominciare, o rimasti dopo aver cancellato la lettura a cui
+ *   erano legati), quindi stanno alla fine e lo dicono.
  */
 export function InsightLista({
   voceId,
@@ -306,34 +497,57 @@ export function InsightLista({
     insightSenzaLettura.length + letture.reduce((somma, lettura) => somma + lettura.insight.length, 0);
   if (totale === 0 && !isOwner) return null;
 
-  const offsetIndice = insightSenzaLettura.length > 0 ? 1 : 0;
+  // Dal più recente. `letture` arriva dal più vecchio.
+  const lettureRecenti = [...letture].reverse();
+
+  const puntoLettura = (lettura: Lettura) =>
+    lettura.dataFine === null
+      ? "bg-ribbon-reading ring-1 ring-inset ring-surface-2/70"
+      : lettura.esito === "abbandonata"
+        ? "bg-ribbon-abandoned"
+        : "bg-ribbon-done";
 
   return (
-    <div className="mt-6 flex flex-col gap-3">
-      <p className="t-label">Insight</p>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-baseline gap-3.5">
+        <h2 className="t-section text-[0.9375rem]">{isOwner ? "Insight" : "I suoi insight"}</h2>
+        {totale > 0 && <span className="t-meta">{totale} · dal più recente</span>}
+      </div>
+
       {isOwner && <InsightForm voceId={voceId} />}
-      {insightSenzaLettura.length > 0 && (
-        <GruppoInsight
-          voceId={voceId}
-          titolo={null}
-          insightList={insightSenzaLettura}
-          isOwner={isOwner}
-          indice={0}
-        />
+
+      {totale === 0 ? null : (
+        <div className="flex flex-col gap-8">
+          {lettureRecenti.map((lettura) => (
+            <GruppoInsight
+              key={lettura.id}
+              voceId={voceId}
+              titolo={
+                lettura.dataFine === null
+                  ? `Dal ${formattaData(lettura.dataInizio, lingua)}, in corso`
+                  : `${formattaData(lettura.dataInizio, lingua)} – ${formattaData(lettura.dataFine, lingua)}` +
+                    (lettura.esito === "abbandonata" ? ", abbandonata" : ", conclusa")
+              }
+              colorePunto={puntoLettura(lettura)}
+              insightList={lettura.insight}
+              isOwner={isOwner}
+            />
+          ))}
+
+          <GruppoInsight
+            voceId={voceId}
+            titolo="Fuori da una lettura"
+            spiegazione={
+              isOwner
+                ? "Scritti prima di cominciare il libro, o rimasti quando hai cancellato la lettura a cui erano legati."
+                : undefined
+            }
+            colorePunto={null}
+            insightList={insightSenzaLettura}
+            isOwner={isOwner}
+          />
+        </div>
       )}
-      {letture.map((lettura, indice) => (
-        <GruppoInsight
-          key={lettura.id}
-          voceId={voceId}
-          titolo={
-            formattaData(lettura.dataInizio, lingua) +
-            (lettura.dataFine ? ` – ${formattaData(lettura.dataFine, lingua)}` : " – in corso")
-          }
-          insightList={lettura.insight}
-          isOwner={isOwner}
-          indice={indice + offsetIndice}
-        />
-      ))}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { correggiPagine } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { useTranslations } from "next-intl";
+import { IconaMatita } from "@/components/ui/icone";
 
 /**
  * Correzione delle pagine adottate (design doc §12): si clicca sul
@@ -93,14 +94,19 @@ export function CorreggiPagine({
     }
   }
 
+  // Prima: un campo numerico con il bordo inferiore tratteggiato di 1px e
+  // il segnaposto "correggi". Non si leggeva come un comando e non si
+  // leggeva nemmeno come un campo. Ora è un bersaglio con la sua matita —
+  // resta un campo, non un bottone che apre qualcosa, ma dentro un
+  // riquadro che dice di poterci scrivere.
   return (
-    <span className="flex items-center gap-2">
+    <span className="inline-flex items-center gap-1.5 rounded-field border border-line bg-surface-1 py-1 pr-2 pl-2.5 transition-colors duration-(--dur-micro) hover:border-line-strong has-focus-visible:border-line-strong">
       <input
         type="number"
         inputMode="numeric"
         min={1}
         value={valore}
-        placeholder="correggi"
+        placeholder="—"
         aria-label="Pagine totali di questa copia"
         onChange={(event) => setValore(event.target.value)}
         onBlur={salvaSeCambiato}
@@ -113,8 +119,9 @@ export function CorreggiPagine({
             event.currentTarget.blur();
           }
         }}
-        className="w-16 border-0 border-b border-dashed border-line-strong bg-transparent p-0 font-ui text-sm text-ink outline-none placeholder:text-ink-soft focus-visible:border-solid focus-visible:border-ink"
+        className="w-[4ch] border-0 bg-transparent p-0 font-ui text-sm tabular-nums text-ink outline-none placeholder:text-ink-soft"
       />
+      <IconaMatita aria-hidden className="size-3.5 shrink-0 text-ink-soft" />
       <Messaggio tono="conferma">{conferma.visibile ? "Salvato." : ""}</Messaggio>
     </span>
   );

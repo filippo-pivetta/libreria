@@ -8,15 +8,33 @@ contenuto nuovo nella libreria — un `artefatto_generato`, che da quel
 momento è roba dell'Utente e sopravvive alla revoca del consenso (regola
 32).
 
+**Il profilo è lo stesso dei suggerimenti di lettura, dal 24 agosto
+2026.** Fino a quel giorno la preview costruiva da sola un contesto più
+povero — solo i libri `stato = 'letto'` (mai un abbandono), ordinati per
+`voce.aggiornato_at` invece che per la vera data di chiusura della
+Lettura, insight e recensioni passati come pool piatto senza dire a
+quale libro appartenessero. Tre difetti che `suggerimenti_service` aveva
+già risolto il 22 agosto (issue #27) senza che nessuno tornasse a
+riportare la preview allo stesso livello. Ora entrambe le funzioni
+chiamano `preview_repository.profilo_suggerimenti` e
+`app/services/profilo_lettura.classifica`: un lettore che chiede un
+parere su un libro vede lo stesso profilo di sé che il sistema usa per
+suggerirgli cosa leggere.
+
 La regola 20 è verificata qui e non delegata al prompt: "una preview
-generata non supera le ottanta parole, non contiene testo tra virgolette e
-riporta l'indicazione di essere una sintesi generata". Le prime due
-condizioni si misurano sul testo, con `testo_generato.genera_conforme`
-(estratto da qui con l'issue #27, quando la sintesi tematica ha iniziato a
-chiedere la stessa disciplina con un tetto di parole diverso); la terza non
-è testo che il modello debba ricordarsi di scrivere ma un campo
-obbligatorio della risposta (`AVVISO`), perché un'indicazione che dipende
-dall'obbedienza del modello è un'indicazione che prima o poi manca.
+generata non supera le ottanta parole e non contiene testo tra
+virgolette". Entrambe si misurano sul testo, con
+`testo_generato.genera_conforme` (estratto da qui con l'issue #27, quando
+la sintesi tematica ha iniziato a chiedere la stessa disciplina con un
+tetto di parole diverso).
+
+La regola aveva una terza condizione — "riporta l'indicazione di essere
+una sintesi generata" — servita da un campo obbligatorio `avviso` che
+valeva sempre "Sintesi generata". È stata tolta dal PRD e da qui: la
+preview esce solo a chi l'ha chiesta un momento prima premendo un
+pulsante, sotto il titolo che è la domanda stessa, e la regola 23 vieta
+che la veda chiunque altro. Non restava nessuno da avvertire. La sintesi
+tematica conserva il proprio `avviso`, che risponde a un'altra regola.
 """
 
 from typing import Any
@@ -28,14 +46,9 @@ from app.cataloghi import llm_personale
 from app.core.supabase import get_user_client
 from app.repositories import artefatto_repository, preview_repository
 from app.services import consenso as consenso_service
-from app.services import testo_generato
+from app.services import profilo_lettura, testo_generato
 
 TIPO = "preview_personalizzata"
-
-AVVISO = "Sintesi generata"
-"""L'indicazione che la regola 20 pretende. Campo della risposta e non
-frase dentro il testo: così non può mancare, e non consuma nessuna delle
-ottanta parole."""
 
 MASSIMO_PAROLE = 80
 
@@ -58,23 +71,26 @@ async def genera(access_token: str, utente_id: UUID, voce_id: UUID) -> dict[str,
     if scheda is None:
         raise VoceNonTrovataError
 
-    storico = await run_in_threadpool(
-        preview_repository.storico_personale, client, utente_id, voce_id
+    profilo = await run_in_threadpool(preview_repository.profilo_suggerimenti, client, utente_id)
+    # La Voce su cui si chiede il parere non deve comparire come prova di
+    # sé stessa (vedi profilo_lettura.classifica).
+    pilastri, recenti, delusi, _esclusi = profilo_lettura.classifica(
+        profilo, escludi_voce_id=str(voce_id)
     )
-    testi = await run_in_threadpool(preview_repository.testi_propri, client, utente_id)
 
-    testo = await _genera_conforme(scheda, storico, testi)
+    testo = await _genera_conforme(scheda, pilastri, recenti, delusi)
 
     artefatto = await run_in_threadpool(
         artefatto_repository.create, client, utente_id, TIPO, voce_id, testo
     )
-    return {**artefatto, "avviso": AVVISO}
+    return artefatto
 
 
 async def _genera_conforme(
     scheda: dict[str, Any],
-    storico: list[tuple[str, list[str], list[str], float | None]],
-    testi: list[str],
+    pilastri: list[dict[str, Any]],
+    recenti: list[dict[str, Any]],
+    delusi: list[dict[str, Any]],
 ) -> str:
     return await testo_generato.genera_conforme(
         lambda: llm_personale.genera_preview(
@@ -83,8 +99,9 @@ async def _genera_conforme(
             generi=scheda["generi"],
             anno_prima_pubblicazione=scheda["anno_prima_pubblicazione"],
             descrizione=scheda["descrizione"],
-            libri_letti=storico,
-            testi_propri=testi,
+            pilastri=pilastri,
+            recenti=recenti,
+            delusi=delusi,
         ),
         MASSIMO_PAROLE,
     )
@@ -95,7 +112,7 @@ async def ultima(access_token: str, voce_id: UUID) -> dict[str, Any] | None:
     artefatto = await run_in_threadpool(artefatto_repository.ultimo_per_voce, client, voce_id, TIPO)
     if artefatto is None:
         return None
-    return {**artefatto, "avviso": AVVISO}
+    return artefatto
 
 
 async def cancella(access_token: str, artefatto_id: UUID) -> bool:

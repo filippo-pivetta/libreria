@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,100..900,0..100&amp;family=Inter+Tight:wght@100..900&amp;family=Literata:opsz,wght@7..72,200..900&amp;display=swap">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --surface-0: oklch(0.912 0.014 78);
+      --surface-1: oklch(0.965 0.010 84);
+      --surface-2: oklch(0.985 0.008 86);
+      --ink: oklch(0.255 0.022 58);
+      --ink-soft: oklch(0.455 0.018 62);
+      --accent: oklch(0.635 0.105 76);
+      --accent-strong: oklch(0.470 0.100 72);
+      --on-accent: oklch(0.190 0.030 62);
+      --line: color-mix(in oklab, var(--ink) 13%, transparent);
+      --line-strong: color-mix(in oklab, var(--ink) 24%, transparent);
+      --rim: color-mix(in oklab, var(--surface-2) 70%, white);
+      --shelf: oklch(0.640 0.038 62);
+      --r-reading: oklch(0.550 0.170 27);
+      --r-paused: oklch(0.720 0.130 75);
+      --r-done: oklch(0.550 0.100 150);
+      --r-abandoned: oklch(0.600 0.010 80);
+      --shadow-1: 0 1px 2px -1px color-mix(in oklab, var(--ink) 18%, transparent), 0 8px 24px -12px color-mix(in oklab, var(--ink) 28%, transparent);
+      --shadow-2: 0 2px 4px -2px color-mix(in oklab, var(--ink) 22%, transparent), 0 20px 44px -22px color-mix(in oklab, var(--ink) 45%, transparent);
+      --lamp: radial-gradient(62% 48% at 22% 18%, oklch(0.985 0.030 85 / 0.55), transparent 72%);
+      --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-read: 'Literata', Georgia, serif;
+      --font-ui: 'Inter Tight', system-ui, sans-serif;
+      --radius-object: 4px; --radius-field: 10px; --radius-card: 14px;
+    }
+    body{font-family:var(--font-ui);background:var(--surface-0);color:var(--ink);-webkit-font-smoothing:antialiased}
+    a{color:var(--accent-strong);text-decoration:none} a:hover{color:var(--ink)}
+    .room{background-color:var(--surface-0);background-image:var(--lamp)}
+    .plane-1{position:relative;background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-1)}
+    .plane-2{position:relative;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--shadow-2)}
+    .plane-2::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 1px 0 var(--rim)}
+    .grain::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.035;background-image:var(--grain);mix-blend-mode:multiply}
+    .t-display{font-family:var(--font-display);font-variation-settings:"opsz" 72,"SOFT" 20;font-weight:300;letter-spacing:-.02em;line-height:1.05}
+    .t-title{font-family:var(--font-display);font-variation-settings:"opsz" 24,"SOFT" 10;font-weight:400;letter-spacing:-.015em;line-height:1.22}
+    .t-appunto{font-family:var(--font-read);font-variation-settings:"opsz" 12;font-weight:400;font-size:15px;line-height:1.65}
+    .t-sentenza{font-family:var(--font-read);font-variation-settings:"opsz" 32;font-weight:300;font-size:19px;line-height:1.55}
+    .t-label{font-family:var(--font-ui);font-size:10.5px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft)}
+    .t-meta{font-family:var(--font-ui);font-size:12.5px;color:var(--ink-soft)}
+    .t-num{font-variant-numeric:tabular-nums;letter-spacing:0}
+    /* --- ruoli tipografici proposti --- */
+    .t-section{font-family:var(--font-ui);font-size:14px;font-weight:600;letter-spacing:-.005em;color:var(--ink)}
+    .t-body{font-family:var(--font-ui);font-size:15px;line-height:1.5;color:var(--ink)}
+    .t-meta2{font-family:var(--font-ui);font-size:13px;line-height:1.45;color:var(--ink-soft)}
+    /* --- comandi proposti --- */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-field);font-family:var(--font-ui);font-weight:500;white-space:nowrap;border:1px solid transparent;cursor:pointer}
+    .btn-primary{height:44px;padding:0 20px;font-size:15px;background:var(--accent);color:var(--on-accent);box-shadow:inset 0 1px 0 color-mix(in oklab, white 38%, transparent), var(--shadow-1)}
+    .btn-secondary{height:38px;padding:0 15px;font-size:14px;border-color:var(--line-strong);color:var(--ink);background:var(--surface-1)}
+    .btn-ghost{height:38px;padding:0 12px;font-size:14px;color:var(--ink-soft);background:transparent}
+    .invito{display:flex;align-items:center;gap:11px;width:100%;height:48px;padding:0 15px;border:1px dashed var(--line-strong);border-radius:var(--radius-field);background:transparent;color:var(--ink-soft);font-family:var(--font-ui);font-size:14px;text-align:left}
+    .invito .plus{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid var(--line-strong);flex:none}
+    .chip{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px 0 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface-1);font-family:var(--font-ui);font-size:13px;font-weight:500;color:var(--ink)}
+    .chip .dot{width:8px;height:8px;border-radius:999px;flex:none}
+    .pill{font-family:var(--font-ui);font-size:13px;color:var(--ink-soft);border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+    .card{padding:24px}
+    .cover{position:relative;overflow:hidden;border-radius:6px}
+    .track{position:relative;height:10px;border-radius:999px;background:color-mix(in oklab, var(--ink) 10%, transparent)}
+    .track .fill{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--accent)}
+    .track .thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:999px;border:2px solid var(--surface-1);background:var(--accent);box-shadow:var(--shadow-2)}
+    .rows{display:flex;flex-direction:column}
+    .rows > div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+    .rows > div:first-child{border-top:0;padding-top:0}
+    .icon{display:block;flex:none}
+    .num{font-family:var(--font-display);font-variation-settings:"opsz" 72,"SOFT" 20;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
+    .scala{display:grid;grid-template-columns:1fr 216px;gap:26px;align-items:baseline;padding:17px 0;border-top:1px solid var(--line)}
+    .spec{font-family:var(--font-ui);font-size:12px;line-height:1.55;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+    .spec b{display:block;font-weight:600;color:var(--ink);font-size:12.5px;letter-spacing:0}
+    .tag{display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:999px;font-family:var(--font-ui);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+    .tag.add{background:color-mix(in oklab, oklch(0.550 0.100 150) 15%, transparent);color:oklch(0.400 0.100 150)}
+    .tag.fix{background:color-mix(in oklab, oklch(0.550 0.170 27) 13%, transparent);color:oklch(0.450 0.170 27)}
+  </style>
+</helmet>
+
+<div class="room" style="padding:34px 36px">
+  <p class="t-title" style="font-size:23px">La scala del testo</p>
+  <p class="t-meta2" style="margin-top:6px;max-width:84ch">Tre famiglie e sette ruoli, tutti giusti. Ne mancano due, e il buco è esattamente dove sta il contenuto: <span style="color:var(--ink);font-weight:500">non esiste un ruolo Inter Tight in inchiostro pieno a corpo di lettura</span>. Così ogni componente se lo improvvisa con <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)">font-ui text-sm text-ink</span> — succede in venti punti — e ciò che resta finisce a corpo 12,5 in <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)">ink-soft</span>, cioè vestito da didascalia.</p>
+
+  <div style="margin-top:26px">
+
+    <div class="scala" style="border-top:0">
+      <p class="t-display" style="font-size:44px">Il tempo si accumula</p>
+      <span class="spec"><b>.t-display</b>Fraunces &middot; opsz 72 &middot; 300<br>titolo di pagina, titolo del libro in testata</span>
+    </div>
+
+    <div class="scala">
+      <p class="t-title" style="font-size:24px">La montagna incantata</p>
+      <span class="spec"><b>.t-title</b>Fraunces &middot; opsz 24 &middot; 400<br>titoli brevi, insegne</span>
+    </div>
+
+    <div class="scala">
+      <p class="t-sentenza" style="max-width:46ch">Le tre settimane diventano sette anni senza che nessuno se ne accorga.</p>
+      <span class="spec"><b>.t-sentenza</b>Literata &middot; opsz 32 &middot; 300 &middot; 19&thinsp;px<br>insight brevi</span>
+    </div>
+
+    <div class="scala">
+      <p class="t-appunto" style="max-width:56ch">Hans Castorp sale a Davos per una visita di tre settimane al cugino ricoverato e ne discende sette anni dopo.</p>
+      <span class="spec"><b>.t-appunto</b>Literata &middot; opsz 12 &middot; 400 &middot; 15&thinsp;px<br>descrizioni, recensioni, note lunghe</span>
+    </div>
+
+    <div class="scala" style="background:color-mix(in oklab, oklch(0.550 0.100 150) 6%, transparent);border-radius:8px;padding-left:12px;padding-right:12px;margin-left:-12px;margin-right:-12px">
+      <p><span class="tag add">Da aggiungere</span><br><span class="t-section" style="font-size:14px">Il tuo giudizio</span></p>
+      <span class="spec"><b>.t-section</b>Inter Tight &middot; 600 &middot; 14&thinsp;px &middot; <span style="color:var(--ink)">ink</span><br>titolo di sezione. Prende il posto di <span style="font-family:ui-monospace,monospace">.t-label</span>, che oggi fa da titolo a corpo 10,5 maiuscoletto</span>
+    </div>
+
+    <div class="scala" style="background:color-mix(in oklab, oklch(0.550 0.100 150) 6%, transparent);border-radius:8px;padding-left:12px;padding-right:12px;margin-left:-12px;margin-right:-12px">
+      <p><span class="tag add">Da aggiungere</span><br><span class="t-body">Cominciato il 12 gennaio, 284 pagine su 712</span></p>
+      <span class="spec"><b>.t-body</b>Inter Tight &middot; 400 &middot; 15&thinsp;px &middot; 1,5 &middot; <span style="color:var(--ink)">ink</span><br>testo di interfaccia che è contenuto. Formalizza il <span style="font-family:ui-monospace,monospace">text-sm text-ink</span> già scritto a mano ovunque</span>
+    </div>
+
+    <div class="scala">
+      <p class="t-meta2">9 avanzamenti &middot; ultimo il 12 marzo</p>
+      <span class="spec"><span class="tag fix">Da correggere</span><b>.t-meta</b>Inter Tight &middot; 12,5 &rarr; <span style="color:var(--ink)">13&thinsp;px</span> &middot; ink-soft<br>solo metadati veri. Mai contenuto, mai un comando</span>
+    </div>
+
+    <div class="scala">
+      <p class="t-label">Pagine, tua copia</p>
+      <span class="spec"><span class="tag fix">Da restringere</span><b>.t-label</b>Inter Tight &middot; 10,5 &middot; maiuscoletto<br>solo micro-etichetta sopra un dato, mai titolo di sezione</span>
+    </div>
+
+    <div class="scala">
+      <p class="num" style="font-size:44px">284</p>
+      <span class="spec"><b>.t-num</b>Fraunces per i numeri grandi (come negli Annali), Inter Tight tabulare per quelli in riga</span>
+    </div>
+  </div>
+
+  <p class="t-meta2" style="margin-top:28px;padding-top:18px;border-top:1px solid var(--line);max-width:84ch">Nessuna famiglia nuova, nessun peso nuovo: due righe in <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)">@layer components</span> di <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--ink)">tokens.css</span>, e §4 del documento di design da riscrivere di conseguenza.</p>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

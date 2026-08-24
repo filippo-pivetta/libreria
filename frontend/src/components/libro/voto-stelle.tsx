@@ -7,6 +7,7 @@ import { correggiVoto } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { useTranslations } from "next-intl";
+import { IconaStella } from "@/components/ui/icone";
 
 const STELLE = [1, 2, 3, 4, 5] as const;
 
@@ -16,23 +17,25 @@ export function formattaVoto(voto: number): string {
   return Number.isInteger(voto) ? String(voto) : voto.toFixed(1).replace(".", ",");
 }
 
-/** Una stella, riempita da 0 a 1 (0.5 = mezza stella): un'aletta piena
- * ritagliata in percentuale sopra il contorno vuoto, non due glifi
- * scelti a scatti — l'unico modo per rendere una mezza stella con un
- * carattere di testo. Esportata per lo stesso motivo di `formattaVoto`. */
-export function Stella({ riempimento }: { riempimento: number }) {
+/**
+ * Una stella, riempita da 0 a 1 (0,5 = mezza).
+ *
+ * Prima erano i caratteri `★` e `☆`, con l'aletta piena ritagliata in
+ * percentuale sopra il contorno vuoto. Funzionava, ma un glifo è testo:
+ * il disegno, il peso e la larghezza li sceglie il carattere che il
+ * sistema decide di usare per quel codepoint, e non è quasi mai quello
+ * dell'app. Ora è un tracciato su griglia 24, e il mezzo riempimento è un
+ * gradiente a due fermate sullo stesso punto invece di un ritaglio.
+ *
+ * Esportata per la striscia "libri in comune" degli Annali.
+ */
+export function Stella({ riempimento, chiave }: { riempimento: number; chiave: string }) {
   return (
-    <span className="relative inline-block" aria-hidden>
-      <span className="text-line-strong">☆</span>
-      {riempimento > 0 && (
-        <span
-          className="absolute inset-0 overflow-hidden"
-          style={{ width: `${Math.min(1, riempimento) * 100}%` }}
-        >
-          ★
-        </span>
-      )}
-    </span>
+    <IconaStella
+      riempimento={riempimento}
+      gradientId={`stella-${chiave}`}
+      className="size-full"
+    />
   );
 }
 
@@ -80,13 +83,15 @@ export function VotoStelle({
   if (!isOwner) {
     if (voto === null) return null;
     return (
-      <div className="mb-4 flex items-center gap-3">
-        <span className="flex text-lg text-accent-strong">
+      <div className="flex items-center gap-3.5">
+        <span className="flex gap-0.5 text-ink-soft">
           {STELLE.map((n) => (
-            <Stella key={n} riempimento={voto - (n - 1)} />
+            <span key={n} className="size-6">
+              <Stella riempimento={voto - (n - 1)} chiave={`suo-${voceId}-${n}`} />
+            </span>
           ))}
         </span>
-        <span className="t-meta">il suo voto · {formattaVoto(voto)}</span>
+        <span className="t-body text-sm text-ink-soft">il suo voto · {formattaVoto(voto)}</span>
       </div>
     );
   }
@@ -94,19 +99,23 @@ export function VotoStelle({
   const mostrato = anteprima ?? voto ?? 0;
 
   return (
-    <div className="mb-4 flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div
         role="group"
         aria-label={`Il tuo voto, ${voto !== null ? formattaVoto(voto) : "nessuno"} stelle su cinque`}
-        className="flex text-lg text-accent-strong"
+        className="flex gap-0.5 text-accent-strong"
         onMouseLeave={() => setAnteprima(null)}
       >
         {STELLE.map((n) => (
+          // 27px invece di 18, e con il sollevamento al passaggio: è un
+          // gesto di precisione (mezze stelle), quindi il bersaglio deve
+          // essere grande. Sotto il dito ognuna delle due metà arriva
+          // comunque a `--tap` dalla regola `pointer: coarse`.
           <span
             key={n}
-            className="relative inline-block transition-[translate] duration-(--dur-micro) ease-(--ease-rise) hover:z-10 hover:-translate-y-0.5"
+            className="relative inline-block size-7 transition-[translate] duration-(--dur-micro) ease-(--ease-rise) hover:z-10 hover:-translate-y-0.5"
           >
-            <Stella riempimento={mostrato - (n - 1)} />
+            <Stella riempimento={mostrato - (n - 1)} chiave={`mio-${voceId}-${n}`} />
             <span className="absolute inset-0 flex">
               <button
                 type="button"
@@ -115,7 +124,7 @@ export function VotoStelle({
                 onMouseEnter={() => setAnteprima(n - 0.5)}
                 onFocus={() => setAnteprima(n - 0.5)}
                 onClick={() => mutazione.mutate(n - 0.5)}
-                className="h-full w-1/2 outline-none"
+                className="h-full w-1/2 rounded-l-sm outline-none"
               />
               <button
                 type="button"
@@ -124,13 +133,22 @@ export function VotoStelle({
                 onMouseEnter={() => setAnteprima(n)}
                 onFocus={() => setAnteprima(n)}
                 onClick={() => mutazione.mutate(n)}
-                className="h-full w-1/2 outline-none"
+                className="h-full w-1/2 rounded-r-sm outline-none"
               />
             </span>
           </span>
         ))}
       </div>
-      <span className="t-meta">{voto !== null ? `il tuo voto · ${formattaVoto(voto)}` : "il tuo voto"}</span>
+      <span className="t-body text-sm">
+        {voto !== null ? (
+          <>
+            {formattaVoto(voto)} su 5
+            <span className="text-ink-soft"> · ripremi per togliere</span>
+          </>
+        ) : (
+          <span className="text-ink-soft">Non l&rsquo;hai ancora votato</span>
+        )}
+      </span>
     </div>
   );
 }

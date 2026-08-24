@@ -197,6 +197,32 @@ ed è l'unico posto dell'app dove si scontrerebbero.
 **Se si deve tagliare:** si toglie Fraunces e si porta Literata a `opsz 72` sui titoli. Si
 perde carattere, non si rompe nulla. Inter Tight non si tocca.
 
+### La scala di Inter Tight
+
+Le tre famiglie erano giuste; la scala dentro Inter Tight aveva un buco, ed è costato più di
+quanto sembri. Esistevano due soli ruoli — `.t-label` (10,5px, maiuscoletto, `0.13em`,
+`ink-soft`) e `.t-meta` (12,5px, `ink-soft`) — e **nessun ruolo in inchiostro pieno a corpo di
+lettura**. Le conseguenze si vedevano ovunque:
+
+- ogni sezione dell'app si annunciava con `.t-label`, cioè con il carattere più piccolo dello
+  schermo, in maiuscoletto spaziato e in inchiostro secondario;
+- il testo che è **contenuto** — la riga di stato di una copia, il riepilogo di una
+  cancellazione, un elenco di letture — finiva in `.t-meta`, cioè vestito da nota a piè di
+  pagina;
+- e dove nessuna delle due andava bene, venti punti dell'app se lo scrivevano a mano come
+  `font-ui text-sm text-ink`, che è un ruolo non dichiarato usato da venti chiamanti.
+
+| Ruolo | Specifica | Dove |
+|---|---|---|
+| `.t-section` | Inter Tight, 600, **14px**, `ink` | Titolo di sezione. Sostituisce `.t-label` in questo mestiere |
+| `.t-body` | Inter Tight, 400, **15px**, interlinea 1,5, `ink` | Testo di interfaccia che è contenuto |
+| `.t-meta` | Inter Tight, **13px**, `ink-soft` | Metadati veri: date, conteggi, unità. Mai contenuto, mai un comando |
+| `.t-label` | Inter Tight, 10,5px, maiuscoletto | **Solo** micro-etichetta sopra un dato |
+
+`.t-meta` sale da 12,5 a 13px. Mezzo pixel non è una rifinitura estetica: è la soglia sotto cui
+una riga di metadati in `ink-soft` smette di essere scandibile su uno schermo denso, e sotto
+quella soglia c'era metà del contenuto della scheda del libro.
+
 **Composizione.** `text-wrap: balance` sui soli titoli, dove è costoso e oltre le sei righe
 non ha effetto. `text-wrap: pretty` sui paragrafi lunghi. `text-box-trim` sui titoli display,
 perché a corpo grande lo spazio ottico sopra e sotto si vede. `font-variant-numeric:
@@ -401,6 +427,16 @@ Il tocco non si risolve componente per componente: una regola sola in `tokens.cs
 `@media (pointer: coarse)`, porta ogni bersaglio a `--tap`. La densità del desktop resta quella
 scelta qui, e non si dimentica al prossimo componente scritto.
 
+**Ma una densità non è una gerarchia.** La regola `pointer: coarse` risolve il *bersaglio*, non
+il *peso*: un bottone alto 28px sul desktop e 44px sul telefono resta, sui due schermi, due cose
+diverse — e su entrambi non dice se sia l'azione principale o l'ultima. La scala dei comandi
+(§9) ora dichiara quattro pesi, e l'azione primaria è a 44px **anche col mouse**: quel numero
+non appartiene al pollice, appartiene alla gerarchia.
+
+**Il ritorno.** Sotto i 640px `ProtectedNav` non monta niente in cima. Chi progetta una rotta
+nuova deve chiedersi da dove si esce: la scheda del libro non se l'era chiesto, ed è rimasta
+senza ritorno su mobile fino al ridisegno (§9).
+
 **Scaffale a più mensole:** volumi (§7) che vanno a capo su ripiani impacchettati sulla
 larghezza reale, copertina ridotta a `96 × 144`, scorrimento verticale, tocco che apre. Il
 sollevamento non serve: il dito è già il puntatore. Ogni mensola porta la sua ombra doppia, ed
@@ -415,114 +451,357 @@ che fa da puntatore.
 
 ## 9. Scheda del libro
 
-**Volume aperto, due pagine.** A sinistra l'opera, dato condiviso. A destra la tua copia. La
-piega centrale è il confine di proprietà della tabella di ownership del PRD.
+> **Riscritta.** La versione precedente prescriveva "volume aperto, due pagine": a sinistra
+> l'opera, a destra la tua copia, separate da un vuoto di 2px. Quella specifica è caduta, e le
+> ragioni stanno qui sotto perché non venga riproposta.
 
-Le due pagine sono due carte sul piano 1, separate da un vuoto di 2px sul piano 0. Nessuna
-imitazione di rilegatura: il vuoto dice la stessa cosa e non invecchia.
+### Perché le due pagine sono cadute
 
-Nessuna copertina a tutta larghezza in cima: è la soluzione di tutte le altre app e schiaccia
-il contenuto personale sotto la piega dello schermo.
+La metafora era bella e parlava della cosa sbagliata: **l'oggetto**. Una scheda di libro non è
+un libro aperto, è il posto dove un lettore torna a vedere dov'è arrivato. Costava tre volte.
 
-### Pagina sinistra, l'opera
+1. **La colonna destra era un deposito.** Ci finivano stato, avanzamento, transizioni, voto,
+   recensione, nota, parere e cancellazione: otto blocchi senza rapporto fra loro, impilati a
+   `mb-5` l'uno dall'altro, senza niente che dicesse quale contasse. E in mezzo, la sola azione
+   irreversibile della pagina — togliere la voce — collocata **prima** di contenuti che si
+   possono ancora leggere.
+2. **Le due colonne non hanno la stessa lunghezza naturale**, e per pareggiarle serviva un
+   `min-h-[640px]` su entrambe: un'altezza scelta a occhio che lasciava un vuoto sotto la più
+   corta. Una pezza, non un progetto.
+3. **Su mobile l'ordine era rovesciato.** Impilate, le due pagine mettevano copertina, titolo,
+   dati bibliografici, generi e descrizione intera **prima** della tua copia. Il PRD dice che
+   il mobile è il riferimento nei casi di dubbio; qui non era nemmeno un caso di dubbio,
+   perché sull'unico schermo dove l'ordine è anche una gerarchia il dato condiviso passava
+   davanti a quello personale.
 
-- Copertina sul piano 2, con la sua ombra doppia: è l'unico oggetto raster dell'app e vale la
-  pena che si veda come oggetto.
-- Titolo in Fraunces, nella variante della lingua dell'interfaccia; autori sotto in Inter
-  Tight.
-- Anno e lingua originale, senza distinguere in interfaccia un valore dedotto dal modello da
-  uno di fonte: resta solo il valore. Il dato (`anno_dedotto`/`lingua_dedotta`) esiste in
-  database e nell'API per un'eventuale reintroduzione futura, ma non compare oggi.
-- Generi come pastiglie **senza alcun affordance di modifica**: il PRD vieta la correzione a
-  qualsiasi utente e non prevede nemmeno una segnalazione. L'assenza di comandi è il
-  messaggio. Bordo 1px, nessun riempimento.
-- Descrizione dell'opera, nella lingua dell'interfaccia quando esiste, sotto i generi: prosa breve (l'apertura di una voce enciclopedica, non l'intera scheda editoriale), con l'attribuzione della fonte quando i suoi termini la richiedono. Nessun ripiego su un'altra lingua se manca in quella dell'interfaccia — a differenza del titolo, una trama nella lingua sbagliata non assolve alla stessa funzione — e nessuna riga vuota: se la fonte non ce l'ha, quel blocco non compare.
-  **Da verificare**: l'attribuzione della fonte non è costruita — `libro_descrizione.url_fonte`
-  esiste in database (necessario per i testi CC BY-SA di Wikipedia, la cui licenza la richiede)
-  ma non è esposto né da `LibroEssenziale` né dalla scheda. Non toccato in questa sessione,
-  segnalato qui perché la sezione lo dà per fatto.
+### Cinque zone
 
-### Pagina destra, la tua copia
+La metafora nuova è **dove sei / cosa ne pensi / cos'è**, e parla del lettore.
 
-- Nastro nella stessa posizione del volume sullo scaffale: il libro che si apre non perde il
-  segnalibro.
-- Stato, pagina raggiunta, data di inizio in formato leggibile (`20 agosto 2026`, mai
-  `2026-08-20`), barra di avanzamento **a due colori**: quello già salvato in `ink-soft` al
-  50%, il tratto in più che si sta per salvare in `accent`, calcolati dal valore correntemente
-  in scrittura nel pannello sotto — non un solo colore statico.
-- Lingua originale come parola (`italiano`, non `it`), tramite i nomi di lingua della
-  piattaforma, con fallback sul codice se la piattaforma non la conosce.
-- Le transizioni: **una sola azione piena in evidenza** — la più frequente per lo stato
-  corrente (`in_lettura → letto`, `in_lettura → in_pausa`, `in_pausa → in_lettura`, …) — le
-  altre transizioni ammesse sotto un disclosure **"Altro"**. **L'interfaccia non offre mai una
-  transizione vietata**, invece di offrirla e poi rifiutarla. Il campo data usa uno stile
-  proprio (`CampoData`), mai l'aspetto nativo del browser.
-- **Voto in stelle** (1-5 a scatti di mezza stella, ogni stella è due zone cliccabili — metà
-  sinistra/destra — e si solleva al passaggio del mouse come i volumi sullo scaffale, §7; un
-  secondo clic sul valore già scelto lo cancella) e
-  **nota di intenzione** (carta più calda, mai visibile a un collegato, in nessuno stato del
-  consenso), **recensione** (paragrafo Literata sotto le stelle) e **insight raggruppati per
-  lettura** sono costruiti.
-- Se il libro è da leggere, **"me lo consigli?" prende il posto dei dati di lettura**. Vincoli
-  del PRD: privata e mai condivisibile, sotto le ottanta parole, dichiarata come generata, e a
-  consenso revocato l'interfaccia dice che è spenta invece di far finta che non esista. Note di
-  design:
-  - Il blocco esiste **anche negli altri stati**, in coda alla pagina della copia sotto la nota
-    di intenzione, in tono piano. Il PRD non limita la funzione ai libri da leggere; su un libro
-    già letto un parere ha comunque senso, semplicemente non è la cosa principale. In evidenza
-    resta solo su "da leggere".
-  - L'indicazione "Sintesi generata" è una riga in `t-meta` sopra il testo, che arriva dal server
-    come campo obbligatorio della risposta. Non è una frase che il modello scrive: affidargliela
-    avrebbe significato perderla la prima volta che si distrae, e avrebbe consumato parte delle
-    ottanta parole.
-  - **Nessun comando di condivisione, in nessuna forma** — non un interruttore spento, non una
-    voce assente da un menù. La regola 23 si garantisce facendo in modo che l'operazione non
-    esista, e non esiste nemmeno nel database (niente colonna di visibilità su
-    `artefatto_generato`, niente privilegio di UPDATE).
-  - Il parere sta su una carta del **piano 2**: è un oggetto sollevato dentro la pagina della
-    copia, non un secondo paragrafo della pagina stessa. Rigenerarne uno crea una riga nuova e
-    sostituisce quella mostrata; "Cancella" resta accanto, senza attrito aggiuntivo — un
-    artefatto rigenerabile non merita i tre livelli della cancellazione di una lettura.
+| | Zona | Contenuto |
+|---|---|---|
+| 1 | **Testata** | Copertina accanto al titolo, autori, stato in chiaro, la tua cronaca con questo libro |
+| 2 | **Segnalibro** | Dove sei. **Una sola azione piena in tutta la pagina** |
+| 3 | **Giudizio** | Voto, recensione, nota di intenzione |
+| 4 | **Il libro** | Fatti, generi e "di cosa parla" — in colonna laterale |
+| 5 | **La storia** | Letture e insight — in colonna principale |
 
-### Sotto le due pagine
+Due colonne da 1024px in su, **tre blocchi**, non due: segnalibro+giudizio (zone 2+3) in
+colonna 1 riga 1, il libro (zona 4) in colonna 2 su entrambe le righe (`row-span-2`, `sticky`),
+la storia (zona 5) in colonna 1 riga 2 — sotto il giudizio, esplicitamente posizionata lì con
+`lg:col-start`/`lg:row-start`. Sotto i 1024px la griglia collassa e i tre si impilano
+nell'ordine del DOM: segnalibro+giudizio, poi il libro, poi la storia. Nessun `order-*`, nessun
+`min-height` da nessuna parte: ogni blocco è alto quanto il suo contenuto.
 
-Insight raggruppati per lettura, poi lo storico delle letture in un pannello che si
-apre. Sui libri con una lettura sola già aperta, la maggioranza, non
-compare nulla — compare solo quando c'è più di una lettura, o quando l'unica lettura è già
-chiusa (rilettura in corso su un libro già finito una volta).
+**L'opera sta di lato** perché è il dato condiviso: non è tua, non la puoi
+correggere (il PRD vieta la correzione dei generi a chiunque, e non prevede nemmeno una
+segnalazione — l'assenza di comandi resta il messaggio), e la sola cosa tua che ci sta dentro,
+le pagine della tua copia, resta lì perché è un fatto bibliografico e non un dato di
+avanzamento.
 
-**Cancellazione di una lettura passata.** Non un link "Cancella" sempre visibile accanto alla
-data: ogni riga porta un menù a comparsa ("⋯", `aria-label="Altre azioni"`) che rivela il
-comando, e il comando stesso rivela "Cancella davvero" / "Annulla" al posto della data invece
-di agire al primo tocco. Tre livelli di attrito deliberati per un'azione irreversibile che
-tocca lo storico di lettura.
+**Niente copertina a tutta larghezza in cima.** Questa regola della versione precedente resta,
+e per la stessa ragione: schiaccerebbe il contenuto personale sotto la piega dello schermo. La
+copertina sta *accanto* al titolo, non sopra.
 
-**Cancellazione dell'intera Voce (issue #33).** In fondo alla pagina della copia, in tono
-piano — stesso trattamento della cancellazione dell'account (§17): non un pulsante rosso,
-nessun allarme grafico. Stessi tre livelli della cancellazione di una lettura (menù "⋯" →
-comando → "Cancella davvero"/"Annulla"), ma ciò che il comando rivela non è la sola coppia di
-bottoni: è un riepilogo di cosa sta per sparire insieme alla voce (le letture, gli insight, la
-recensione, la nota di intenzione, con i conteggi reali) prima di "Cancella davvero"/"Annulla".
-L'attrito maggiore, dovuto alla gravità dell'azione — irreversibile e su più dati insieme
-(letture, avanzamenti, voto, recensione, insight, nota di intenzione, preview personalizzata,
-indici semantici derivati, tutti cancellati dalla cascata dello schema dietro un'unica
-`DELETE /voci/{id}`) — sta nel contenuto del passo finale, non in un passo in più. Nessun campo
-da digitare: quel livello resta riservato alla cancellazione dell'intero account, l'unica
-azione dell'app a chiedere una conferma testuale.
+### Zona 1, la testata
+
+Copertina sul piano 2 con la sua ombra doppia — è l'unico oggetto raster dell'app e vale la
+pena che si veda come oggetto. Titolo in Fraunces `t-display`, autori sotto in Inter Tight.
+
+Sotto gli autori **non** vanno i dati dell'opera (vivono nella zona 4): va la tua cronaca con
+questo libro — "Cominciato il 12 gennaio · riletto una volta · 3 insight" — che è l'unica cosa,
+in cima, che non si trova già altrove.
+
+**Lo stato è una pastiglia, non un moncone.** Prima il nastro era un rettangolo colorato di
+12×22px nell'angolo, e la parola stava altrove in `.t-label`: il dato più importante della
+pagina diviso fra un segno muto e il testo più piccolo dello schermo. Ora è un punto del colore
+del nastro **più la parola**. Il colore resta il legame con lo scaffale, dove il nastro *è* il
+linguaggio (§7); la parola fa il lavoro che sullo scaffale fa la **lunghezza** del nastro — e
+che qui la lunghezza non può fare, perché di nastri ce n'è uno solo e non c'è niente con cui
+confrontarlo. "Da leggere" non ha nastro: il punto diventa un cerchio vuoto, così le cinque
+pastiglie restano della stessa misura.
+
+### Zona 2, il segnalibro
+
+Un blocco solo, sempre nello stesso posto, che **cambia forma con lo stato** e porta una sola
+azione piena. Prima questa zona non esisteva: negli stati "da leggere" e "letto" il modulo di
+avanzamento spariva e al suo posto non veniva niente, quindi la parte alta della pagina restava
+vuota proprio dove c'è meno da fare e più da decidere.
+
+| Stato | Cosa dice | Azione piena |
+|---|---|---|
+| **In lettura** | Pagina corrente in Fraunces a corpo grande, "di N", percentuale, barra trascinabile | **Segna la pagina** |
+| **Da leggere** | "Non l'hai ancora cominciato" | *(la transizione "Inizia a leggere")* |
+| **In pausa** | Dove sei fermo, barra spenta, "in pausa non si registrano avanzamenti" | *(la transizione "Riprendi")* |
+| **Letto** | "Finito il …", con la data d'inizio | — |
+| **Abbandonato** | "Lasciato il …", con la pagina raggiunta | — |
+
+La barra di avanzamento resta **a due colori**: quello già salvato in accento smorzato, il
+tratto che si sta per salvare in accento pieno, con il segno del pavimento fra i due. È la sola
+parte che cambia mentre si trascina, quindi è la sola satura. In sola lettura è alta 8px, non
+1,5: un filo non dice una frazione, lo si legge solo perché accanto c'è il numero.
+
+**Le transizioni scendono sotto, fuori dalla carta.** Cambiare stato è una cosa che fai al
+libro, non il libro che ti dice dove sei. Restano le due più frequenti in evidenza e le altre
+sotto "Altro" — e **l'interfaccia continua a non offrire mai una transizione vietata**, invece
+di offrirla e poi rifiutarla. Il campo data usa sempre uno stile proprio (`CampoData`), mai
+l'aspetto nativo del browser.
+
+### Zona 3, il giudizio
+
+Voto, recensione e nota di intenzione stanno in **una carta sola**: sono tre modi di dire la
+stessa cosa — che cosa ne pensi — e prima erano tre blocchi slegati incastrati fra un modulo di
+avanzamento e un comando di cancellazione.
+
+Il voto resta 1–5 a scatti di mezza stella, con ogni stella divisa in due zone cliccabili e il
+sollevamento al passaggio del mouse (§7); un secondo clic sul valore già scelto lo cancella. Le
+stelle passano da 18 a 27px — è un gesto di precisione, quindi il bersaglio dev'essere grande —
+e da glifi di testo (`★`, `☆`) a **tracciati SVG**: un glifo lo disegna il carattere che il
+sistema sceglie per quel codepoint, e non è quasi mai quello dell'app.
+
+### Zona 4, il libro
+
+**Solo fatti in riga**, più i generi come pastiglie senza affordance di modifica. Niente
+descrizione: la carta laterale è un elenco di coppie etichetta/valore, e un abstract di catalogo
+è prosa da leggere, non un metadato.
+
+Tenercela dentro costava anche l'impaginazione. In 320px mille battute sono una trentina di
+righe: appena si apriva, la colonna laterale diventava più lunga della principale e accanto
+restava un vuoto alto uno schermo — che `lg:sticky` non poteva rimediare, perché un elemento
+sticky più alto del suo fratello non ha niente a cui restare appeso. La descrizione passa alla
+zona 5.
+
+### La storia sta nella colonna principale, e regge tutta la pagina
+
+È la decisione strutturale della scheda, ed è costata tre correzioni sbagliate per arrivarci —
+vale la pena scriverle, perché il modo in cui si sbaglia qui è più istruttivo della conclusione.
+
+Partendo da **storico e insight tirati fuori** dalla colonna, a piena larghezza sotto la griglia,
+la principale resta alta ~750px mentre la laterale con la descrizione aperta ne fa ~950. Da lì in
+poi qualunque cosa si metta di lato la supera, e ogni rimedio cura un sintomo e ne produce un
+altro:
+
+1. la laterale è **troppo lunga** → vuoto a sinistra. *Rimedio: la descrizione scende in fondo.*
+2. ora è **troppo corta** (~260px contro ~1300) → vuoto a destra. *Rimedio: il giudizio a
+   `col-span-2`.*
+3. la riga chiude pari ma il parere resta incolonnato a sinistra → **due carte impilate con il
+   bordo destro disallineato**, che si legge come rotto ed è peggio del vuoto di prima.
+   *Rimedio: via la griglia.*
+4. senza griglia il segnalibro è largo 976px ed è la prima cosa che si vede, mentre pagine e
+   descrizione stanno in fondo: **"pagina 284 di 712" arriva uno schermo prima del 712**, che è
+   il solo numero della pagina che si possa correggere.
+5. la griglia torna, con storico e insight **annidati dentro** lo stesso contenitore di
+   segnalibro e giudizio: risolve il buco, ma su mobile — dove la griglia collassa a una colonna
+   e stacka nell'ordine del DOM — l'INTERO blocco, storia compresa, precede l'aside. **Il libro
+   e "di cosa parla" finiscono sotto gli insight.** *Rimedio: la storia esce dal contenitore.*
+
+Il difetto non era mai la descrizione, il giudizio o la griglia: era il passo zero. **Con
+storico e insight a bilanciare l'altezza della colonna principale, quella vale 1300px e passa**,
+la laterale può aprire tutta la descrizione senza avvicinarsi — ma perché serva anche su mobile,
+la storia dev'essere un **terzo figlio diretto della griglia**, non annidata dentro il blocco di
+segnalibro e giudizio: annidata, pesa sull'altezza ma trascina anche l'ORDINE, e su mobile il suo
+contenitore viene prima dell'aside per intero. Da tre figli diretti — in alto, il libro, la
+storia, in quest'ordine nel markup — l'ordine mobile è semplicemente quello del DOM, mentre da
+`lg:` in su un posizionamento esplicito (`lg:col-start-1 lg:row-start-1` sul blocco in alto,
+`lg:col-start-2 lg:row-start-1 lg:row-span-2` sul libro, `lg:col-start-1 lg:row-start-2` sulla
+storia) li rimette dove stavano visivamente. Tutti e cinque i rimedi diventano inutili nello
+stesso momento.
+
+Ci guadagnano anche gli insight: a 632px la misura interna dell'appunto viene ~68ch e la sentenza
+~34ch, cioè esattamente il contrasto che §10 promette. A piena larghezza erano troppo larghi per
+il ruolo che hanno.
+
+**Regola generale, buona oltre questa pagina:** quando serve un `order-*` per raddrizzare la
+gerarchia su mobile, o un `min-height` per pareggiare due colonne, quasi sempre il problema non è
+lì — è che una colonna è messa dove non doveva. La scheda oggi non ha né l'uno né l'altro.
+
+Per un collegato "Nella tua libreria" sta **in cima alla colonna principale**: è l'unico comando
+della pagina, agisce sulla tua libreria e non sulla sua, e di lato su mobile sarebbe finito in
+fondo.
+
+### Zona 5, la storia
+
+Letture e insight, in coda alla colonna principale, separate dal giudizio da un filetto: sopra
+quello che pensi adesso, sotto quello che è successo. Per gli insight vedi §10.
+
+**"Di cosa parla"** è una carta a sé sotto i fatti, non un blocco dentro la loro: là ci sono
+coppie etichetta/valore da scandire con l'occhio, qui prosa da leggere. Tagliata a sei righe
+sopra le **230 battute** — la soglia è tarata sulla colonna, non su una misura ideale: a 320px
+una riga di Literata a 15px porta ~37 battute, quindi sei righe sono ~230. Tararla sui numeri di
+una misura da 68ch vorrebbe dire lasciar scorrere quattordici righe prima di offrire il taglio,
+cioè non tagliare. Alla misura giusta lo stesso testo che in colonna faceva trenta righe ne fa otto,
+quindi aprirlo costa quasi niente e il taglio smette di essere un modo di nascondere un
+problema. E il posto è quello giusto anche per gerarchia: non è un dato tuo e non è un comando,
+quindi non compete col segnalibro né col giudizio, ma è il primo pezzo di contesto che serve per
+leggere le letture e gli insight che seguono. L'assenza resta muta: senza abstract non c'è né
+titolo né riga vuota.
+
+### "Me lo consigli?", solo su "da leggere"
+
+Il parere vive nella **colonna principale, sotto la zona 2, e in un solo stato**.
+
+Prima stava in colonna laterale in ogni stato, e in tre stati su quattro faceva una domanda a
+cui la pagina aveva già risposto: a chi sta leggendo un libro, a chi l'ha finito e gli ha dato
+quattro stelle, a chi l'ha abbandonato a pagina sessanta, "me lo consigli?" non chiede niente.
+La decisione è aperta in un solo stato — il libro è lì e non l'hai cominciato — e lì il parere è
+esattamente il consiglio che serve. Sta sotto la zona 2 perché è l'aiuto a decidere il comando
+che la zona 2 offre un centimetro sopra ("Comincia a leggere"), non un dato dell'opera da
+incolonnare di lato.
+
+**Un parere già chiesto non sparisce mai, ma si fa da parte.** Lo stato governa l'*invito* a
+chiederne uno, non l'esistenza del blocco: legarla allo stato renderebbe un contenuto
+dell'Utente irraggiungibile e incancellabile appena preme "Comincia a leggere", e il PRD dice che
+ogni contenuto proprio si può cancellare.
+
+Non basta però spegnere i comandi e lasciare la carta com'era: una carta alta seicento pixel,
+intitolata con una domanda, che spiega perché non leggere un libro che stai leggendo, è rumore —
+e su "in lettura" occupava più spazio del giudizio. A decisione chiusa il parere diventa
+**retrospettivo**: titolo al passato ("Il parere che avevi chiesto"), da `t-sentenza` a
+`t-appunto` perché non è più una frase che decide ma un appunto di allora, tagliato a due righe,
+e il solo comando che serve — cancellarlo. Da seicento pixel a centoventi.
+
+Senza parere e senza decisione aperta il blocco non compare affatto — l'assenza è muta (§15),
+non una carta vuota.
+
+Resta aperta la domanda vera, che è di prodotto e non di impaginazione: il posto giusto per
+"me lo consigli?" sarebbe **prima di aggiungere il libro**, cioè sulla scheda di un libro che
+non hai ancora. Oggi non si può — `POST /voci/{voce_id}/preview` lega l'artefatto a una Voce, e
+una Voce esiste solo dopo l'aggiunta — ma è un limite dell'implementazione, non una scelta di
+design. Vedi la nota in §15 sulla ricerca.
+
+I vincoli del PRD che restano: privata e mai condivisibile, sotto le ottanta parole, nessun
+testo tra virgolette, e a consenso revocato l'interfaccia dice che la funzione è spenta invece
+di far finta che non esista. **Nessun comando di condivisione, in nessuna forma** — non un
+interruttore spento, non una voce assente da un menù: la regola 23 si garantisce facendo in modo
+che l'operazione non esista, e non esiste nemmeno nel database.
+
+Cade invece l'avviso **"Sintesi generata"**, che era la terza condizione della regola 20 e una
+riga `t-meta` in cima al blocco. È stato tolto dal PRD, dal contratto del server e dalla pagina.
+Serviva a non far scambiare un parere generato per un giudizio proprio, ma il parere esce solo a
+chi l'ha chiesto un momento prima premendo un pulsante, sotto un titolo che è la domanda stessa,
+e la regola 23 garantisce che non lo veda nessun altro: non restava nessuno da avvertire, e il
+tag apriva il blocco al posto della risposta. La sintesi tematica conserva il proprio avviso,
+che risponde a un'altra regola e ha altri lettori.
+
+Lo **storico delle letture** non è più un `<details>` con `summary` in `.t-label`: era una
+sezione annunciata dal carattere più piccolo dello schermo, con dentro righe di solo testo in
+`.t-meta`. Ora è una carta con righe leggibili, sempre aperta — non c'è niente da nascondere in
+due o tre letture — ordinata **dal più recente**, con un punto del colore del nastro per esito
+(in corso, conclusa, abbandonata). Continua a non comparire affatto quando c'è una sola lettura
+ancora aperta: è già raccontata dalla zona 2.
+
+**Cancellazione di una lettura.** Tre livelli di attrito, come prima: menù di riga → comando →
+"Cancella davvero"/"Annulla". Cambia solo che il menù è un menù vero (vedi sotto).
+
+**Cancellazione dell'intera Voce.** **Due livelli, non tre**: "Togli dalla libreria" apre
+direttamente il riquadro di conferma, che elenca con i conteggi reali cosa sparisce insieme alla
+voce, e "Cancella davvero" cancella. Il passo di mezzo che c'era prima — un menù con una sola
+voce, "Elimina la voce" — non chiedeva niente: era un clic che ripeteva la parola del bottone
+che l'aveva aperto. Un attrito che non fa pensare non protegge, stanca e basta; l'attrito qui
+sta nel CONTENUTO della conferma, che è la parte che fa davvero fermare.
+
+Il riquadro è un pannello in pagina, non un modale: §19 vale anche qui, e questo non è il caso
+per cui fare un'eccezione. Cambia anche la **posizione**: una riga di piede a piena larghezza, in
+fondo a tutto, invece che a metà della colonna della copia. Il tono resta piano — niente rosso,
+`alert` ha un solo uso in tutta l'app (§3) — ma ora la posizione corrisponde al peso. Nessun
+campo da digitare: quel livello resta riservato alla cancellazione dell'account.
+
+**Perché la lettura ne tiene tre e la Voce due.** Non è un'incoerenza: sulla lettura il menù di
+riga porta più di un comando, quindi aprirlo è un gesto che serve comunque; sulla Voce il
+comando è uno solo e vive già su una riga tutta sua in fondo alla pagina.
+
+### I menù si aprono al clic, non al passaggio del mouse
+
+Tre menù dell'app erano `<details>` scritti a mano, aperti su `mouseenter` e chiusi da un
+`setTimeout` di 350ms su `mouseleave`. Quattro difetti, e il primo li contiene tutti:
+
+1. **sotto il dito `mouseleave` non arriva mai.** Su un telefono il menù si apriva al tocco e
+   restava aperto finché non si toccava di nuovo la linguetta: il gesto per chiuderlo non
+   esisteva;
+2. **Escape non chiudeva**, perché `<details>` non lo prevede;
+3. **il fuoco non tornava** alla linguetta alla chiusura;
+4. **il riquadro si tagliava** dentro qualsiasi antenato con `overflow: hidden`.
+
+Si usa il primitivo `Menu` di Base UI, che è già una dipendenza (ADR 0014) e li risolve tutti
+e quattro, con in più le frecce e la digitazione per saltare a una voce. Il riquadro esce in un
+portale, quindi non si taglia, e si posiziona da sé contro i bordi.
+
+### L'invito: una forma sola per "qui puoi scrivere"
+
+L'app diceva la stessa cosa in tre grammatiche diverse, tutte quasi invisibili: "Scrivi una
+recensione" e "Aggiungi una nota" come testo sottolineato a corpo 12,5 in `ink-soft`, "Scrivi
+un insight" uguale, e la correzione delle pagine come campo con bordo tratteggiato e segnaposto
+"correggi". Tre affordance, nessuna delle quali si legge come un comando, per l'atto centrale
+del prodotto: depositare un testo.
+
+Ora è una forma sola — riquadro tratteggiato a piena larghezza, `+`, testo a 14px. Il
+tratteggio resta, ma diventa il bordo di un bersaglio intero: dice "vuoto" con la stessa figura
+con cui dice "premibile". A riempirsi, l'invito sparisce e al suo posto arriva il pannello,
+come ogni altro pannello in pagina (§19: l'app non ha modali).
+
+### Interruttori, non comandi la cui etichetta è lo stato
+
+Spoiler e visibilità erano comandi testuali sottolineati la cui etichetta *era* anche lo stato:
+"Segna come spoiler" ⇄ "Contrassegnato spoiler", "Condivisa con i collegati" ⇄ "Privata, solo
+tua". Da fermo non si distingue se una riga così **descriva** o **prometta** — sono due letture
+opposte, e chi decide la visibilità di un testo che i collegati leggeranno merita di saperlo
+senza provare.
+
+Diventano pastiglie premute, con `aria-pressed`: l'etichetta resta ferma, cambia il riempimento.
+Niente rosso e niente verde — un interruttore acceso è inchiostro pieno.
+
+### Un insight si corregge, non solo si cancella
+
+Nel menù di un insight c'erano un comando solo, "Cancella", e nessun modo di rimediare a un
+refuso che non fosse distruggere il testo e riscriverlo — su un contenuto che il PRD dichiara
+correggibile ("l'Utente può correggere e cancellare ogni contenuto proprio: avanzamenti
+sbagliati, Letture aperte per errore, insight, recensioni, note") e che i collegati stanno già
+leggendo. La rotta `PATCH /insight/{id}` esisteva sul server e il fetcher `correggiInsight`
+esisteva nel client: mancava solo la superficie. Il menù guadagna **"Modifica"**.
+
+La correzione usa **lo stesso modulo** della scrittura, non uno che gli somiglia: spoiler e
+visibilità decidono cosa i collegati vedranno, e devono avere la stessa forma quando li scegli
+la prima volta e quando li cambi. L'insight cede il posto al modulo dove sta — stessa transizione
+dell'invito che diventa pannello, §19 — invece di aprirsi altrove. Le uniche differenze sono
+l'etichetta del bottone di conferma ("Salva le correzioni") e i tre valori che partono da quelli
+dell'insight.
+
+### La gerarchia dei comandi
+
+Quattro pesi, e uno solo pieno per zona.
+
+| Peso | Altezza (desktop) | Uso |
+|---|---|---|
+| **Pieno** (`accent`) | 44px | L'azione primaria di una zona. Una sola |
+| **Di contorno** | 38px | Le azioni secondarie: transizioni di stato, conferme |
+| **Piano** | 38px | La terza per importanza: "Altro", "Annulla", menù di riga |
+| **Invito** | 48px | Ciò che non c'è ancora e puoi scrivere tu |
+
+Prima erano tutti `size="sm"`, cioè 28px e corpo 12,8, azione primaria compresa: quattro
+bottoni dello stesso peso di cui uno salva un avanzamento e uno annulla la lettura in corso.
+La densità del desktop resta una scelta del documento, ma **una densità non è una gerarchia**.
+Sotto il dito `@media (pointer: coarse)` continua a portare ogni bersaglio a `--tap`.
 
 ### Su mobile
 
-Le due pagine si impilano nello stesso ordine di desktop: l'opera resta sopra, la copia sotto.
-Nessun header compatto separato: con l'opera già in cima, che porta copertina/titolo/autore,
-un riassunto sopra sarebbe una ripetizione dello stesso contenuto. La piega diventa il vuoto
-fra due carte impilate, orizzontale invece che verticale come su desktop.
+L'ordine si inverte rispetto a prima: testata (copertina **accanto** al titolo, non sopra),
+segnalibro, giudizio, il libro — **chiuso**, con i dati in una riga sola — e infine la storia.
+La tua copia arriva subito; l'opera si apre se la vuoi.
+
+**Il ritorno alla libreria.** `ProtectedNav` monta la barra in cima dietro `hidden sm:block`,
+quindi sotto i 640px la scheda di un proprio libro non aveva **nessun** comando di ritorno: si
+usciva col gesto di sistema o toccando "Libreria" in fondo, che non è tornare indietro ma
+ricominciare da capo, perdendo la posizione di scorrimento sullo scaffale. Il libro di un
+*collegato* ce l'aveva già, perché lì la barra globale sparisce e arriva `BarraContestoLibro`
+con il suo "‹ [nome]": la rotta ospite era trattata meglio della propria. Ora c'è "‹ Libreria",
+appiccicata in cima, con lo stesso `PulsanteEsci`, solo sotto i 640px.
 
 ### Rito di apertura
 
 **Non ancora costruito** (§23): oggi il volume è un link diretto, senza transizione. Specifica
-per quando verrà fatto — il volume è già sollevato dal passaggio del mouse, quindi il clic
-parte da lì; la copertina cresce e va al suo posto nella pagina sinistra, la pagina destra
-arriva un attimo dopo.
+per quando verrà fatto — il volume è già sollevato dal passaggio del mouse, quindi il clic parte
+da lì; la copertina cresce e va al suo posto nella testata. (La versione precedente diceva
+"nella pagina sinistra": non esiste più, la copertina è nella testata.)
 
 Sotto i 400 millisecondi, **una volta sola, mai al ritorno**. Al ritorno il libro non si
 richiude: elegante la prima volta, insopportabile la ventesima.
@@ -551,13 +830,57 @@ già tre segnali e bastano.
 
 Data piccola, in Inter Tight, spaziata, **sotto e non sopra**: la frase viene prima.
 
+**La sentenza guadagna il margine.** I due trattamenti da soli non bastavano a mantenere la
+promessa di questa sezione — "in un libro con dodici insight, le due frasi buone risaltano da
+sole" — perché stavano entrambi in righe a piena larghezza divise da un filetto: una tabella
+sotto a dei testi che vanno letti. La sentenza va a **misura stretta (~34ch)**, l'appunto alla
+misura piena. È il contrasto fra le due misure, non solo fra i due corpi, a far risaltare la
+frase breve.
+
 **Raggruppati per lettura**, come impone il PRD, che lega ogni insight alla lettura in cui è
-nato. Le letture più vecchie stanno su una carta di luminanza appena più vicina al fondo: la
-profondità nel tempo si vede senza etichette, e usa lo stesso sistema di piani di tutto il
-resto invece di una regola sua.
+nato.
+
+> **Corretta.** La versione precedente diceva: "le letture più vecchie stanno su una carta di
+> luminanza appena più vicina al fondo". Era implementata come una rampa (`100 − indice × 10`
+> per cento verso `surface-0`) e non funzionava: fra un gruppo e il successivo la differenza è
+> del 10% su una superficie già chiarissima, sotto la soglia in cui si legge come intenzione.
+> In cambio rendeva la **carta** l'unità visibile, invece del testo.
+
+Ora la lettura è un **capo**, non una carta: la data leggibile in `.t-section`, più un punto del
+colore del nastro per esito — in corso, conclusa, abbandonata. Stesso vocabolario dello scaffale
+e della pastiglia di stato (§9), quindi la profondità nel tempo si legge davvero, e senza un
+meccanismo tutto suo.
+
+**Ordine: dal più recente**, gruppi compresi, e detto in cima ("7 · dal più recente"). Prima i
+gruppi scorrevano dalla lettura più vecchia alla più nuova e niente lo diceva. Un quaderno a cui
+si torna mostra per prima l'ultima cosa che ci hai scritto.
+
+**Gli orfani vanno in fondo, con un nome.** Sono gli insight scritti prima di cominciare il
+libro, o rimasti quando la lettura a cui erano legati è stata cancellata (PRD: "restano sulla
+Voce, senza più alcuna Lettura associata"). Prima stavano **in cima**, in una carta **senza
+titolo**: la prima cosa che vedevi era un gruppo di testi di cui niente spiegava la provenienza.
+Ora stanno alla fine, sotto "Fuori da una lettura", con una riga che dice perché esistono.
+
+**Visibilità e spoiler diventano segni nel margine.** Un insight privato era indistinguibile da
+uno condiviso: la visibilità per singolo insight è una promessa del PRD ed è reversibile, quindi
+dev'essere **scandibile con l'occhio**, non deducibile aprendo qualcosa. Un lucchetto per il
+privato, un occhio coperto per lo spoiler, nel margine sinistro allineati alla prima riga, in
+`ink-soft` a opacità ridotta — come il segno a matita di un lettore, non come un distintivo.
+**Condiviso è il default e non prende segno**: assenza, non colore, esattamente come "da
+leggere" non ha nastro (§7).
 
 Nessun bordo e nessuna ombra sui singoli insight: una campitura appena diversa dalla carta che
-li contiene.
+li contiene. Fra un insight e l'altro c'è **spazio**, non un filetto.
+
+Data piccola, in Inter Tight, **sotto e non sopra**: la frase viene prima. Il menù di riga sta
+nel piede accanto alla data, non più sospeso sull'angolo del paragrafo (`absolute top-2
+right-2`, un bersaglio di 13px a due centimetri da dove il pollice scorre).
+
+**Quando sono decine.** Il PRD dice "insight nell'ordine delle unità o decine per libro": a otto
+sentenze in Literata si è già a uno schermo pieno, e uno schermo pieno di prosa senza appigli è
+esattamente ciò che rende caotica una pagina che non ha nessun difetto di dato. Si mostrano i
+primi otto per lettura, poi "mostra gli altri N". **Nessun filtro e nessun tag**: il PRD li
+esclude esplicitamente, e una barra di filtri su una manciata di testi è rumore.
 
 **Solo dentro la scheda del libro.** La vista trasversale è rinviata. Ricerca semantica e
 sintesi tematica producono comunque risultati che attraversano più libri, ma una pagina di
@@ -580,10 +903,10 @@ strappata.
 
 **Solo sugli insight di un collegato**, non sui propri: la regola 10 difende da uno spoiler
 *altrui*, non da un proprio ricordo di ciò che si è già letto. Sulla propria scheda il testo
-compare sempre per
-intero, con un piccolo promemoria accanto alla data ("spoiler per i tuoi collegati") — non un
-avviso su cosa sta per leggere, che qui non serve, solo la memoria di cosa si è marcato per gli
-altri. Lo stesso vale nella ricerca semantica (§25): ogni risultato è già proprio, mai di un
+compare sempre per intero, con il **segno nel margine** e la parola "coperto per i collegati"
+accanto alla data (§10) — non un avviso su cosa sta per leggere, che qui non serve, solo la
+memoria di cosa si è marcato per gli altri. Prima era un suffisso appeso alla riga della data
+("· spoiler per i tuoi collegati"), leggibile solo fermandosi a leggerla. Lo stesso vale nella ricerca semantica (§25): ogni risultato è già proprio, mai di un
 collegato.
 
 ---
@@ -659,9 +982,12 @@ impone il PRD. Ma i libri già in libreria cambiano verbo:
 riga guadagna lo stato. Chi popola la libreria ne aggiunge cinque di fila senza perdere i
 risultati.
 
-**Nessuna preview prima dell'aggiunta.** Senza descrizione conterrebbe gli stessi sei dati
-della riga dei risultati. Elimina anche l'attrito col PRD: "me lo consigli?" resta sulla scheda
-di un libro già in libreria, quindi l'artefatto ha sempre una Voce a cui legarsi.
+**Nessuna preview nella riga dei risultati.** Senza descrizione conterrebbe gli stessi sei dati
+della riga stessa, e una riga di ricerca non è il posto per una chiamata al fornitore per
+risultato. Questo però non chiude la domanda posta in §9: il parere prima dell'aggiunta ha senso
+su una **scheda** di libro non ancora in libreria, non in un elenco. Oggi manca sia la scheda sia
+la rotta — `POST /voci/{voce_id}/preview` pretende una Voce — ed è lavoro da mettere in conto,
+non una porta chiusa.
 
 **Velocità percepita.** Risultati che compaiono mentre si digita, con le schede già nel sistema
 mostrate per prime perché non richiedono una chiamata esterna.
