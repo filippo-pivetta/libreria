@@ -123,7 +123,7 @@ export function BloccoStato({
 function Titolo({ testo, sotto }: { testo: string; sotto?: string }) {
   return (
     <>
-      <p className="t-display text-2xl sm:text-[1.625rem]">{testo}</p>
+      <p className="t-display text-2xl [--t-opsz:24] sm:text-[1.625rem] sm:[--t-opsz:26]">{testo}</p>
       {sotto && <p className="t-meta mt-2">{sotto}</p>}
     </>
   );

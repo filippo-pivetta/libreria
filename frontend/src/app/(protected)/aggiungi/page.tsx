@@ -1,3 +1,4 @@
+import { TestataPagina } from "@/components/layout/testata-pagina";
 import { RicercaLibri } from "@/components/ricerca/ricerca-libri";
 import { TitoliCheTornano } from "@/components/ricerca/titoli-che-tornano";
 import { Suggerimenti } from "@/components/suggerimenti/suggerimenti";
@@ -35,9 +36,11 @@ export const metadata = { title: "Aggiungi un libro" };
  * che le dà lo stesso trattamento).
  */
 export default function AggiungiPage() {
+  // Senza `py-4`: stesso doppione di Quaderni, stessa correzione — vedi
+  // il commento in quaderni/page.tsx.
   return (
-    <div className="flex flex-col gap-8 py-4">
-      <h1 className="t-display text-[44px] sm:text-[56px]">Aggiungi un libro</h1>
+    <div className="flex flex-col gap-8">
+      <TestataPagina titolo="Aggiungi un libro" />
       <RicercaLibri />
       <hr className="border-line" />
       <Suggerimenti />

@@ -1,3 +1,4 @@
+import { TestataPagina } from "@/components/layout/testata-pagina";
 import { SelettoreAnno } from "@/components/annali/selettore-anno";
 
 /**
@@ -17,6 +18,12 @@ import { SelettoreAnno } from "@/components/annali/selettore-anno";
  * esiste mai, "ANNALI DI MARTA", che è esattamente il mestiere di
  * `.t-label` (§4: "solo micro-etichetta sopra un dato").
  *
+ * L'occhiello ora c'è SEMPRE, non solo sulla pagina di un collegato: era
+ * l'unica delle due versioni ad avere un nome, e un titolo che è un nudo
+ * "2026" non dice di quale sezione sia il titolo. È anche ciò che ha
+ * permesso di togliere il sottotitolo (sotto): la parola la dà
+ * l'occhiello, la specificità la dà il numero.
+ *
  * È il terzo segnale di quattro, e l'unico in parole. Gli altri
  * arrivano dal contesto e non da qui: la barra globale sparisce del
  * tutto e al suo posto c'è "‹ Lettori" con nome e iniziali (§15), e
@@ -31,9 +38,12 @@ import { SelettoreAnno } from "@/components/annali/selettore-anno";
  * informativo — lo stesso principio per cui, poco sopra in questo
  * stesso file, "la somma non è mai completa" è stato sostituito da
  * `libri_senza_pagine`: un promemoria perenne smette di leggersi dalla
- * seconda visita. Al suo posto una riga che non spiega un meccanismo,
- * di terza persona sulla pagina di un collegato come il resto dei
- * quattro segnali qui sopra.
+ * seconda visita. Le è succeduta "L'anno raccontato dai numeri.", che è
+ * caduta per la stessa ragione un passo più in là: non spiegava un
+ * meccanismo, ma non diceva nulla che la pagina non mostrasse già —
+ * l'insegna di sé stessa, cioè il riempitivo che il §19 vieta. Un
+ * sottotitolo resta solo dove dichiara un confine che la pagina non può
+ * mostrare, come quello dei Quaderni sulla visibilità dei testi.
  */
 export function IntestazioneAnnali({
   anno,
@@ -51,40 +61,18 @@ export function IntestazioneAnnali({
   nomeUtente?: string;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
-      <div className="min-w-0">
-        {nomeUtente && <p className="t-label">Annali di {nomeUtente}</p>}
-        {/* leading-[1.05] e non leading-none: è lo stesso interlinea di
-            `.t-display` (tokens.css), la classe che dà il titolo a ogni
-            altra pagina (Lettori, Profilo). Con leading-none il riquadro
-            del titolo era più basso qui che altrove, a parità di corpo —
-            lo stesso numero sembrava un titolo di peso minore.
-
-            `t-num` invece di `.t-display` per intero: qui il titolo è un
-            numero, e vuole le cifre tabulari e la spaziatura a 0 di
-            `t-num`, non il tracking negativo di `.t-display` (pensato per
-            parole, non cifre) — da cui font-family/leading/peso rifatti a
-            mano invece di comporre le due classi (che si scavalcherebbero
-            sulla stessa proprietà). `font-light` è il pezzo che mancava:
-            senza, il peso ereditato è 400, più pieno del 300 di ogni altro
-            titolo di pagina. */}
-        <h1
-          className="t-num mt-2 font-display font-light text-[44px] leading-[1.05] text-ink sm:text-[56px]"
-          style={{ fontVariationSettings: '"opsz" 72, "SOFT" 20' }}
-        >
-          {anno}
-        </h1>
-        <p className="t-meta mt-1">
-          {nomeUtente ? "Il suo anno raccontato dai numeri." : "L’anno raccontato dai numeri."}
-        </p>
-      </div>
-
+    <TestataPagina
+      titolo={String(anno)}
+      titoloBarra="Annali"
+      occhiello={nomeUtente ? `Annali di ${nomeUtente}` : "Annali"}
+      numero
+    >
       <SelettoreAnno
         anno={anno}
         annoMinimo={annoMinimo}
         annoMassimo={annoMassimo}
         onCambiaAnno={onCambiaAnno}
       />
-    </div>
+    </TestataPagina>
   );
 }

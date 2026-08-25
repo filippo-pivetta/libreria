@@ -21,7 +21,7 @@ import { PulsanteEsci } from "@/components/layout/pulsante-esci";
  * IL TITOLO È UNA PERSONA
  *
  * Le tue pagine si intitolano con un luogo — "Annali", "Quaderni" — e
- * questa con un nome proprio, a corpo 34 in Fraunces (`.t-display`),
+ * questa con un nome proprio, in Fraunces (`.t-contenuto`, 34/46),
  * esattamente come Annali e Lettori intitolano LE LORO pagine. È il
  * segnale più forte disponibile e non costa un avviso, un badge o un
  * "stai guardando…": nessuna pagina di casa tua si apre con il nome di
@@ -171,7 +171,7 @@ export function BarraContesto({
             {iniziali(nomeUtente)}
           </span>
           <div className="min-w-0">
-            <h1 className="t-display truncate text-[34px]">{nomeUtente}</h1>
+            <h1 className="t-contenuto truncate">{nomeUtente}</h1>
             {sottotitolo && <p className="t-meta mt-1.5">{sottotitolo}</p>}
           </div>
         </div>
@@ -203,7 +203,7 @@ export function BarraContesto({
             {iniziali(nomeUtente)}
           </span>
           <div className="min-w-0">
-            <h1 className="t-display truncate text-[46px]">{nomeUtente}</h1>
+            <h1 className="t-contenuto truncate">{nomeUtente}</h1>
             {sottotitolo && <p className="t-meta mt-2">{sottotitolo}</p>}
           </div>
         </div>

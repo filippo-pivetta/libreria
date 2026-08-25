@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getMe } from "@/lib/api/me";
+import { saluto } from "@/lib/saluto";
 import { getCollegamenti } from "@/lib/api/collegamenti";
 import { createClient } from "@/lib/supabase/server";
 import { Chrome } from "@/components/layout/chrome";
@@ -69,7 +70,16 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <div className="plane-0-lit flex min-h-screen flex-col">
-      <Chrome userName={me.data.nomeUtente} receivedRequestCount={receivedRequestCount}>
+      {/* Il saluto della Libreria si calcola qui, dove si è già lato
+          server e si ha il nome: `Chrome` è un componente client e non
+          deve leggere l'ora dal browser (la stessa regola della luce,
+          design-frontend.md §3). Come la luce, si aggiorna al cambio
+          pagina e non durante una permanenza. */}
+      <Chrome
+        userName={me.data.nomeUtente}
+        saluto={saluto(me.data.nomeUtente)}
+        receivedRequestCount={receivedRequestCount}
+      >
         {children}
       </Chrome>
     </div>

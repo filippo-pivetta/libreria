@@ -1,6 +1,7 @@
 import { getUtenti } from "@/lib/api/utenti";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
+import { TestataPagina } from "@/components/layout/testata-pagina";
 import { ElencoLettori } from "@/components/lettori/elenco-lettori";
 import { getTranslations } from "next-intl/server";
 
@@ -18,11 +19,10 @@ import { getTranslations } from "next-intl/server";
  * c'era affatto, e una pagina senza `<h1>` non ha un punto d'ingresso
  * per chi naviga a salti con un lettore di schermo.
  *
- * 44px / 56px (mobile / da 640px in su) e non `text-4xl` (36px, la prima
- * versione di questo titolo): è la stessa coppia di misure del titolo
- * degli Annali (`intestazione-annali.tsx`), l'unico altro titolo di
- * pagina vero nell'app, e il valore che `docs/design/sistema/Testo.dc.html`
- * propone per il ruolo "titolo di pagina" di `.t-display`.
+ * Il corpo non è più scritto qui: `.t-page` (tokens.css) porta la scala
+ * 44/56 insieme al proprio asse ottico, e `TestataPagina` aggiunge la
+ * barra che raccoglie la parola quando il titolo esce dallo schermo su
+ * mobile. Erano sei chiamate a ripetere `text-[44px] sm:text-[56px]`.
  */
 export default async function ReadersPage() {
   const t = await getTranslations();
@@ -43,7 +43,7 @@ export default async function ReadersPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="t-display text-[44px] sm:text-[56px]">Lettori</h1>
+      <TestataPagina titolo="Lettori" />
       <ElencoLettori elencoIniziale={result.data} />
     </div>
   );

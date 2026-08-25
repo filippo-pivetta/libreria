@@ -1019,15 +1019,97 @@ body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); colo
 
 @layer components {
   /* Display */
+  /* L'asse ottico di Fraunces è una MISURA, non un gusto: `opsz` va posto
+     al corpo a cui il testo viene reso, ed è per questo che il file
+     variabile con l'asse è in repo (lib/fonts.ts). Fissarlo a 72 a ogni
+     dimensione — come faceva questa classe — dà le proporzioni da
+     manifesto a un titolo da 28px: aste sottili e grazie affilate a un
+     corpo di lettura, il difetto che su un telefono, su fondo chiaro, si
+     vede subito.
+
+     `--t-opsz` esiste perché `font-variation-settings` è una proprietà
+     sola e non si può comporre: chi cambia il corpo deve poter cambiare
+     l'asse senza riscrivere anche peso e SOFT. Il valore predefinito
+     resta 72, che è giusto per l'insegna del login (l'unico posto dove
+     il corpo arriva davvero lì).
+
+     Non si usa `font-optical-sizing: auto`, che farebbe il lavoro da sé:
+     WebKit lo disattiva in presenza di `font-variation-settings`, e SOFT
+     si può dichiarare solo da lì. Un numero esplicito è meno elegante e
+     funziona ovunque. */
   .t-display {
+    --t-opsz: 72;
     font-family: var(--font-display);
-    font-variation-settings: "opsz" 72, "SOFT" 20;
+    font-variation-settings: "opsz" var(--t-opsz), "SOFT" 20;
     font-weight: 300;
     letter-spacing: -0.02em;
     line-height: 1.05;
     text-wrap: balance;      /* costoso e senza effetto oltre le 6 righe: solo qui */
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
+  }
+
+  /* Le DUE scale della testata di pagina. Erano tre — 44, 34 e 28 — e solo
+     la prima era scritta da qualche parte: 34 nasceva nella barra di un
+     collegato e 28 sulla scheda del libro, ciascuna per conto proprio.
+
+     La distinzione che le tiene separate non è la loro importanza, è la
+     natura della stringa: `.t-page` porta una PAROLA FISSA
+     dell'interfaccia, che sta sempre su una riga o due e che il progetto
+     conosce in anticipo; `.t-contenuto` porta una stringa di LUNGHEZZA
+     IGNOTA — il nome di una persona, il titolo di un libro — che deve
+     poter andare a capo e troncarsi senza sfondare la colonna.
+
+     Il corpo sta qui e non sul componente: erano sei chiamate a ripetere
+     `text-[44px] sm:text-[56px]`, cioè sei posti da cambiare insieme e
+     nessuno che dichiarasse la regola. */
+  .t-page {
+    --t-opsz: 44;
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" var(--t-opsz), "SOFT" 20;
+    font-weight: 300;
+    font-size: 2.75rem;      /* 44px */
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    text-wrap: balance;
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    color: var(--mtg-ink);
+  }
+
+  .t-contenuto {
+    --t-opsz: 34;
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" var(--t-opsz), "SOFT" 20;
+    font-weight: 300;
+    font-size: 2.125rem;     /* 34px */
+    letter-spacing: -0.02em;
+    line-height: 1.08;       /* un filo più largo di 1.05: qui si va a capo davvero */
+    text-wrap: balance;
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    color: var(--mtg-ink);
+  }
+
+  /* Un titolo di pagina che è un NUMERO (l'anno, sugli Annali): cifre
+     tabulari e spaziatura a zero, perché il tracking negativo di
+     `.t-page` è pensato per parole e su delle cifre stringe male.
+
+     Non si compone con `.t-num`, che pure farebbe le stesse due cose:
+     quella porta anche `font-family: var(--font-ui)` ed è definita più
+     in basso in questo stesso layer, quindi vincerebbe e il titolo
+     uscirebbe in Inter Tight. È esattamente l'insidia annotata in cima
+     al layer — due classi che si scavalcano sulla stessa proprietà — e
+     prima di questa classe la si aggirava riscrivendo `font-display` a
+     mano sul componente. */
+  .t-page-num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
+  @media (min-width: 640px) {
+    .t-page      { --t-opsz: 56; font-size: 3.5rem; }    /* 56px */
+    .t-contenuto { --t-opsz: 46; font-size: 2.875rem; }  /* 46px */
   }
   .t-title { /* titoli di libro, sezioni */
     font-family: var(--font-display);
@@ -1119,6 +1201,109 @@ body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); colo
   /* Numeri delle metriche: tabulari SEMPRE, altrimenti le colonne ballano al
      cambio d'anno. */
   .t-num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+}
+
+/* -----------------------------------------------------------------------------
+   IL SALUTO (Libreria, solo sotto i 640px)
+
+   La Libreria resta senza titolo — «La tua libreria» non diceva niente
+   che uno scaffale di libri propri non dica da sé, e il §7 aveva ragione
+   a toglierlo. Restava però la riga della porta del profilo: un
+   cerchietto allineato a destra e nient'altro, in cima alla pagina più
+   visitata dell'app. Da quando `.barra-titolo` garantisce
+   l'orientamento allo scorrimento, quella riga non deve più fare
+   wayfinding e può dire qualcosa.
+
+   Ventiquattro pixel e non tredici, e non trentotto. Il numero non è
+   estetico, è misurato: a interlinea 1,15 la riga è alta 27,6px, cioè
+   MENO del cerchietto da 28 che le sta accanto — il saluto entra in una
+   riga che esiste già e non sposta la prima mensola di un pixel. A 13px
+   sarebbe stato il carattere più piccolo della pagina, cioè l'errore che
+   questo stesso file condanna a proposito dei titoli di sezione; a 38
+   sarebbe costato una cinquantina di pixel e sarebbe diventato un titolo
+   che non dice dove sei, pagandone il prezzo senza farne il lavoro.
+
+   Niente `text-box-trim`: qui il rapporto con il cerchietto accanto è
+   tutto, e 27,6px è il numero che regge la scelta.
+
+   Il testo viene da `lib/saluto.ts`, calcolato lato server: orologio di
+   Roma, mai nel browser. Come per la luce, si aggiorna al cambio pagina
+   e non durante una permanenza. */
+.t-saluto {
+  --t-opsz: 24;
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" var(--t-opsz), "SOFT" 20;
+  font-weight: 300;
+  font-size: 1.5rem;      /* 24px */
+  letter-spacing: -0.015em;
+  line-height: 1.15;      /* 27,6px: sotto i 28 del cerchietto accanto */
+  color: var(--mtg-ink);
+}
+@media (min-width: 640px) {
+  .t-saluto { display: none; }
+}
+
+/* -----------------------------------------------------------------------------
+   LA BARRA DEL TITOLO (solo sotto i 640px)
+
+   Sotto i 640 la navigazione sta in fondo e in cima non c'è niente: il
+   titolo da 44px esce dallo schermo dopo un dito di scorrimento e non
+   torna più. Da lì in poi l'unica cosa che dice dove si è è la linguetta
+   accesa in fondo, che è `.t-label` — 10,5px, il carattere più piccolo
+   dell'app, al bordo opposto a quello dove cade l'occhio.
+
+   Questa barra è la risposta che iOS dà dal 2017 e dà ancora: il titolo
+   grande orienta all'arrivo e si ritira quando si legge, lasciando la
+   parola in una riga alta `--tap`. Non è un componente nuovo — 15px,
+   peso 600, centrato, è esattamente la testata che la barra di un
+   collegato monta già (`barra-contesto.tsx`).
+
+   Il guadagno vero è sulla Libreria: con l'orientamento garantito qui, la
+   prima schermata non deve più pagare un titolo per averlo.
+
+   `opacity` e nient'altro: la regola dura del movimento (solo transform e
+   opacity) vale anche qui, e la riduzione del movimento è già coperta dal
+   blocco globale in fondo al file. */
+.barra-titolo {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--tap) + var(--safe-t));
+  padding-top: var(--safe-t);
+  padding-inline: var(--sp4);
+  /* Velata, non opaca: sotto ci scorre il contenuto e si deve intuire.
+     Il fondo è il piano 0, cioè la stanza, non una superficie nuova. */
+  background: color-mix(in oklab, var(--mtg-surface-0) 86%, transparent);
+  /* Solo la forma non prefissata: Lightning CSS prefissa da sé secondo la
+     browserslist. Scrivendo anche `-webkit-` a mano le due venivano
+     collassate in una sola, e a sopravvivere era la prefissata — cioè la
+     velatura spariva su tutto ciò che non è WebKit. */
+  backdrop-filter: blur(14px);
+  border-bottom: var(--border-width) solid var(--mtg-line);
+  opacity: 0;
+  /* Inerte finché è trasparente: senza questo si mangerebbe i tocchi
+     sui primi 44px di ogni pagina. */
+  pointer-events: none;
+  transition: opacity var(--dur-panel) var(--ease-settle);
+}
+.barra-titolo[data-visibile] {
+  opacity: 1;
+}
+.barra-titolo > span {
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;   /* 15px */
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--mtg-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (min-width: 640px) {
+  .barra-titolo { display: none; }
 }
 
 /* Nessun letter-spacing negativo sotto i 24px. */
