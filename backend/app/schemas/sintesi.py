@@ -16,6 +16,19 @@ class RiferimentoTema(BaseModel):
     un collegamento vivo — coerente con il fatto che l'intero artefatto è
     una fotografia (`artefatto_repository.py`)."""
 
+    contenuto_id: UUID | None = None
+    """L'id dell'insight o della recensione, per collegare un tema ai
+    propri scritti veri invece che ai soli libri: è ciò che permette a
+    Quaderni di usare un tema come LENTE sul corpus (design-frontend.md
+    §22) — selezionandolo, l'elenco sotto si restringe esattamente a
+    queste righe.
+
+    Facoltativo perché una sintesi è una fotografia conservata
+    (`artefatto_generato`): quelle generate prima del ridisegno del 25
+    agosto 2026 non lo portano, e l'interfaccia ricade sui libri del
+    tema. Si riempie da sé alla prima rigenerazione, che sostituisce
+    comunque la precedente (§22, "sostituisce, non si accumula")."""
+
     voce_id: UUID
     titolo: str
     tipo: Literal["insight", "recensione"]

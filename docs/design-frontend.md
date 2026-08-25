@@ -240,6 +240,12 @@ essere spenta è una voce sbagliata» — vale per una funzione, non per una mat
 i propri scritti esistono anche a consenso revocato, ed è solo il modo di
 interrogarli che si spegne, cosa che la pagina dichiara invece di sparire.
 
+Quella seconda risposta è stata a lungo una promessa e basta: fino al 25 agosto
+2026 Quaderni a consenso revocato era due stati vuoti, perché la pagina non
+conteneva i propri scritti — li interrogava soltanto. Ora li contiene (§22), e la
+promessa è mantenuta dal codice: sfogliare, filtrare, scrivere e ripescare un
+vecchio pensiero non chiedono niente al fornitore.
+
 Il nome sta nel registro di «Annali»: una parola piana che nomina la cosa, non il
 meccanismo che la produce. Una voce chiamata «Assistente» o «Chiedi» sarebbe stato
 il cassetto di prima con una linguetta più grande, e avrebbe violato la regola di
@@ -747,9 +753,25 @@ Il menù di riga sta nel piede accanto alla data, non sospeso sull'angolo del pa
 mostrano i primi otto per lettura, poi "mostra gli altri N". Nessun filtro e nessun tag: il PRD
 li esclude esplicitamente.
 
-**Solo dentro la scheda del libro.** La vista trasversale è rinviata. Ricerca semantica e sintesi
-tematica producono comunque risultati che attraversano più libri, ma una pagina di risultati non
-è una vista di navigazione: mostra l'insight con accanto il libro da cui viene.
+**La vista trasversale non è più rinviata** (25 agosto 2026). Diceva "solo dentro la scheda del
+libro", ed era vero quando gli insight non avevano un altro posto dove stare: ricerca semantica e
+sintesi tematica producevano risultati che attraversavano più libri, ma erano pagine di risultati,
+non una vista di navigazione. Ora quella vista esiste ed è **Quaderni** (§22), che i propri scritti
+li contiene invece di limitarsi a interrogarli — sfogliabili per tipo, periodo e libro, senza
+formulare una domanda e senza consenso.
+
+Restano vere due cose che quella frase difendeva. Dentro la scheda gli insight restano **raggruppati
+per lettura**, che è l'unico posto in cui quel raggruppamento significa qualcosa; e una carta dei
+Quaderni mostra sempre **l'insight con accanto il libro da cui viene**, mai una riga di libro — il
+testo è il contenuto, il libro è la provenienza.
+
+**E si scrive anche da lì.** Un insight nasceva solo da `POST /voci/{id}/insight`, cioè solo dalla
+scheda. Con una voce di navigazione intitolata alla materia, quella regola diceva che il quaderno
+era l'unico quaderno in cui non si poteva scrivere. Da Quaderni si scrive scegliendo il libro, coi
+libri in lettura proposti per primi — è il momento in cui si ha il libro in mano, e da lì alla
+scheda ci sono quattro passi in cui il pensiero si perde. **La correzione invece resta sulla
+scheda**, ed è deliberato: due superfici che modificano lo stesso testo devono restare d'accordo su
+spoiler, visibilità e lettura di appartenenza, e dal titolo di una carta alla scheda c'è un clic.
 
 ---
 
@@ -1441,31 +1463,122 @@ entrambe vuote e si raggiungevano solo da un disclosure chiuso in mezzo ai filtr
 Non sono due funzioni diverse: sono la stessa materia — ciò che hai scritto — interrogata oppure
 vista da lontano. Da qui la fusione.
 
-**Un campo, e sotto una regione sola.** L'intestazione della regione dice sempre cosa contiene: a
-riposo «I temi che tornano», dopo una domanda «7 risultati per “tempo”» con «‹ Torna ai temi»
-accanto. I risultati **prendono il posto** dei temi e non si accodano sotto: una pagina con i
-risultati di una domanda e sotto un elenco di temi che non c'entrano è un elenco di troppo.
-Svuotare il campo fa la stessa cosa del ritorno, ma un campo da svuotare non è una via d'uscita
-che si vede — per questo il ritorno è scritto.
+Quel lavoro era di **collocazione**: tre pagine orfane sono diventate raggiungibili. Non aveva
+toccato cosa succede dentro Quaderni una volta arrivati, che restava il minimo indispensabile — un
+campo, e sotto o i temi o i risultati di una domanda. Il ridisegno del **25 agosto 2026** riprende
+in mano il contenuto.
 
-Effetto secondario che vale da solo: la pagina non nasce più vuota. Chi entra senza una domanda
-in testa trova i propri temi, non un campo e un'istruzione.
+### Il difetto da cui si parte
+
+La pagina non conteneva nulla di proprio. Aveva un campo che interrogava i propri scritti e una
+sintesi che li riassumeva; gli scritti veri vivevano solo dentro la scheda del libro. Era
+un'interfaccia al modello con un nome da luogo, e si vedeva da tre cose:
+
+- **a consenso revocato era due stati vuoti**, mentre §5 prometteva l'opposto ("i propri scritti
+  esistono anche a consenso revocato, ed è solo il modo di interrogarli che si spegne"). Non era
+  una svista di implementazione: la pagina non aveva gli scritti da mostrare;
+- **le due regioni non si toccavano mai.** Si alternavano in un ternario, e un tema apriva i propri
+  insight dentro la propria carta — cioè un elenco di scritti dentro una carta dentro un elenco di
+  carte, mentre la pagina intorno non conteneva gli scritti affatto;
+- **nessun gesto era gratuito.** Le uniche due cose che si potevano fare passavano entrambe dal
+  fornitore, mentre la Libreria ne ha due che non costano niente (§7).
+
+### Un corpus, tre lenti
+
+Il modello non è più "due regioni che si alternano". **La pagina contiene ciò che hai scritto,
+sempre**, e le lenti ne cambiano ordine e selezione, non l'esistenza.
+
+| Lente | Cosa fa alla regione | Costo | Consenso |
+|---|---|---|---|
+| **Sfoglia** (a riposo) | dal più recente | zero | funziona spento |
+| **Chiedi** | riordina per vicinanza a una domanda | un embedding | serve |
+| **Tema** | restringe agli scritti che lo sostengono | zero | serve per generarlo |
+
+Da qui tre conseguenze. C'è **una sola sorgente di carte**: i risultati di una domanda e la vista
+sfogliata sono lo stesso componente, e se le due forme divergessero divergerebbero anche i due
+elenchi. I **filtri valgono per tutte e tre le lenti** allo stesso modo. E non esiste più un ramo
+in cui la pagina mostra un riquadro al posto del contenuto.
+
+### Lo slot sollevato in cima
+
+Un posto solo, sopra i comandi, che tiene due cose che non coesistono mai.
+
+**A riposo, il pensiero che torna**: un proprio scritto di almeno due mesi fa, ripescato, uno al
+giorno. È il gesto che Readwise ha costruito in grande — la ripresentazione — applicato alla
+materia che qui è propria: non una citazione di un autore, ma una frase che hai scritto tu, e che
+aprendo la pagina ti ritrovi davanti senza aver chiesto niente. È anche la schermata che vende
+l'app da sola, ed è **piano 2** e non piano 1: non è una riga dell'elenco capitata in cima, è una
+cosa che ti viene messa davanti. Il salto di piano è l'unica differenza — corpo, carattere e misura
+restano quelli di un insight qualsiasi, perché §10 non ammette una terza misura tipografica decisa
+da chi scrive la pagina.
+
+**Tetto di quattro righe**, poi "Mostra tutto". Quattro è la misura sotto cui una sentenza non si
+tronca mai (§10: sotto le ~200 battute sta in tre righe e mezza), quindi il comando compare solo
+quando il pensiero è davvero un appunto lungo — e la carta resta sotto i ~230px, cioè si legge in un
+colpo d'occhio e si scavalca con la stessa facilità se non se ne ha voglia. Il comando compare solo
+se la troncatura ha morso davvero, il che si misura: il CSS non lo dice a nessuno.
+
+**Nessuna tabella di stato.** La scelta è deterministica sul giorno — hash dell'utente più la data
+di Europa centrale — quindi resta ferma per ventiquattr'ore da sé. Una riga che registri cosa è già
+uscito andrebbe mantenuta, cancellata insieme all'account e ricostruita alla revoca del consenso:
+tre obblighi in cambio di una rotazione un po' meno prevedibile. "Mostrane un altro" copre il caso
+in cui se ne voglia un altro senza aspettare domani. **Non dipende dal consenso**: è una riga già
+scritta, ripescata, e nessun testo esce verso il fornitore.
+
+**Mentre si scrive, lo stesso slot diventa il foglio.** Piano 1, la carta su cui si scrive — la
+differenza di piano è la differenza fra un oggetto che ti viene porto e una superficie su cui
+agisci. Non due blocchi che si sommano: chi sta scrivendo non ha bisogno di un vecchio pensiero
+sopra le mani. Per la stessa ragione lo slot sparisce del tutto quando una lente è accesa: chi ha
+appena posto una domanda non lo vuole sopra la risposta.
+
+### La carta di uno scritto
+
+Prima il titolo e l'autore in `t-meta` come collegamento alla scheda, poi il testo nel suo
+trattamento tipografico normale (sentenza a misura stretta o appunto alla misura piena, §10), poi
+il piede.
+
+**Due colonne su desktop, non una riga per scritto.** A una colonna sulla larghezza piena una
+sentenza in Literata a 19px correrebbe su novanta caratteri, il doppio della misura che §10 le
+assegna, e l'elenco leggerebbe come un registro. A due colonne ogni carta sta sui 470px e la pagina
+legge come un quaderno: molti frammenti scandibili invece di poche righe lunghe. Griglia e non
+colonne CSS, che scorrerebbero in basso lungo la prima colonna e poi ripartirebbero dall'alto —
+su un elenco cronologico significa leggere "dal più recente" due volte.
+
+**Nel piede un dato, non un comando ripetuto.** Il piede porta «3 vicini», non «Vicini a questo».
+Su venti carte, venti pulsanti identici sono rumore che l'occhio impara a saltare; un numero è
+informazione, e dice già di per sé che quel pensiero ha compagnia. Le carte senza vicini non
+mostrano nulla, quindi la riga non compare venti volte su venti. A indici spenti non compare mai:
+uno `0` affermerebbe che quel pensiero non ha compagnia, cosa che in quel momento nessuno sa.
+
+**Aprendo i vicini la carta prende tutta la riga.** Ciò che esce è la coda di quel pensiero, non un
+secondo elenco che gli sta accanto, e a mezza colonna si leggerebbe come tale.
+
+**Uno spoiler compare in chiaro**, a differenza di ogni altro elenco: la regola 10 protegge da uno
+spoiler *altrui*, e qui ogni riga è già del richiedente (verificato lato server). Il contrassegno
+resta accanto a data e tipo, **insieme al lucchetto di "solo tuo"**: §10 vuole entrambi scanditi
+dall'occhio e non dedotti aprendo qualcosa, e prima usciva solo lo spoiler — la stessa carta
+mostrava un segno su due.
+
+### I vicini
+
+Da ogni carta, i propri scritti semanticamente più vicini a quello. È la funzione più
+caratteristica della pagina e la più economica che abbia: **nessuna chiamata al fornitore**. La
+ricerca deve prima far calcolare l'embedding della domanda, perché la domanda è appena stata
+digitata; qui il vettore di partenza è già in tabella, scritto quando l'insight è stato salvato.
+Resta solo il confronto vettoriale, locale al database.
+
+Dipende comunque dal consenso, ma per una ragione da non confondere col costo: la revoca cancella
+gli indici, quindi non resta niente da confrontare. Stessa soglia di distanza della ricerca, e
+stessa ragione: senza un tetto ogni scritto avrebbe sempre i suoi N più vicini, per quanto lontani
+siano in assoluto, e "vicino" smetterebbe di voler dire qualcosa.
 
 ### La ricerca
 
 **Non cerca mentre si digita**, a differenza del filtro dello scaffale e della ricerca sui
 cataloghi (§13). Ogni interrogazione costa una chiamata al fornitore, e una domanda in linguaggio
-naturale si finisce di scrivere prima di volerla porre. Campo con la sola riga inferiore come ogni
-altro campo dell'app, `aria-label` esplicita, e un pulsante "Cerca" accanto.
-
-**Un risultato è l'insight, con accanto il libro da cui viene**, come stabilisce §10: prima il
-titolo e l'autore in `t-meta` come collegamento alla scheda, poi il testo nel suo trattamento
-tipografico normale (sentenza o appunto secondo la lunghezza), poi la data e il tipo.
-
-**Uno spoiler compare in chiaro qui**, a differenza di ogni altro elenco: la regola protegge da
-uno spoiler *altrui*, e in questa pagina ogni risultato è già del richiedente, mai di un
-collegato (la ricerca non attraversa mai i contenuti condivisi). Il contrassegno resta comunque
-leggibile accanto a data e tipo, come promemoria di ciò che si è marcato per gli altri.
+naturale si finisce di scrivere prima di volerla porre. Cambiare un filtro mentre una domanda è
+attiva invece **rifà** la ricerca, ed è voluto: il filtro deve restringere il risultato, non
+l'elenco già tagliato.
 
 **I risultati passano un filtro di pertinenza minima**, non solo un limite di quantità:
 `cerca_semantico` scarta chi è oltre una certa distanza dalla domanda, invece di riempire sempre
@@ -1478,7 +1591,7 @@ ha, semplicemente riordinato. La soglia è tarata sui dati e resta rivedibile in
 | Stato | Cosa si mostra |
 |---|---|
 | Nessuna corrispondenza | "Non hai ancora scritto nulla che somigli a questa domanda." |
-| Consenso revocato | Uno stato vuoto che dice che la funzione è spenta e rimanda al Profilo |
+| Consenso revocato | La riga che dichiara la funzione spenta, al posto del campo |
 | Indici in ricostruzione | I risultati che ci sono, più una riga che dichiara che sono incompleti |
 
 Un elenco vuoto direbbe la cosa falsa più credibile che esista — che non hai scritto nulla al
@@ -1489,40 +1602,86 @@ deve sapere perché è corto prima di concludere che è tutto.
 Nessuno dei tre è un errore, e nessuno dei tre è un riquadro rosso: sono testo, come ogni altro
 messaggio dell'app (§19).
 
+### I filtri, gratuiti
+
+Tipo (insight o recensioni), spoiler, anno, libro. **Stesso registro delle pastiglie di stato dello
+scaffale** (§7), e non per simmetria estetica: dicono la stessa cosa — un modo in più di guardare la
+stessa materia, senza chiamare nessuno. Vestiti identici, comprese le due classi di stato: una
+pastiglia accesa è inchiostro al 9% senza bordo, mai un riempimento colorato.
+
+**"Tutti" è uno stato dichiarato**, non dedotto, come sullo scaffale. Il tipo però è a **scelta
+singola** e non additivo: insight e recensioni sono due sole voci, e "insight + recensioni" è già
+"Tutti" — tre pastiglie che si sommano fino a ricomporre la prima sarebbero tre modi di dire due
+cose.
+
+**I menù di anno e libro offrono solo valori che hanno righe**, col loro conteggio: un menù d'anno
+che elenca anni in cui non si è scritto niente promette elenchi vuoti. Non sono ristretti dalle
+altre pastiglie di proposito — altrimenti restringere per tipo farebbe sparire anni dal menù e non
+ci si potrebbe più tornare.
+
+**Il conteggio compare solo quando risponde a un gesto** (§7, emendamento 25 agosto 2026): con un
+filtro attivo, su una riga sua sotto le pastiglie. Senza filtri il totale sta nell'intestazione
+della regione, dove è una didascalia dell'elenco e non un comando fra i comandi.
+
+**Il filtro entra dentro la ricerca, non attorno.** `cerca_semantico` tiene i venti vettori più
+vicini e poi si ferma: filtrare a valle darebbe zero risultati ogni volta che quei venti sono tutti
+dell'anno sbagliato, e zero risultati qui si legge come "non hai scritto nulla al riguardo". La
+funzione cerca quindi i venti più vicini **fra quelli che passano il filtro**.
+
+**Una recensione non ha contrassegno spoiler** (è un attributo del solo Insight, PRD) né una data
+propria — si usa la sua data di creazione. Il filtro "spoiler" restringe quindi ai soli insight, e
+va detto invece di far sparire le recensioni in silenzio.
+
 ### I temi che tornano
 
-Un elenco di temi, ciascuno con le prove attaccate — non un paragrafo unico: un tema verificabile
-e collegato ai libri da cui viene serve, un riassunto in prosa della libreria no.
+**Erano carte, ora sono una lente.** Un tema era una carta con dentro nome, frase, libri e — dietro
+"Mostra gli insight" — l'elenco degli scritti che l'avevano prodotto. Ora la pagina quegli scritti
+li contiene: al tema basta dire **quali**, e il corpus sotto si restringe a quelli. Selezionandolo,
+nome e frase diventano l'intestazione della regione; "Mostra gli insight" sparisce.
 
-**Un tema è una carta**, su piano 1 con grana, non una riga di elenco: nome del tema in
-`t-label` (stesso trattamento delle intestazioni di gruppo negli insight, §10), poi la frase che
-lo descrive in `t-sentenza`/`t-appunto` a seconda della lunghezza — un'osservazione breve, non
-una didascalia generata. Sotto, i libri distinti da cui viene il tema, ciascuno un collegamento
-alla propria scheda. Un comando testuale, "Mostra gli insight", apre l'elenco degli insight e
-delle recensioni veri che hanno prodotto il tema, con lo stesso trattamento dei risultati di
-ricerca: titolo del libro come collegamento, testo, poi tipo e data.
+È anche il ponte che mancava fra le due regioni, che prima si alternavano soltanto: da un tema si
+arriva ai suoi scritti senza passare dal campo, e da lì alla ricerca vera con un comando esplicito
+— «cerca tutto ciò che somiglia a questo tema». Il risultato **non coincide** con i riferimenti del
+tema, e la pagina lo dice invece di nasconderlo: la sintesi tiene i sostegni più forti, la ricerca
+prende tutto ciò che è vicino. Sono due lenti diverse, non due versioni della stessa.
+
+**Il nome del tema porta il carattere del display**, non quello dei comandi. Sopra c'è la riga
+delle pastiglie di filtro in Inter Tight; con lo stesso vestito la pagina avrebbe due righe di
+pastiglie che si somigliano e fanno cose diverse — una restringe per un attributo, l'altra apre
+un'interpretazione. Un tema è un nome che il modello ha scritto, cioè materia della famiglia dei
+titoli (§4).
+
+**Il filtro va al server**, non applicato in pagina: i riferimenti di un tema possono essere più
+vecchi della prima trentina di righe caricate, e filtrare ciò che è già a schermo li perderebbe
+senza dirlo.
 
 **Nessun tema debole.** Un tema sostenuto da un solo libro non è trasversale, e non compare — non
 attenuato, non segnalato come incerto, assente. Se dopo il filtro non resta alcun tema, la
 sintesi non si genera né sostituisce quella esistente: meglio nessuna carta che una carta vuota o
 un pattern su un libro solo. Due testi distinti per i due modi in cui questo succede: non hai
-ancora scritto nulla ("Scrivi qualche insight o recensione prima di chiedere una sintesi"), oppure
-hai scritto ma nulla si collega ancora fra libri diversi ("Non emerge ancora un tema che
-attraversi libri diversi. Continua a scrivere e a leggere, poi riprova").
+ancora scritto nulla, oppure hai scritto ma nulla si collega ancora fra libri diversi.
+
+**Senza sintesi la striscia è una riga sola**, non un blocco: a riposo la pagina deve mostrare ciò
+che si è scritto, non un invito a generare qualcosa. Era il difetto della vecchia regione a riposo,
+che nasceva con un pulsante e nient'altro.
 
 **Sostituisce, non si accumula** — a differenza della preview (§9), che accumula apposta perché un
 parere per ogni rilettura ha senso. Esiste al più una sintesi tematica per utente: generarne una
-nuova cancella la precedente, mai prima di avere quella nuova pronta. Il comando lo dice: "Genera
-una sintesi" la prima volta, "Genera di nuovo" quando ce n'è già una, e sta nell'intestazione
-della regione insieme a "Cancella", non in fondo all'elenco.
+nuova cancella la precedente, mai prima di avere quella nuova pronta.
 
 **Lo stesso avviso della preview**: il campo della risposta che dichiara la generazione — non una
-frase dentro un testo — sopra l'elenco dei temi, valido per l'intero risultato e non ripetuto su
-ogni carta.
+frase dentro un testo — accanto al tema aperto, valido per l'intero risultato.
 
-**Come per la preview**: a consenso revocato la sintesi già generata resta leggibile e cancellabile
-dal proprietario, temi e insight collegati compresi; solo il comando di generazione sparisce,
-sostituito da un rimando al Profilo.
+### A consenso revocato la pagina resta piena
+
+Mancano **due cose**, non la pagina: il campo — dichiarato al posto suo, non tolto — e il conteggio
+dei vicini sulle carte, perché gli indici sono stati cancellati. Restano il corpus, i filtri, la
+scrittura, il pensiero che torna, e **i temi già generati**, che sono un artefatto dell'Utente (§22,
+"resta leggibile e cancellabile dal proprietario") e il cui filtro non chiede niente a nessuno — è
+un confronto fra identificatori. Sparisce solo "Genera di nuovo".
+
+La dichiarazione occupa esattamente il posto della cosa che manca e l'azione primaria resta al suo:
+non è uno stato vuoto e non è un riquadro d'allarme (§19), è testo.
 
 ---
 

@@ -17,7 +17,7 @@ import { EmptyShelf } from "@/components/states/empty-shelf";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroScaffale } from "@/components/states/scheletri";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
@@ -205,22 +205,39 @@ export function Scaffale({
 
       {/* 1. IL CAMPO E L'AZIONE, SULLA STESSA RIGA.
           Sulla libreria di un collegato l'azione non c'è (non si aggiunge un
-          libro a casa d'altri) e il campo prende tutta la riga da solo. */}
-      <div className="flex items-end gap-4">
-        <input
-          type="search"
-          placeholder="Titolo o autore"
-          value={filtroTesto}
-          onChange={(event) => setFiltroTesto(event.target.value)}
-          aria-label="Cerca per titolo o autore"
-          className="field-line min-w-0 flex-1 border-0 border-b border-line bg-transparent px-0 py-2.5 font-ui text-base text-ink outline-none placeholder:text-ink-soft"
-        />
+          libro a casa d'altri) e il campo prende tutta la riga da solo.
+
+          Il pulsante "Cerca" non fa partire nulla che il campo non stia già
+          facendo da sé: qui il filtro resta sempre attivo, ad ogni tocco di
+          tasto, esattamente come prima (§7, "sempre disponibile, nessuna
+          chiamata a nessun modello"). Sta qui per lo stesso motivo che lo
+          mette accanto al campo di Quaderni — lo stesso vestito per un campo
+          con la sola riga inferiore in tutta l'app — e perché su un
+          telefono un `type="submit"` chiude la tastiera virtuale al tocco,
+          cosa che un `<input>` da solo non offre. Il `<form>` con
+          `preventDefault` esiste solo per questo: non c'è nessuna
+          sottomissione da completare. */}
+      <form onSubmit={(event) => event.preventDefault()} className="flex items-end gap-3">
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Cerca per titolo o autore</span>
+          <input
+            type="search"
+            placeholder="Titolo o autore"
+            value={filtroTesto}
+            onChange={(event) => setFiltroTesto(event.target.value)}
+            aria-label="Cerca per titolo o autore"
+            className="field-line w-full border-0 border-b border-line bg-transparent px-0 py-2.5 font-ui text-base text-ink outline-none placeholder:text-ink-soft"
+          />
+        </label>
+        <Button type="submit" variant="outline" disabled={filtroTesto.trim().length === 0}>
+          Cerca
+        </Button>
         {!utenteCollegatoId && (
           <Link href="/aggiungi" className={cn(buttonVariants({ size: "lg" }))}>
             Aggiungi un libro
           </Link>
         )}
-      </div>
+      </form>
 
       {/* 2. LE PASTIGLIE, ADDITIVE.
 

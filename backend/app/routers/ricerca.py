@@ -168,6 +168,20 @@ async def post_libri(
 async def get_ricerca_semantica(
     request: Request,  # noqa: ARG001  # slowapi lo richiede in firma per il limite per-route
     q: str = Query(min_length=1, max_length=500),
+    tipo: str | None = Query(default=None, pattern="^(insight|recensione)$"),
+    solo_spoiler: bool = Query(default=False),
+    anno: int | None = Query(default=None, ge=1900, le=2200),
+    # Elenchi e non valori singoli: `voce_id` regge il menù "ogni libro",
+    # che ne passa uno, ma anche la lente di un tema quando deve ricadere
+    # sui suoi libri; `contenuto_id` è la lente di un tema vera e propria,
+    # cioè l'elenco degli scritti che il modello ha messo insieme. Un tema
+    # non è un attributo dello scritto, è un insieme di scritti.
+    #
+    # noqa come su ogni `Depends` dei router: B008 salta la chiamata nel
+    # default solo per le annotazioni che ruff sa immutabili (int, str,
+    # bool), e una lista di UUID non è fra quelle.
+    voce_id: list[UUID] | None = Query(default=None),  # noqa: B008
+    contenuto_id: list[UUID] | None = Query(default=None),  # noqa: B008
     current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
 ) -> dict[str, Any]:
     """La ricerca dentro i propri insight e le proprie recensioni.
@@ -182,13 +196,27 @@ async def get_ricerca_semantica(
     409 e non lista vuota a consenso revocato — il PRD è esplicito:
     "l'interfaccia dichiara che la funzione è disattivata, invece di
     restituire zero risultati come se non ci fosse nulla da trovare".
+
+    I quattro filtri sono gli stessi che `GET /scritti` applica alla vista
+    sfogliata, e devono voler dire la stessa cosa nei due posti: una
+    pastiglia premuta non può restringere in un modo quando sfogli e in un
+    altro quando chiedi. Entrano dentro `cerca_semantico` e non attorno,
+    perché a valle del taglio darebbero elenchi vuoti che si leggono come
+    "non hai scritto nulla al riguardo" (vedi il commento sulla RPC).
     """
     domanda = q.strip()
     if len(domanda) < _LUNGHEZZA_MINIMA:
         return {"risultati": [], "indici_incompleti": False}
     try:
         return await ricerca_semantica_service.cerca(
-            current_user.access_token, current_user.id, domanda
+            current_user.access_token,
+            current_user.id,
+            domanda,
+            tipo=tipo,
+            solo_spoiler=solo_spoiler,
+            anno=anno,
+            voce_ids=voce_id,
+            contenuto_ids=contenuto_id,
         )
     except consenso_service.ConsensoRevocatoError as errore:
         raise HTTPException(

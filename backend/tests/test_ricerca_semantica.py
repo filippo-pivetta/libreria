@@ -48,6 +48,7 @@ def _riga(**extra: Any) -> dict[str, Any]:
         "contenuto_id": "00000000-0000-0000-0000-0000000000c1",
         "testo": "La memoria come materia narrativa.",
         "spoiler": False,
+        "visibilita": "condiviso",
         "data": "2026-08-01",
         "voce_id": _VOCE_ID,
         "libro_id": _LIBRO_ID,
@@ -55,6 +56,7 @@ def _riga(**extra: Any) -> dict[str, Any]:
         "autori": ["Italo Calvino"],
         "copertina_miniatura_path": None,
         "copertina_colore_dominante": "#3a4a5a",
+        "vicini": 2,
         "distanza": 0.12,
     }
     return {**base, **extra}
@@ -76,7 +78,15 @@ def servizio(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     """Il service con il fornitore e il database finti. Restituisce un
     registro ispezionabile: `embedding` dice se il fornitore è stato
     chiamato, ed è il modo di verificare la regola 30."""
-    registro: dict[str, Any] = {"embedding": [], "righe": [_riga()], "indici_stato": "pronti"}
+    registro: dict[str, Any] = {
+        "embedding": [],
+        "righe": [_riga()],
+        "indici_stato": "pronti",
+        # Cosa è arrivato alla RPC: è il modo di verificare che i
+        # filtri entrino DENTRO `cerca_semantico` invece di essere
+        # applicati dopo il taglio ai venti più vicini.
+        "filtri": {},
+    }
 
     async def _esigi(access_token: str, utente_id: UUID) -> str:
         if not registro.get("consenso", True):
@@ -90,9 +100,12 @@ def servizio(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(consenso_service, "esigi_consenso", _esigi)
     monkeypatch.setattr(ricerca_semantica_service, "chiama_embedding", _embedding)
     monkeypatch.setattr(ricerca_semantica_service, "get_user_client", lambda token: object())
-    monkeypatch.setattr(
-        indice_semantico_repository, "cerca", lambda c, e, limite: registro["righe"]
-    )
+
+    def _cerca(client: Any, embedding: Any, limite: int, **filtri: Any) -> list[dict[str, Any]]:
+        registro["filtri"] = filtri
+        return list(registro["righe"])
+
+    monkeypatch.setattr(indice_semantico_repository, "cerca", _cerca)
     monkeypatch.setattr(storage, "firma_in_blocco", lambda percorsi: {})
     return registro
 
@@ -131,6 +144,39 @@ def test_dichiara_gli_indici_incompleti_durante_la_ricostruzione(
     assert _run(ricerca_semantica_service.cerca("t", _USER_ID, "memoria"))["indici_incompleti"]
 
 
+def test_i_filtri_entrano_dentro_la_rpc(servizio: dict[str, Any]) -> None:
+    """Le pastiglie dei Quaderni restringono la ricerca PRIMA del taglio,
+    non dopo.
+
+    `cerca_semantico` tiene i venti vettori più vicini e poi si ferma:
+    filtrare a valle darebbe zero risultati ogni volta che quei venti
+    sono tutti dell'anno sbagliato, e zero risultati in questa pagina si
+    legge come "non hai scritto nulla che somigli a questa domanda" —
+    che sarebbe falso. Il posto in cui il filtro deve arrivare è quindi
+    la RPC, ed è questo che il test blocca.
+    """
+    _run(
+        ricerca_semantica_service.cerca(
+            "t",
+            _USER_ID,
+            "memoria",
+            tipo="insight",
+            solo_spoiler=True,
+            anno=2026,
+            voce_ids=[UUID(_VOCE_ID)],
+        )
+    )
+
+    assert servizio["filtri"] == {
+        "tipo": "insight",
+        "solo_spoiler": True,
+        "anno": 2026,
+        "voce_ids": [UUID(_VOCE_ID)],
+        "contenuto_ids": None,
+        "con_vicini": True,
+    }
+
+
 def test_a_consenso_revocato_non_chiama_il_fornitore(servizio: dict[str, Any]) -> None:
     """Regola 30. Non basta che la risposta sia un errore: la domanda non
     deve nemmeno partire verso OpenAI."""
@@ -152,6 +198,23 @@ def test_get_ricerca_semantica_200(authenticated: TestClient, servizio: dict[str
     body = response.json()
     assert len(body["risultati"]) == 1
     assert body["risultati"][0]["libro_id"] == _LIBRO_ID
+
+
+def test_get_ricerca_semantica_passa_i_filtri(
+    authenticated: TestClient, servizio: dict[str, Any]
+) -> None:
+    """Gli stessi quattro filtri di `GET /scritti`: una pastiglia premuta
+    non può restringere in un modo quando sfogli e in un altro quando
+    chiedi."""
+    response = authenticated.get(
+        "/ricerca/semantica",
+        params={"q": "memoria", "tipo": "recensione", "anno": 2025, "solo_spoiler": "true"},
+    )
+
+    assert response.status_code == 200
+    assert servizio["filtri"]["tipo"] == "recensione"
+    assert servizio["filtri"]["anno"] == 2025
+    assert servizio["filtri"]["solo_spoiler"] is True
 
 
 def test_get_ricerca_semantica_409_a_consenso_revocato(
