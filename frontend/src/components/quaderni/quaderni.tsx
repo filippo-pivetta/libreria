@@ -206,7 +206,7 @@ export function Quaderni() {
           tolto perché ripeteva la pagina (design-frontend.md §4). */}
       <TestataPagina
         titolo="Quaderni"
-        sottotitolo="Ciò che hai scritto leggendo, in un posto solo. Solo i tuoi testi: quelli dei tuoi collegati restano fuori."
+        sottotitolo="Ciò che hai scritto leggendo, in un posto solo."
       />
 
       {scrivendo ? (
