@@ -1063,6 +1063,19 @@ body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); colo
   }
   .t-appunto[data-clamped] { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
 
+  /* Quattro righe, per lo slot in cima ai Quaderni (design doc §22).
+     Non e' una terza misura tipografica — il testo resta sentenza o
+     appunto — e' un tetto all'ingombro di UNO slot.
+
+     Quattro e non otto come `.t-appunto[data-clamped]`: quello e' il
+     troncamento dentro un elenco che si sta gia' leggendo, questo sta
+     sopra tutto il resto della pagina e nessuno lo ha chiesto. Quattro
+     righe e' anche la misura sotto cui una sentenza non si tronca mai
+     (§10: sotto le ~200 battute, che a 19px su ~34ch stanno in tre
+     righe e mezza), quindi il comando compare solo quando il pensiero
+     che torna e' davvero un appunto lungo. */
+  .t-clamp-4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
   /* UI */
   .t-label {
     font-family: var(--font-ui);

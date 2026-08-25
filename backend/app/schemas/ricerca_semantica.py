@@ -33,6 +33,10 @@ class RisultatoSemantico(BaseModel):
     """Il contrassegno resta esposto come informazione, anche se il testo
     non è nascosto: sapere di aver marcato un insight come spoiler è
     comunque utile a chi legge i propri risultati."""
+    visibilita: Literal["condiviso", "privato"] = "condiviso"
+    """Il lucchetto di "solo tuo" nel piede della carta. Prima usciva solo
+    lo spoiler, e la stessa carta scandiva un segno su due dei due che
+    §10 chiede di rendere visibili senza aprire nulla."""
     data: date
     voce_id: UUID
     libro_id: UUID
@@ -40,6 +44,10 @@ class RisultatoSemantico(BaseModel):
     autori: list[str]
     copertina_miniatura_url: str | None
     copertina_colore_dominante: str | None
+    vicini: int | None = None
+    """Quanti propri scritti stanno semanticamente vicino a questo: lo
+    stesso dato che porta la vista sfogliata (`app/schemas/quaderni.py`),
+    perché la carta sia la stessa carta sotto tutte e tre le lenti."""
 
 
 class RicercaSemanticaResponse(BaseModel):

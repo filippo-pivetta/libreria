@@ -37,14 +37,37 @@ from app.services import consenso as consenso_service
 LIMITE_RISULTATI = 20
 
 
-async def cerca(access_token: str, utente_id: UUID, domanda: str) -> dict[str, Any]:
+async def cerca(
+    access_token: str,
+    utente_id: UUID,
+    domanda: str,
+    *,
+    tipo: str | None = None,
+    solo_spoiler: bool = False,
+    anno: int | None = None,
+    voce_ids: list[UUID] | None = None,
+    contenuto_ids: list[UUID] | None = None,
+) -> dict[str, Any]:
     indici_stato = await consenso_service.esigi_consenso(access_token, utente_id)
 
     vettori = await chiama_embedding([domanda])
 
     client = get_user_client(access_token)
     righe = await run_in_threadpool(
-        indice_semantico_repository.cerca, client, vettori[0], LIMITE_RISULTATI
+        indice_semantico_repository.cerca,
+        client,
+        vettori[0],
+        LIMITE_RISULTATI,
+        tipo=tipo,
+        solo_spoiler=solo_spoiler,
+        anno=anno,
+        voce_ids=voce_ids,
+        contenuto_ids=contenuto_ids,
+        # Il piede della carta dei risultati e quello della carta della
+        # vista sfogliata devono essere lo stesso piede: se qui non
+        # arrivasse il conteggio dei vicini, la stessa riga cambierebbe
+        # aspetto a seconda della lente da cui la si guarda.
+        con_vicini=True,
     )
 
     return {

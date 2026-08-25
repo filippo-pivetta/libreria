@@ -169,6 +169,7 @@ def _filtra(
                 "sintesi": sintesi,
                 "riferimenti": [
                     {
+                        "contenuto_id": str(r["contenuto_id"]),
                         "voce_id": str(r["voce_id"]),
                         "titolo": r["titolo"],
                         "tipo": r["tipo"],

@@ -20,6 +20,16 @@
 export type TipoRiferimento = "insight" | "recensione";
 
 export type RiferimentoTema = {
+  /** L'id dell'insight o della recensione, per collegare un tema ai
+   * propri scritti veri invece che ai soli libri: è ciò che permette a
+   * Quaderni di usare un tema come lente sul corpus (design doc §22).
+   *
+   * `null` sulle sintesi generate prima del ridisegno del 25 agosto 2026
+   * — una sintesi è una fotografia conservata, non un collegamento vivo.
+   * In quel caso la lente ricade sui libri del tema, e la prima
+   * rigenerazione riempie il campo (§22, "sostituisce, non si
+   * accumula"). */
+  contenutoId: string | null;
   voceId: string;
   titolo: string;
   tipo: TipoRiferimento;
@@ -41,6 +51,7 @@ export type Sintesi = {
 };
 
 type RiferimentoBody = {
+  contenuto_id: string | null;
   voce_id: string;
   titolo: string;
   tipo: TipoRiferimento;
@@ -86,6 +97,7 @@ function toSintesi(body: Body): Sintesi {
       nome: t.nome,
       sintesi: t.sintesi,
       riferimenti: t.riferimenti.map((r) => ({
+        contenutoId: r.contenuto_id ?? null,
         voceId: r.voce_id,
         titolo: r.titolo,
         tipo: r.tipo,
