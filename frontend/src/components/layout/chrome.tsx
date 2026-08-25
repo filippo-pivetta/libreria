@@ -59,9 +59,10 @@ export function Chrome({
     return <>{children}</>;
   }
 
-  // Le quattro pagine che hanno già un vero titolo di pagina in cima
-  // (Annali, Lettori, Profilo, Quaderni, tutte a `t-display` 44/56px): lì
-  // la porta del profilo si appoggia in overlay sul loro angolo, a costo
+  // Le pagine che hanno già un vero titolo di pagina in cima (Annali,
+  // Lettori, Profilo, Quaderni, e da quando ha tre corsie anche Aggiungi
+  // un libro, tutte a `t-display` 44/56px): lì la porta del profilo si
+  // appoggia in overlay sul loro angolo, a costo
   // di altezza zero, invece di prendersi una riga tutta sua sopra di
   // loro. La Libreria (`/`) non ha un titolo — «La tua libreria» è stato
   // tolto di proposito (design-frontend.md §7, la voce accesa in barra
@@ -74,7 +75,7 @@ export function Chrome({
   // misura del contenuto, non il contenuto, e a corpo 56 gridava un dato
   // che nessuno stava cercando. Meglio l'eccezione di un titolo finto —
   // e comunque questa riga costa 22px una volta sola, in cima.
-  const haTitoloProprio = ["/annals", "/readers", "/profilo", "/quaderni"].some(
+  const haTitoloProprio = ["/annals", "/readers", "/profilo", "/quaderni", "/aggiungi"].some(
     (rotta) => pathname === rotta || pathname.startsWith(`${rotta}/`),
   );
 

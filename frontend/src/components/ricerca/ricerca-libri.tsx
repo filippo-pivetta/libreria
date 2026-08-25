@@ -133,8 +133,10 @@ export function RicercaLibri() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <label htmlFor="ricerca" className="t-label">
-          Aggiungi un libro
+        {/* Sr-only: il titolo di pagina, appena sopra, dice già "Aggiungi
+            un libro" — un'etichetta visibile qui lo ripeterebbe. */}
+        <label htmlFor="ricerca" className="sr-only">
+          Cerca un libro per titolo o autore
         </label>
         {/* Un campo solo, senza selettore di modalità: il PRD è netto,
             non esistono altre vie d’ingresso, né codice né scansione. */}
@@ -145,7 +147,7 @@ export function RicercaLibri() {
           value={termine}
           onChange={(event) => setTermine(event.target.value)}
           placeholder="Titolo o autore"
-          className="field-line w-full max-w-lg border-0 border-b border-line bg-transparent px-0 py-2 font-display text-lg text-ink outline-none placeholder:text-ink-soft"
+          className="field-line w-full max-w-lg border-0 border-b border-line bg-transparent px-0 py-3 font-display text-2xl text-ink outline-none placeholder:text-ink-soft"
         />
       </div>
 
@@ -184,9 +186,15 @@ export function RicercaLibri() {
       {vicoloCieco && <VicoloCieco termine={cercato} />}
 
       {!attivo && (
+        /* Prima diceva come si cerca ("per titolo o autore") e in che
+           ordine arrivano i risultati — cose che un lettore non deve
+           sapere, e la seconda annunciava a schermo la divisione
+           locale/esterno che il PRD chiede di non mostrare ("presentati
+           insieme, senza distinzione"). Resta la sola cosa che non si può
+           indovinare: che la ricerca esce dall'app. */
         <p className="max-w-prose text-sm text-ink-soft">
-          Cerca per titolo o autore. Le schede già nel sistema compaiono per prime, seguite dai
-          cataloghi esterni.
+          Si cerca in tutto ciò che i cataloghi conoscono: non soltanto in ciò che qui è già stato
+          letto.
         </p>
       )}
     </div>

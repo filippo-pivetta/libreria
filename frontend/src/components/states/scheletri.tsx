@@ -27,7 +27,9 @@ function Copertina() {
   );
 }
 
-function Mensola({ volumi }: { volumi: number }) {
+/** Esportata anche per «I titoli che tornano» (§13): stessa forma di
+ * mensola, un solo ripiano invece di due. */
+export function Mensola({ volumi }: { volumi: number }) {
   return (
     <div className="flex flex-col gap-0">
       <div className="flex flex-wrap items-end gap-3 pb-3">

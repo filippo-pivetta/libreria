@@ -31,6 +31,7 @@ from app.schemas.ricerca import (
     AggiungiDaCatalogoResponse,
     RisultatoEsterno,
     RisultatoLocale,
+    TitoloPopolare,
 )
 from app.schemas.ricerca_semantica import RicercaSemanticaResponse
 from app.services import consenso as consenso_service
@@ -65,6 +66,23 @@ async def get_ricerca_catalogo(
     if len(termine) < _LUNGHEZZA_MINIMA:
         return []
     return await ricerca_service.cerca_locale(current_user.access_token, termine, lingua)
+
+
+@router.get("/ricerca/popolari", response_model=list[TitoloPopolare])
+async def get_ricerca_popolari(
+    limite: int = Query(default=12, ge=1, le=24),
+    current_user: AuthenticatedUser = Depends(get_current_user),  # noqa: B008
+    lingua: str = Depends(lingua_interfaccia),  # noqa: B008
+) -> list[dict[str, Any]]:
+    """«I titoli che tornano» (§13): i titoli più amati dell'istanza fra
+    quelli portati a termine e votati alto, mai uno che chi chiama ha già.
+
+    Nessun minimo di lunghezza da rispettare — a differenza degli altri
+    due endpoint di ricerca, questo non parte da un termine digitato — e
+    nessuna quota esterna da proteggere: è una sola query aggregata sul
+    nostro database, nessuna rete.
+    """
+    return await ricerca_service.popolari(current_user.access_token, lingua, limite)
 
 
 @router.get("/ricerca/cataloghi", response_model=list[RisultatoEsterno])

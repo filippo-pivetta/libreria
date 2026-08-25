@@ -133,6 +133,48 @@ function toEsterno(body: EsternoBody): RisultatoEsterno {
   };
 }
 
+/** Una riga di «I titoli che tornano» (design doc §13): mai un tuo
+ * libro, mai con una Voce — da qui si va alla scheda, non si aggiunge. */
+export type TitoloPopolare = {
+  libroId: string;
+  titolo: string;
+  autori: string[];
+  annoPrimaPubblicazione: number | null;
+  copertinaUrl: string | null;
+  copertinaColoreDominante: string | null;
+  copertinaColoreDominanteScuro: string | null;
+  copertinaStato: string;
+  /** Mediana di catalogo: dà alla costa sulla mensola uno spessore vero
+   * invece che uniforme, per un libro senza Voce da cui prenderlo. */
+  pagineMedianeCatalogo: number | null;
+};
+
+type PopolareBody = {
+  libro_id: string;
+  titolo: string;
+  autori: string[];
+  anno_prima_pubblicazione: number | null;
+  copertina_url: string | null;
+  copertina_colore_dominante: string | null;
+  copertina_colore_dominante_scuro: string | null;
+  copertina_stato: string;
+  pagine_mediane_catalogo: number | null;
+};
+
+function toPopolare(body: PopolareBody): TitoloPopolare {
+  return {
+    libroId: body.libro_id,
+    titolo: body.titolo,
+    autori: body.autori,
+    annoPrimaPubblicazione: body.anno_prima_pubblicazione,
+    copertinaUrl: body.copertina_url,
+    copertinaColoreDominante: body.copertina_colore_dominante,
+    copertinaColoreDominanteScuro: body.copertina_colore_dominante_scuro,
+    copertinaStato: body.copertina_stato,
+    pagineMedianeCatalogo: body.pagine_mediane_catalogo,
+  };
+}
+
 type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
 
 function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
@@ -230,6 +272,36 @@ export async function cercaNeiCataloghi(
     const body = (await response.json()) as EsternoBody[];
     return { status: "ok", data: body.map(toEsterno) };
   }
+}
+
+export type RicercaPopolariResult =
+  | { status: "ok"; data: TitoloPopolare[] }
+  | { status: "error"; message: string };
+
+/** GET /ricerca/popolari: «I titoli che tornano». Nessun termine, nessuna
+ * quota esterna — una sola query aggregata sul nostro database. */
+export async function cercaPopolari(
+  accessToken: string,
+  limite = 12,
+): Promise<RicercaPopolariResult> {
+  const config = baseUrlOrError();
+  if ("status" in config) return config;
+
+  let response: Response;
+  try {
+    response = await fetch(`${config.baseUrl}/ricerca/popolari?limite=${limite}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+  } catch {
+    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+  }
+  if (!response.ok) {
+    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+  }
+
+  const body = (await response.json()) as PopolareBody[];
+  return { status: "ok", data: body.map(toPopolare) };
 }
 
 export type AggiungiDaCatalogoResult =
