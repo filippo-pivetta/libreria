@@ -72,9 +72,12 @@ export default async function LibreriaCollegatoLayout(
     );
   }
 
+  const n = result.voci.length;
+  const sottotitolo = `${n} ${n === 1 ? "volume" : "volumi"}`;
+
   return (
     <div data-guest className="flex flex-1 flex-col">
-      <BarraContesto utenteId={id} nomeUtente={result.utente.nomeUtente} />
+      <BarraContesto utenteId={id} nomeUtente={result.utente.nomeUtente} sottotitolo={sottotitolo} />
       <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">{props.children}</main>
     </div>
   );

@@ -75,8 +75,18 @@ const NAV_ITEMS = [
   { href: "/readers", label: "Lettori" },
 ] as const;
 
+/**
+ * "Lettori" resta accesa anche dentro la libreria o gli annali di un
+ * collegato (`/lettori/[id]`, `/lettori/[id]/annali`): da quando la
+ * barra globale non sparisce più lì (Chrome, emendamento 25 agosto
+ * 2026), quella pagina è raggiunta SOLO passando da Lettori, quindi è
+ * la sezione a cui appartiene — non un ramo a sé che lascerebbe la
+ * barra senza nessuna voce accesa.
+ */
 function attiva(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  if (href === "/") return pathname === "/";
+  if (href === "/readers") return pathname.startsWith("/readers") || pathname.startsWith("/lettori/");
+  return pathname.startsWith(href);
 }
 
 /**

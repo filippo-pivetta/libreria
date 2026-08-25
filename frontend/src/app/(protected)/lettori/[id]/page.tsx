@@ -44,17 +44,14 @@ export default async function LibreriaCollegatoPage(props: PageProps<"/lettori/[
   const libroIdPropri = new Set(propria.status === "ok" ? propria.data.map((v) => v.libroId) : []);
   const inComune = collegato.voci.filter((v) => libroIdPropri.has(v.libroId)).length;
 
+  // Il conteggio dei volumi è salito nella testata (BarraContesto,
+  // sottotitolo sotto il suo nome): chiede solo la SUA libreria, quindi ci
+  // sta anche nel layout condiviso con Annali. "In comune" resta qui,
+  // perché chiede anche la TUA — ripeterlo nella testata di entrambe le
+  // schede l'avrebbe reso una spiegazione invece che un fatto.
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="t-label">
-          La sua libreria
-          <span className="ml-1.5 normal-case font-normal tracking-normal text-ink-soft">
-            · {collegato.voci.length} {collegato.voci.length === 1 ? "volume" : "volumi"}
-            {inComune > 0 ? ` · ${inComune} in comune con te` : ""}
-          </span>
-        </p>
-      </div>
+      {inComune > 0 && <p className="t-meta">{inComune} {inComune === 1 ? "libro" : "libri"} in comune con te</p>}
 
       <Scaffale vociIniziali={collegato.voci} utenteCollegatoId={id} />
     </div>
