@@ -39,8 +39,15 @@ Due account già completati sull'istanza Supabase locale, riusabili per qualunqu
 
 | | Email | Password | Nome utente |
 |---|---|---|---|
-| Account 1 | `prova@montaigne.test` | `provaprova123` | `prova` |
+| Account 1 | `prova@montaigne.test` | `Provaprova123` | `prova` |
 | Account 2 | `prova2@montaigne.test` | `provaprova123` | `marta` |
+
+Le due password non sono più uguali (25 agosto 2026): `config.toml` chiede `lower_upper_letters_digits`
+(riga `password_requirements`), e la vecchia `provaprova123`, tutta minuscolo, non la rispetta più —
+GoTrue non rivalida però le password già impostate al login, quindi l'Account 2 continua a entrare con
+quella vecchia finché nessuno gliela cambia. L'Account 1 è stato reimpostato (verifica manuale di un
+bug di interfaccia) e ha dovuto prendere una maiuscola per passare l'Admin API. Se un reset tocca anche
+l'Account 2, la nuova password gli serve comunque: aggiornare questa riga.
 
 I due sono **collegati fra loro con relazione attiva**, e `marta` ha una libreria popolata
 apposta per guardare gli Annali di un collegato con dei numeri veri: quindici letture concluse

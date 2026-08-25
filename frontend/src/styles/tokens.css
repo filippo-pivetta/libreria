@@ -123,10 +123,15 @@
 
 /* Libreria di un collegato: la stessa stanza, con la lampada di un altro.
    Il piano 0 scende in luminanza e perde quasi tutto il croma; nastri e stelle
-   passano a ink-soft. Il secondo segnale, che regge anche per chi non distingue
-   i due bianchi, è il nome utente in alto, che nella propria libreria non c'è. */
+   passano a ink-soft. Ma il raffreddamento non può essere il PRIMO segnale:
+   due-tre centesimi di luminanza non si vedono su un telefono al sole. Il
+   segnale forte è tipografico — il nome proprio a corpo grande nella barra
+   contestuale (BarraContesto) — e questo resta un secondo livello, percepibile
+   affiancato ma non da solo (emendamento 25 agosto 2026, design doc §15: da
+   -0.020/×0.35 a -0.028/×0.30, per lasciare più margine al segnale tipografico
+   senza chiedere al colore di portare da solo il significato). */
 [data-guest] {
-  --mtg-surface-0: oklch(from var(--raw-surface-0) calc(l - 0.020) calc(c * 0.35) h);
+  --mtg-surface-0: oklch(from var(--raw-surface-0) calc(l - 0.028) calc(c * 0.30) h);
   --mtg-surface-1: oklch(from var(--raw-surface-1) calc(l - 0.008) calc(c * 0.40) h);
   --mtg-surface-2: oklch(from var(--raw-surface-2) calc(l - 0.006) calc(c * 0.40) h);
   --mtg-accent:        var(--mtg-ink-soft);

@@ -6,15 +6,29 @@ import { PortaProfilo } from "@/components/layout/porta-profilo";
 import { ProtectedNav } from "@/components/layout/protected-nav";
 
 /**
- * Sceglie fra la barra globale (casa tua) e nessuna barra qui (design
- * doc §5/§9/§15): nel contesto di un collegato — la sua libreria o un
- * suo libro — la barra globale sparisce del tutto, sostituita dalla
- * barra contestuale che i layout di `/lettori/[id]` e `/libro/[id]`
- * renderizzano a piena larghezza, prima di qualunque padding. Per
- * `/libro/[id]` questo vale anche per un libro TUO: quel layout non sa
- * ancora, a questo livello, se la voce è tua o di un collegato (serve un
- * fetch), quindi decide lui stesso se rimettere la barra globale o
- * sostituirla — qui basta togliersi di mezzo per entrambe le rotte.
+ * Sceglie quale barra mostrare (design doc §5/§9/§15, emendamento 25
+ * agosto 2026).
+ *
+ * `/libro/[id]`: nessuna barra globale qui, sostituita per intero dalla
+ * barra contestuale che quel layout renderizza a piena larghezza. Vale
+ * anche per un libro TUO: quel layout non sa ancora, a questo livello,
+ * se la voce è tua o di un collegato (serve un fetch), quindi decide lui
+ * stesso se rimettere la barra globale o sostituirla — qui basta
+ * togliersi di mezzo.
+ *
+ * `/lettori/[id]` (la libreria o gli annali di un collegato): la barra
+ * globale RESTA, con "Lettori" accesa — su desktop in cima, su mobile in
+ * fondo. Prima spariva del tutto e con lei il guscio dell'app: sotto i
+ * 640px ci si trovava in una schermata senza fondo, con un solo modo di
+ * uscire, in alto a sinistra. La stanza di un altro non è un'altra
+ * applicazione: è una pagina dentro Lettori, e Lettori resta acceso
+ * mentre la si guarda — la stessa regola che le HIG di Apple danno per
+ * le tab bar, "non spariscono durante la navigazione". La barra
+ * contestuale (`BarraContesto`, nel layout di quella cartella) diventa
+ * quindi la testata DENTRO il contenuto, non una sostituta della barra
+ * globale: qui si aggiunge `ProtectedNav`, senza il wrapper `<main>` di
+ * sotto — quel layout porta già il proprio, a piena larghezza per la
+ * testata e con padding per il resto.
  *
  * `usePathname`, non `params`: questo componente vive nel layout radice
  * dell'area protetta, che non riceve i parametri dinamici delle rotte
@@ -31,9 +45,17 @@ export function Chrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const haBarraPropria = pathname.startsWith("/lettori/") || pathname.startsWith("/libro/");
 
-  if (haBarraPropria) {
+  if (pathname.startsWith("/lettori/")) {
+    return (
+      <>
+        <ProtectedNav userName={userName} receivedRequestCount={receivedRequestCount} />
+        {children}
+      </>
+    );
+  }
+
+  if (pathname.startsWith("/libro/")) {
     return <>{children}</>;
   }
 
@@ -46,6 +68,12 @@ export function Chrome({
   // lo dice già) — e resta l'unica eccezione priva di un angolo su cui
   // appoggiarsi: tiene ancora la riga dedicata qui sotto, in attesa di
   // una soluzione sua.
+  //
+  // Un titolo gliene darebbe uno, e per un giorno (25 agosto 2026) è
+  // stato il conteggio dei volumi. Non è la soluzione: un totale è una
+  // misura del contenuto, non il contenuto, e a corpo 56 gridava un dato
+  // che nessuno stava cercando. Meglio l'eccezione di un titolo finto —
+  // e comunque questa riga costa 22px una volta sola, in cima.
   const haTitoloProprio = ["/annals", "/readers", "/profilo", "/quaderni"].some(
     (rotta) => pathname === rotta || pathname.startsWith(`${rotta}/`),
   );

@@ -222,7 +222,7 @@ export function Scaffale({
         )}
       </div>
 
-      {/* 2. LE PASTIGLIE, ADDITIVE — e il conteggio in fondo alla riga.
+      {/* 2. LE PASTIGLIE, ADDITIVE.
 
           Erano cinque e nascevano tutte accese: si spegneva per escludere.
           Cinque bersagli accesi che nessuno ha toccato dicono "cinque filtri
@@ -231,17 +231,18 @@ export function Scaffale({
           crede di fare. Ora nessuna nasce accesa, "Tutti" è lo stato di
           partenza dichiarato invece che dedotto, e le accese si sommano.
 
-          Il conteggio dice ciò che si vede, non ciò che c'è: con un filtro
-          attivo mette per primo il numero cambiato e tiene il totale accanto
-          per dare la scala. */}
+          Il conteggio non sta più in coda a questa riga (emendamento 25
+          agosto 2026): un numero perenne in mezzo ai comandi si legge come
+          un comando anche lui, e questo invece è il RISULTATO dei comandi.
+          Ora vive sotto le pastiglie e solo mentre un filtro è attivo —
+          vedi il blocco subito dopo la riga. */}
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Le pastiglie scorrono in orizzontale sotto i 640px invece di andare
             a capo: cinque etichette impilate rubavano una riga intera allo
-            scaffale. Il conteggio sta FUORI dallo scorrimento, in fondo alla
-            stessa riga, così non se ne va via con loro — rubare larghezza a un
-            nastro che scorre non costa niente, perché scorre. `-ml-4 pl-4` fa
-            sì che la prima pastiglia non resti incollata al bordo dello
-            schermo mentre si scorre indietro. */}
+            scaffale. Ora la riga è tutta loro — il conteggio che le stava in
+            coda è uscito di qui — quindi il nastro usa l'intera larghezza.
+            `-ml-4 pl-4` fa sì che la prima pastiglia non resti incollata al
+            bordo dello schermo mentre si scorre indietro. */}
         <div
           className="-ml-4 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pb-0 sm:pl-0"
           role="group"
@@ -275,13 +276,39 @@ export function Scaffale({
             );
           })}
         </div>
-        <span className="t-meta t-num shrink-0">
-          {filtroAttivo
-            ? `${filtrate.length} di ${data.length}`
-            : `${data.length} ${data.length === 1 ? "volume" : "volumi"}`}
-          {inCorso.length > 0 ? ` · ${inCorso.length} in lettura` : ""}
-        </span>
       </div>
+
+      {/* IL CONTEGGIO COMPARE SOLO QUANDO RISPONDE A QUALCOSA.
+
+          Stava in coda alle pastiglie, sempre acceso, e diceva due fatti
+          insieme ("26 volumi · 1 in lettura"). Nessuno dei due si guardava:
+          il totale della propria libreria non cambia da un giorno all'altro
+          e non c'è niente da deciderci sopra, e i libri in lettura sono nella
+          fascia qui sotto, che si chiama "In lettura" e si conta guardandola.
+          Un numero che nessuno legge occupa comunque una riga e, stando fra i
+          comandi, si legge come un comando anche lui.
+
+          Con un filtro attivo, invece, il numero fa un lavoro vero: dice se
+          il gesto ha avuto effetto e quanto della libreria si sta guardando.
+          Quindi esiste esattamente allora, in `t-meta`, su una riga sua sotto
+          le pastiglie — vicino a ciò che descrive, non in mezzo a ciò che lo
+          decide — e sparisce appena si torna a "Tutti".
+
+          Stessa regola nelle due librerie, senza eccezioni: in quella di un
+          collegato il totale lo dice già la testata (`BarraContesto`, sotto
+          il suo nome), nella propria non lo dice nessuno, ed è giusto così.
+
+          (Qui era passato anche un titolo di pagina che diceva il conteggio,
+          sulla scia del titolo-anno degli Annali. Non regge: l'anno È il
+          soggetto della pagina Annali, mentre un totale è una misura del
+          contenuto, non il contenuto — e a corpo 56 gridava un dato che
+          nessuno stava cercando. La Libreria resta senza titolo, che è la
+          scelta originale di design-frontend.md §7.) */}
+      {filtroAttivo && (
+        <p className="t-meta t-num">
+          {filtrate.length} di {data.length}
+        </p>
+      )}
 
       {inCorso.length === 0 && righe.length === 0 ? (
         <EmptyState
