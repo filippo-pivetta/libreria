@@ -209,9 +209,7 @@ def test_senza_chiave_e_uno_stato_dichiarabile_non_un_guasto(
         __import__("asyncio").run(gb.cerca("qualcosa"))
 
 
-def _con_sequenza_risposte(
-    monkeypatch: pytest.MonkeyPatch, risposte: list[httpx.Response]
-) -> None:
+def _con_sequenza_risposte(monkeypatch: pytest.MonkeyPatch, risposte: list[httpx.Response]) -> None:
     """Come `_con_risposta`, ma una risposta diversa a ogni chiamata: serve
     a simulare il 503 transitorio di Google seguito da un tentativo che va
     a segno."""

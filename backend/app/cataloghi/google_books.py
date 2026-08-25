@@ -62,6 +62,7 @@ async def _get(url: str, parametri: dict[str, str]) -> httpx.Response:
         await asyncio.sleep(_ATTESA_RETRY)
     return risposta  # type: ignore[return-value]  # il for esegue sempre almeno un giro
 
+
 # La quota gratuita è nell'ordine delle migliaia di chiamate al giorno, e
 # il debounce del campo di ricerca ripresenta continuamente gli stessi
 # termini (una cancellazione, un ritorno sulla pagina). Una cache breve
