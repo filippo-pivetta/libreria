@@ -25,7 +25,13 @@ from fastapi.concurrency import run_in_threadpool
 from app.cataloghi import google_books
 from app.core import storage
 from app.core.supabase import get_user_client
-from app.repositories import catalogo_repository, database, ricerca_repository, voce_repository
+from app.repositories import (
+    catalogo_repository,
+    database,
+    popolari_repository,
+    ricerca_repository,
+    voce_repository,
+)
 from app.services import risoluzione
 
 logger = logging.getLogger("app.ricerca")
@@ -74,6 +80,33 @@ def _voce(riga: dict[str, Any]) -> dict[str, Any] | None:
         "voto": riga.get("voce_voto"),
         "pagina_corrente": riga.get("voce_pagina_corrente"),
         "anno_ultima_lettura": riga.get("voce_anno_ultima_lettura"),
+    }
+
+
+async def popolari(access_token: str, lingua: str = "it", limite: int = 12) -> list[dict[str, Any]]:
+    """«I titoli che tornano» (§13): i titoli più amati dell'istanza, mai
+    uno che chi chiama ha già. Una sola query aggregata, nessuna Voce da
+    portare — a differenza di `cerca_locale` non c'è nulla da rattoppare
+    dopo un'aggiunta, perché da questa lista non si aggiunge: si va alla
+    scheda."""
+    client = get_user_client(access_token)
+    righe = await run_in_threadpool(popolari_repository.elenco, client, limite, lingua)
+    return [_riga_popolare(r) for r in righe]
+
+
+def _riga_popolare(riga: dict[str, Any]) -> dict[str, Any]:
+    percorso = riga.get("copertina_miniatura_path")
+    firmati = storage.firma_in_blocco([percorso]) if percorso else {}
+    return {
+        "libro_id": riga["libro_id"],
+        "titolo": riga["titolo"],
+        "autori": riga.get("autori") or [],
+        "anno_prima_pubblicazione": riga.get("anno_prima_pubblicazione"),
+        "copertina_url": firmati.get(percorso) if percorso else None,
+        "copertina_colore_dominante": riga.get("copertina_colore_dominante"),
+        "copertina_colore_dominante_scuro": riga.get("copertina_colore_dominante_scuro"),
+        "copertina_stato": riga.get("copertina_stato") or "assente",
+        "pagine_mediane_catalogo": riga.get("pagine_mediane_catalogo"),
     }
 
 

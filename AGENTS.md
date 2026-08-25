@@ -57,6 +57,13 @@ libri senza genere e due senza pagine adottate, voti su tutti. Ha anche sei oper
 `supabase/tests/dati_collegato.sql`: si riapplica dopo un `db reset --local`, dopo aver
 ricreato i due account.
 
+Per «I titoli che tornano» (design-frontend.md §13, ridisegno del 25 agosto 2026, funzione
+`public.libri_popolari`) c'è un terzo script, `supabase/tests/dati_popolari.sql`: dieci lettori
+che **non sono account utilizzabili** (nessuna password, mai pensati per un login) e possiedono
+solo delle `voce_di_libreria`, che è tutto ciò che quella funzione legge. Si guardano restando
+`prova` o `marta` e aprendo «Aggiungi un libro». Si riapplica dopo un `db reset --local`, senza
+bisogno di ricreare nulla prima (lo script crea da sé i suoi dieci utenti).
+
 ## Sistema di design (frontend)
 `src/styles/tokens.css` è l'unico posto in cui esistono colori, ombre, raggi e scale tipografiche: nessun componente scrive mai un colore a mano. Le tre regole che si violano più facilmente per distrazione (dettaglio completo in `docs/design-frontend.md`):
 - Tre piani soli — `surface-0` (stanza, mai testo), `surface-1` (carta), `surface-2` (oggetto sollevato). Non esiste un piano 3.

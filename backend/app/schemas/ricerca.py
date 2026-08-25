@@ -71,6 +71,29 @@ class RisultatoEsterno(BaseModel):
     voce: VoceDelRisultato | None = None
 
 
+class TitoloPopolare(BaseModel):
+    """Una riga di «I titoli che tornano» (design doc §13): un titolo
+    dell'istanza, mai il tuo, mai con una Voce — qui non si aggiunge dalla
+    riga, si guarda la scheda e da lì si decide.
+
+    Niente `voce`: `libri_popolari` esclude già ogni libro che chi guarda
+    ha in libreria, in qualunque stato, quindi non ce ne può essere una.
+    """
+
+    libro_id: UUID
+    titolo: str
+    autori: list[str]
+    anno_prima_pubblicazione: int | None = None
+    copertina_url: str | None = None
+    copertina_colore_dominante: str | None = None
+    copertina_colore_dominante_scuro: str | None = None
+    copertina_stato: str
+    pagine_mediane_catalogo: int | None = None
+    """Mediana di catalogo, non un dato personale (§Conteggio pagine): è
+    ciò che dà alla costa sulla mensola uno spessore vero invece che
+    uniforme, per un libro che non ha ancora una Voce da cui prenderlo."""
+
+
 class AggiungiDaCatalogoRequest(BaseModel):
     volume_id: str
     volumi_alternativi: list[str] = Field(default_factory=list)

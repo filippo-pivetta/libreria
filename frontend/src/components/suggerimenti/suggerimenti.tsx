@@ -227,42 +227,46 @@ export function Suggerimenti() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-2">
-        {/* Seconda corsia di "Aggiungi un libro", non più una pagina a sé: il
-            bisogno è identico a quello della corsia sopra — voglio un libro
-            nuovo — solo senza un titolo già in testa. Da qui l'intestazione
-            di sezione invece del titolo di pagina. */}
-        <p className="t-section">Non sai cosa leggere?</p>
-        <p className="t-meta max-w-prose">
-          Titoli proposti a partire dal tuo storico e da ciò che hai scritto sulle tue letture.
-          Mai a partire da quello dei tuoi collegati, e mai un libro che hai già.
-        </p>
-        {/* Facoltativo, sempre visibile — mai dietro un "più opzioni":
-            stessa riga sola del campo di ricerca dei Quaderni (§22), non
-            un modulo a sé. Una preferenza per questa sola richiesta, mai
-            salvata: il backend la ignora se assomiglia a un tentativo di
-            cambiare le regole invece che a un gusto di lettura. */}
-        <label className="flex max-w-md flex-col gap-1">
-          <span className="t-meta">Qualcosa in particolare? (facoltativo)</span>
-          <input
-            type="text"
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            maxLength={NOTA_LUNGHEZZA_MASSIMA}
-            placeholder="Un libro breve, qualcosa di leggero, niente crime stavolta…"
-            aria-label="Una preferenza per questa richiesta di suggerimenti"
-            className="w-full border-0 border-b border-line bg-transparent pb-1 font-ui text-base text-ink outline-none placeholder:text-ink-soft focus:border-ink"
-          />
-        </label>
-        <Button
-          variant="outline"
-          size="sm"
-          className="self-start"
-          onClick={() => genera.mutate()}
-          disabled={genera.isPending}
-        >
-          {genera.isPending ? t("attesa.penso") : suggerimenti ? "Suggeriscimi altro" : "Suggeriscimi qualcosa"}
-        </Button>
+      {/* Seconda corsia di "Aggiungi un libro", non più una pagina a sé: il
+          bisogno è identico a quello della corsia sopra — voglio un libro
+          nuovo — solo senza un titolo già in testa. Una carta e non una
+          sezione nuda: prima erano quattro corpi tipografici impilati
+          (etichetta, meta, campo, pulsante) senza che nulla li tenesse
+          insieme; ora sono due sole famiglie e tre corpi soli — titolo in
+          Fraunces, il resto in Inter Tight — sullo stesso oggetto che il
+          resto della pagina usa per un pensiero compiuto. */}
+      <section className="plane-1 grain flex flex-col gap-3 p-5 sm:p-6">
+        <div className="flex flex-col gap-1.5">
+          <p className="t-title text-[22px]">Se non hai un titolo in mente</p>
+          <p className="t-body max-w-[62ch]">
+            Cinque proposte tratte dal tuo scaffale e da ciò che hai annotato leggendo. Nessuno
+            storico che non sia il tuo, nessun libro che hai già.
+          </p>
+        </div>
+        {/* Campo e comando sullo stesso rigo, come il modulo di Quaderni
+            (§22): un desiderio è facoltativo, non un modulo a sé da aprire. */}
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex min-w-56 flex-1 flex-col gap-1">
+            <span className="t-meta">Un desiderio, se ne hai uno</span>
+            <input
+              type="text"
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              maxLength={NOTA_LUNGHEZZA_MASSIMA}
+              placeholder="Qualcosa di breve. Niente romanzi russi, per una volta."
+              aria-label="Una preferenza per questa richiesta di suggerimenti"
+              className="w-full border-0 border-b border-line bg-transparent pb-1.5 font-ui text-[15px] text-ink outline-none placeholder:text-ink-soft focus:border-ink"
+            />
+          </label>
+          <Button variant="outline" onClick={() => genera.mutate()} disabled={genera.isPending}>
+            {genera.isPending
+              ? t("attesa.penso")
+              : suggerimenti
+                ? "Proponi altri cinque titoli"
+                : "Proponi cinque titoli"}
+          </Button>
+        </div>
+        <p className="t-meta">Durano quanto la pagina: non vengono conservati.</p>
       </section>
 
       <Messaggio>{errore}</Messaggio>
