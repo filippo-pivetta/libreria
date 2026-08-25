@@ -99,7 +99,12 @@ export function Quaderni() {
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-2">
-        <h1 className="t-title">Quaderni</h1>
+        {/* t-display 44/56px, non t-title: è il titolo DI PAGINA, la stessa
+            misura di Lettori e Profilo (design doc, "un titolo di pagina ha
+            una misura sola in tutta l'app, non una a scelta di chi scrive la
+            pagina") — `.t-title` è il ruolo per titoli di libro/sezione, un
+            registro diverso e più piccolo che qui stava per svista. */}
+        <h1 className="t-display text-[44px] sm:text-[56px]">Quaderni</h1>
         <p className="t-meta max-w-prose">
           Ciò che hai scritto leggendo. Cerca per significato dentro i tuoi insight e le tue
           recensioni — non per parola esatta — e guarda i temi che tornano quando attraversano

@@ -47,7 +47,12 @@ export function Chiosa({ etichetta, children }: { etichetta: string; children: R
         // "informazioni" da solo, ripetuto cinque volte nella stessa
         // pagina, non direbbe di che cosa.
         aria-label={`Come si conta: ${etichetta}`}
-        className="ml-1.5 inline-flex size-4 shrink-0 translate-y-px items-center justify-center rounded-full border border-line-strong font-ui text-[10px] leading-none text-ink-soft transition-colors duration-(--dur-micro) hover:border-ink hover:text-ink data-[popup-open]:border-ink data-[popup-open]:text-ink"
+        // appearance-none: senza, il chrome nativo del bottone su mobile
+        // (Safari/Chrome Android) ignora `size-4 rounded-full` e disegna
+        // una pillola ellittica invece di un cerchio attorno al "?" —
+        // stesso genere di override già necessario altrove per i controlli
+        // nativi (globals.css, il calendario di `campo-data.tsx`).
+        className="ml-1.5 inline-flex size-4 shrink-0 translate-y-px appearance-none items-center justify-center rounded-full border border-line-strong bg-transparent font-ui text-[10px] leading-none text-ink-soft transition-colors duration-(--dur-micro) hover:border-ink hover:text-ink data-[popup-open]:border-ink data-[popup-open]:text-ink"
       >
         ?
       </Popover.Trigger>

@@ -69,10 +69,20 @@ export function costruisciElementi(voci: VoceConLibro[]): ShelfItem[] {
  * volumi (`.shelf-tick` in tokens.css, larghezza zero e margini negativi di
  * mezzo gap). Costava trenta pixel — un quarto di volume su un telefono — ed
  * era la ragione per cui una mensola ne teneva due invece di tre.
+ *
+ * Il gap NON è qui dentro: è lo spazio FRA due elementi, non un pezzo che
+ * ciascuno porta con sé, e `impacchetta` lo aggiunge a parte, una sola volta
+ * fra un elemento e il successivo — mai dopo l'ultimo, perché il CSS reale
+ * (`gap` sulla riga flessibile) non ne disegna uno in coda. Prima lo portava
+ * ogni volume: una mensola di tre volumi ne contava così due gap veri più un
+ * terzo che il CSS non disegna mai, ed era quel gap fantasma — non i numeri
+ * di `--cover-w` — a far chiudere la riga a due libri invece di tre proprio
+ * dove il margine è più stretto (telefoni sui 340-375px, la fascia più
+ * comune).
  */
 function larghezzaElemento(item: ShelfItem, misure: MisureScaffale): number {
   if (item.type === "tick") return 0;
-  return spessoreCosta(item.voce.pagineAdottate, misure) + misure.copertina + misure.gap;
+  return spessoreCosta(item.voce.pagineAdottate, misure) + misure.copertina;
 }
 
 /**
@@ -92,14 +102,18 @@ export function impacchetta(
   let corrente: ShelfItem[] = [];
   let usato = 0;
   for (const item of items) {
-    const larghezza = larghezzaElemento(item, misure);
-    if (usato + larghezza > larghezzaDisponibile && corrente.length > 0) {
+    const proprio = larghezzaElemento(item, misure);
+    // Zero se `item` aprirebbe una riga nuova (vuota): niente gap prima del
+    // primo elemento, lo stesso motivo per cui non ce n'è uno visibile lì.
+    const gap = corrente.length > 0 ? misure.gap : 0;
+    if (usato + gap + proprio > larghezzaDisponibile && corrente.length > 0) {
       righe.push(corrente);
-      corrente = [];
-      usato = 0;
+      corrente = [item];
+      usato = proprio;
+    } else {
+      corrente.push(item);
+      usato += gap + proprio;
     }
-    corrente.push(item);
-    usato += larghezza;
   }
   if (corrente.length > 0) righe.push(corrente);
   return righe;

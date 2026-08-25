@@ -10,6 +10,7 @@ Richiede una chiave. Senza, l'API non risponde affatto: restituisce 429
 con `quota_limit_value: "0"`, non un limite ridotto.
 """
 
+import asyncio
 import html
 import re
 import time
@@ -25,6 +26,42 @@ from app.core.testo import cognome, normalizza
 _URL = "https://www.googleapis.com/books/v1/volumes"
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "google_books"
+
+_TENTATIVI_MASSIMI = 3
+"""Non un backoff aggressivo, ma nemmeno un solo tentativo in più: misurato
+dal vivo (24/08/2026) contro l'API reale, un solo retry lasciava ancora
+~30% di fallimenti quando il backend di Google è in un momento
+particolarmente instabile (`reason: backendFailed`, richieste identiche a
+distanza di un istante che alternano 200 e 503); con due retry (tre
+tentativi totali) i fallimenti nello stesso scenario sono scesi a zero
+su 15 prove. Non copre il 429 (quota) né gli altri 4xx: quelli non sono un
+problema che il tempo risolve, e ritentarli sprecherebbe solo quota e
+tempo dell'Utente."""
+
+_ATTESA_RETRY = 0.4
+"""Secondi di attesa prima del retry. Breve apposta: è un guasto
+transitorio del backend di Google, non un rallentamento da cui bisogna
+lasciarlo riprendere fiato."""
+
+
+async def _get(url: str, parametri: dict[str, str]) -> httpx.Response:
+    """GET con un retry sui soli 5xx di Google, gli unici misurati come
+    transitori (vedi `_TENTATIVI_MASSIMI`). Gli errori di rete (timeout,
+    connessione caduta) restano un tentativo solo: non abbiamo evidenza
+    che ritentarli aiuti, e rischierebbero di raddoppiare l'attesa
+    dell'Utente su un guasto che potrebbe non essere transitorio."""
+    risposta: httpx.Response | None = None
+    for tentativo in range(_TENTATIVI_MASSIMI):
+        try:
+            async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+                risposta = await client.get(url, params=parametri)
+        except httpx.HTTPError as errore:
+            raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
+        if risposta.status_code < 500 or tentativo == _TENTATIVI_MASSIMI - 1:
+            return risposta
+        await asyncio.sleep(_ATTESA_RETRY)
+    return risposta  # type: ignore[return-value]  # il for esegue sempre almeno un giro
+
 
 # La quota gratuita è nell'ordine delle migliaia di chiamate al giorno, e
 # il debounce del campo di ricerca ripresenta continuamente gli stessi
@@ -300,11 +337,7 @@ async def cerca(termine: str, massimo: int = 20) -> list[Volume]:
         "country": "IT",
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            risposta = await client.get(_URL, params=parametri)
-    except httpx.HTTPError as errore:
-        raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
+    risposta = await _get(_URL, parametri)
 
     if risposta.status_code == 429:
         raise FonteNonRaggiungibileError(_FONTE, "quota esaurita")
@@ -348,14 +381,10 @@ async def per_identificativo(volume_id: str) -> Volume | None:
     if not settings.google_books_api_key:
         raise FonteNonRaggiungibileError(_FONTE, "chiave API non configurata")
 
-    try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            risposta = await client.get(
-                f"{_URL}/{volume_id}",
-                params={"key": settings.google_books_api_key, "country": "IT"},
-            )
-    except httpx.HTTPError as errore:
-        raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
+    risposta = await _get(
+        f"{_URL}/{volume_id}",
+        {"key": settings.google_books_api_key, "country": "IT"},
+    )
 
     # 404 non è una fonte irraggiungibile: è un volume che non esiste (o
     # non esiste più), e chi chiama deve poterlo dire con parole diverse.

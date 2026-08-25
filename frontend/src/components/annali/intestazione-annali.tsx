@@ -58,9 +58,18 @@ export function IntestazioneAnnali({
             `.t-display` (tokens.css), la classe che dà il titolo a ogni
             altra pagina (Lettori, Profilo). Con leading-none il riquadro
             del titolo era più basso qui che altrove, a parità di corpo —
-            lo stesso numero sembrava un titolo di peso minore. */}
+            lo stesso numero sembrava un titolo di peso minore.
+
+            `t-num` invece di `.t-display` per intero: qui il titolo è un
+            numero, e vuole le cifre tabulari e la spaziatura a 0 di
+            `t-num`, non il tracking negativo di `.t-display` (pensato per
+            parole, non cifre) — da cui font-family/leading/peso rifatti a
+            mano invece di comporre le due classi (che si scavalcherebbero
+            sulla stessa proprietà). `font-light` è il pezzo che mancava:
+            senza, il peso ereditato è 400, più pieno del 300 di ogni altro
+            titolo di pagina. */}
         <h1
-          className="t-num mt-2 font-display text-[44px] leading-[1.05] text-ink sm:text-[56px]"
+          className="t-num mt-2 font-display font-light text-[44px] leading-[1.05] text-ink sm:text-[56px]"
           style={{ fontVariationSettings: '"opsz" 72, "SOFT" 20' }}
         >
           {anno}
