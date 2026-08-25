@@ -205,6 +205,43 @@ Quattro ruoli distinti, così un titolo di sezione non condivide il trattamento 
 né un contenuto vero (una riga di stato, un riepilogo, un elenco) finisce vestito da nota a piè
 di pagina.
 
+### Le due scale della testata di pagina
+
+Erano tre — 44, 34 e 28 — e una sola era scritta da qualche parte: 34 era nato nella barra di un
+collegato e 28 sulla scheda del libro, ciascuno per conto proprio, ripetuti a mano su sei
+componenti come `text-[44px] sm:text-[56px]`. Ora sono due, stanno in `tokens.css` col loro corpo
+dentro, e la distinzione non è l'importanza ma **la natura della stringa**.
+
+| Ruolo | Specifica | Dove |
+|---|---|---|
+| `.t-page` | Fraunces 300, 44 / 56px, opsz pari al corpo | Una **parola fissa** dell'interfaccia, nota in anticipo: Quaderni, Lettori, Profilo, Aggiungi un libro, e l'anno degli Annali |
+| `.t-contenuto` | Fraunces 300, 34 / 46px, opsz pari al corpo | Una stringa di **lunghezza ignota**, che deve andare a capo e troncarsi: il nome di un collegato, il titolo di un libro |
+
+`.t-page-num` è la variante per un titolo che è un numero (l'anno): cifre tabulari e spaziatura a
+zero, perché il tracking negativo è pensato per parole. **Non si compone con `.t-num`**, che porta
+anche `font-family: var(--font-ui)` ed è definita più in basso nello stesso layer: il titolo
+uscirebbe in Inter Tight. È la solita insidia delle due classi che si scavalcano sulla stessa
+proprietà, la stessa che per mesi ha fatto vincere `.t-label` su `text-ink`.
+
+**Il titolo del libro sale da 28 a 34.** Era la stringa più importante dell'app e il carattere più
+piccolo fra i titoli — più piccolo della parola «Profilo».
+
+### L'asse ottico segue il corpo
+
+`opsz` su Fraunces è una **misura, non un gusto**: va posto al corpo a cui il testo viene reso, ed
+è la ragione per cui il file variabile con l'asse sta in repo. `.t-display` lo fissava a 72 a ogni
+dimensione, cioè dava le proporzioni da manifesto — aste sottili, grazie affilate — a un titolo da
+28px. Su un telefono, su fondo chiaro, si vede.
+
+Ora passa da `--t-opsz`, che ogni ruolo pone al proprio corpo. Non si usa
+`font-optical-sizing: auto`, che farebbe il lavoro da sé: WebKit lo disattiva in presenza di
+`font-variation-settings`, e `SOFT` si può dichiarare solo da lì.
+
+**Su Literata vale il contrario, ed è deliberato.** Lì l'asse ottico è usato come *voce* e non come
+misura — opsz 32 a 19px per la sentenza, opsz 12 a 15px per l'appunto — ed è esattamente ciò che
+permette a due corpi di essere lo stesso carattere con due registri. Un valore diverso dal corpo,
+là, è la scelta; su Fraunces era una svista.
+
 **Composizione.** `text-wrap: balance` sui soli titoli, dove è costoso e oltre le sei righe non
 ha effetto. `text-wrap: pretty` sui paragrafi lunghi. `text-box-trim` sui titoli display, perché
 a corpo grande lo spazio ottico sopra e sotto si vede. `font-variant-numeric: tabular-nums` su
@@ -392,6 +429,21 @@ che misurate facevano **232px su desktop e 307 su un telefono**: mezza schermata
 prima del primo libro, sulla pagina più visitata dell'app. Da agosto 2026 sono tre righe, 176px
 e 252, e ognuna fa un mestiere solo.
 
+> **Emendamento (revisione delle testate).** L'argomento con cui questa sezione tolse il titolo —
+> «la linguetta accesa lo dice già» — **non regge alla propria misura**, ed è giusto dirlo qui invece
+> di lasciarlo scoperto. Quella linguetta è `.t-label`: 10,5px, maiuscoletto, al bordo *opposto* a
+> quello dove cade l'occhio, cioè il carattere più piccolo dell'app — la stessa dimensione che il §4
+> dichiara illeggibile come titolo. E se bastasse davvero, dovrebbero cadere anche i titoli di
+> Quaderni, Lettori e Profilo, che ripetono la parola accesa tali e quali: l'argomento non era stato
+> applicato a sé stesso. Apple, che pure concede di lasciare vuoto un titolo ridondante, lo fa per
+> viste di *dettaglio* il cui contenuto si identifica da sé, e ai livelli alti spedisce la
+> ridondanza ovunque (tab «Library» → titolo «Library»).
+>
+> **La conclusione resta però giusta, per un'altra ragione.** Il titolo sulla Libreria non serve
+> perché l'orientamento arriva altrove: dalla **barra del titolo** che compare allo scorrimento (§8).
+> Con quella in piedi, la prima schermata non deve più pagare un titolo per averlo — e questo vale
+> per tutte le pagine, non solo per questa.
+
 **1. Il campo, e accanto l'azione primaria.** Il titolo di pagina non c'è: «La tua libreria» stava
 sotto una linguetta accesa che diceva già «Libreria», nel carattere più piccolo della pagina.
 La riga che lascia libera la prende il **filtro testuale** su titoli e autori — sempre disponibile,
@@ -403,6 +455,35 @@ e 44px: è il gesto con cui la libreria esiste, e da lì si arriva anche ai sugg
 Un campo di ricerca e un'azione primaria sulla stessa riga si distinguono da sé: il campo è una
 riga di inchiostro senza riquadro, il pulsante un oggetto pieno del piano 2, e l'etichetta dice
 «Aggiungi», non «Cerca».
+
+**0. Il saluto** (sotto i 640px). Sopra il campo restava una riga con la sola porta del profilo: un
+cerchietto allineato a destra e nient'altro, in cima alla pagina più visitata dell'app. Liberata dal
+dover fare wayfinding, quella riga adesso porta un saluto — `.t-saluto`, Fraunces 24px.
+
+**Ventiquattro e non tredici, e non trentotto.** Il numero è misurato, non scelto: a interlinea 1,15
+la riga è alta 27,6px, cioè **meno del cerchietto da 28 che le sta accanto**, quindi il saluto entra
+in una riga che esiste già e non sposta la prima mensola di un pixel. A 13px sarebbe stato il
+carattere più piccolo della pagina — l'errore che il §4 condanna sui titoli di sezione. A 38 sarebbe
+costato una cinquantina di pixel e sarebbe diventato un titolo che non dice dove sei, pagandone il
+prezzo senza farne il lavoro.
+
+**Segue l'orologio, non il sole.** Sarebbe stato più elegante agganciarlo ai quattro ancoraggi della
+luce (§3), e per un momento è sembrata la scelta giusta: l'unico punto in cui la stanza si dice a
+parole invece che in colore. Non regge. Gli ancoraggi sono **solari** — `schedule()` tiene «giorno»
+fino a un'ora e mezza prima del tramonto — quindi il 21 giugno alle 19:30 il saluto direbbe
+«buongiorno» a chi in italiano si aspetta «buonasera». I saluti seguono le convenzioni
+dell'orologio. Resta comune ciò che conta: stessa sorgente d'ora (fuso CET fisso), calcolo lato
+server a ogni cambio pagina, mai nel browser.
+
+Quattro fasce, in `lib/saluto.ts`: 5–13 «Buongiorno», 13–18 «Buon pomeriggio», 18–24 «Buonasera»,
+0–5 «Buonanotte». L'ultima è la sola discutibile — detto a chi va a dormire è un congedo — ma a chi
+apre la propria libreria alle due di notte è ciò che una persona direbbe, ed è l'unico saluto che
+l'italiano offra per quella fascia.
+
+**Niente citazione del giorno.** Le massime di Montaigne sono già il rito del login (§1) e «Il
+pensiero che torna» è già il quotidiano effimero dei Quaderni (§22), fatto però di parole
+dell'Utente. Un terzo dispositivo giornaliero indebolirebbe entrambi, e metterebbe decorazione sopra
+i libri esattamente dove questa sezione ha combattuto per recuperare pixel.
 
 **2. Le pastiglie di stato, additive, col conteggio in fondo alla riga.** Gratuito perché i nastri
 sono già un codice colore: pastiglie in contorno con un quadratino di colore di 7px e l'etichetta
@@ -465,6 +546,32 @@ gerarchia, non al pollice.
 
 **Il ritorno.** Sotto i 640px `ProtectedNav` non monta niente in cima. Chi progetta una rotta
 nuova deve chiedersi da dove si esce.
+
+**La barra del titolo.** Proprio perché in cima non c'è niente, fino a questa revisione il titolo da
+44px usciva dallo schermo dopo un dito di scorrimento e **non tornava più**: da lì in poi l'unica
+cosa a dire dove si fosse era la linguetta accesa in fondo, `.t-label` a 10,5px, al bordo opposto a
+quello dove cade l'occhio. Era il difetto più grave delle testate, e non era nominato da nessuna
+parte.
+
+`.barra-titolo` è la risposta che iOS dà dal 2017 e dà ancora in iOS 26, e che Material 3 dà con lo
+stesso gesto (large → small): il titolo grande orienta all'arrivo e si ritira quando si legge,
+lasciando la parola in una riga alta `--tap`. Non è un componente nuovo — 15px, peso 600, centrato,
+è esattamente la testata che la barra di un collegato monta già (§15).
+
+Tre dettagli che non si indovinano:
+
+- **`IntersectionObserver`, non un ascoltatore di `scroll`.** Non serve una proporzione: la barra c'è
+  o non c'è, e l'incrocio fra le due lo fa `opacity` con `--dur-panel`. Un osservatore sta fermo
+  finché il bordo non passa.
+- **La soglia è 22px, cioè mezza barra, non 44.** Con 44 la barra comparirebbe a pagina ferma:
+  `<main>` ha 12px di padding e un titolo da 44px con `text-box-trim` misura circa 31px di riquadro,
+  quindi sta fra y=12 e y=43 — interamente sopra la linea dei 44.
+- **La barra è `aria-hidden` e `pointer-events: none` quando è trasparente.** Ripete alla lettera
+  l'`<h1>` che sta nel flusso, e a un lettore di schermo il titolo va detto una volta sola; senza la
+  seconda, si mangerebbe i tocchi sui primi 44px di ogni pagina.
+
+Il guadagno vero non è estetico: con l'orientamento garantito qui, **la prima schermata non deve più
+pagare il titolo per averlo**. È la condizione che permette alla Libreria di restare senza (§7).
 
 **Scaffale a più mensole:** volumi (§7) che vanno a capo su ripiani impacchettati sulla larghezza
 reale, scorrimento verticale, tocco che apre. Il sollevamento non serve: il dito è già il
@@ -933,6 +1040,18 @@ che il libro non ci sia mentre è solo il catalogo che non risponde.
 ---
 
 ## 14. Annali
+
+**La testata.** Il titolo è l'anno, e l'occhiello `ANNALI` sopra di esso c'è **sempre** — non più
+solo sulla pagina di un collegato, dove era l'unica delle due versioni ad avere un nome. Un nudo
+«2026» non dice di quale sezione sia il titolo; l'occhiello dà la parola, il numero la specificità,
+e la barra del titolo (§8) scrive «Annali», non l'anno, perché il suo mestiere è dire dove si è.
+
+**Il sottotitolo è caduto.** «L'anno raccontato dai numeri.» non spiegava un meccanismo — quello era
+il difetto della riga che l'aveva preceduta — ma non diceva nulla che la pagina non mostrasse già:
+l'insegna di sé stessa, cioè il riempitivo che il §19 vieta. La regola generale che ne esce vale
+ovunque: **un sottotitolo esiste solo se dichiara un confine che la pagina non può mostrare.** Per
+questo quello dei Quaderni resta — dice a chi appartengono i testi che si stanno guardando, una
+regola di visibilità invisibile allo schermo — e nessun altro è stato aggiunto.
 
 Stessi piani e stessa luce dello scaffale, in tono minore. I numeri in Inter Tight, tabulari,
 allineati. Nessun trattamento tipografico speciale: l'espressività è riservata agli insight.

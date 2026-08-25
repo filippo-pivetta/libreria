@@ -4,6 +4,7 @@ import { COOKIE_LUCE, preferenzaValida } from "@/lib/light";
 import { getMe } from "@/lib/api/me";
 import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
+import { TestataPagina } from "@/components/layout/testata-pagina";
 import { SezioneImpostazioni } from "@/components/profilo/sezione-impostazioni";
 import { getTranslations } from "next-intl/server";
 
@@ -53,7 +54,7 @@ export default async function ProfiloPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="t-display text-[44px] sm:text-[56px]">Profilo</h1>
+      <TestataPagina titolo="Profilo" />
       <SezioneImpostazioni
         preferenzaLuce={preferenzaLuce}
         nomeUtente={me.data.nomeUtente}

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/scritti";
 import type { Tema } from "@/lib/api/sintesi";
 import { getAccessToken } from "@/lib/api/access-token";
+import { TestataPagina } from "@/components/layout/testata-pagina";
 import { Button } from "@/components/ui/button";
 import { Messaggio } from "@/components/ui/messaggio";
 import { Corpus } from "@/components/quaderni/corpus";
@@ -199,13 +200,14 @@ export function Quaderni() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-2">
-        <h1 className="t-display text-[44px] sm:text-[56px]">Quaderni</h1>
-        <p className="t-meta max-w-prose">
-          Ciò che hai scritto leggendo, in un posto solo. Solo i tuoi testi: quelli dei tuoi
-          collegati restano fuori.
-        </p>
-      </section>
+      {/* Il sottotitolo resta: dice a chi appartiene ciò che si sta
+          guardando, cioè una regola di visibilità che la pagina non può
+          mostrare. È il criterio che lo separa da quello degli Annali,
+          tolto perché ripeteva la pagina (design-frontend.md §4). */}
+      <TestataPagina
+        titolo="Quaderni"
+        sottotitolo="Ciò che hai scritto leggendo, in un posto solo. Solo i tuoi testi: quelli dei tuoi collegati restano fuori."
+      />
 
       {scrivendo ? (
         <ScriviPensiero onChiudi={() => setScrivendo(false)} />

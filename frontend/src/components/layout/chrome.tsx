@@ -37,10 +37,14 @@ import { ProtectedNav } from "@/components/layout/protected-nav";
  */
 export function Chrome({
   userName,
+  saluto,
   receivedRequestCount,
   children,
 }: {
   userName: string;
+  /** Calcolato lato server (`lib/saluto.ts`): questo è un componente
+   *  client e l'ora non si legge dal browser. */
+  saluto: string;
   receivedRequestCount?: number;
   children: React.ReactNode;
 }) {
@@ -61,20 +65,27 @@ export function Chrome({
 
   // Le pagine che hanno già un vero titolo di pagina in cima (Annali,
   // Lettori, Profilo, Quaderni, e da quando ha tre corsie anche Aggiungi
-  // un libro, tutte a `t-display` 44/56px): lì la porta del profilo si
-  // appoggia in overlay sul loro angolo, a costo
-  // di altezza zero, invece di prendersi una riga tutta sua sopra di
-  // loro. La Libreria (`/`) non ha un titolo — «La tua libreria» è stato
-  // tolto di proposito (design-frontend.md §7, la voce accesa in barra
-  // lo dice già) — e resta l'unica eccezione priva di un angolo su cui
-  // appoggiarsi: tiene ancora la riga dedicata qui sotto, in attesa di
-  // una soluzione sua.
+  // un libro, tutte a `.t-page`): lì la porta del profilo si appoggia in
+  // overlay sul loro angolo, a costo di altezza zero, invece di
+  // prendersi una riga tutta sua sopra di loro.
   //
-  // Un titolo gliene darebbe uno, e per un giorno (25 agosto 2026) è
-  // stato il conteggio dei volumi. Non è la soluzione: un totale è una
-  // misura del contenuto, non il contenuto, e a corpo 56 gridava un dato
-  // che nessuno stava cercando. Meglio l'eccezione di un titolo finto —
-  // e comunque questa riga costa 22px una volta sola, in cima.
+  // La Libreria (`/`) resta senza titolo, e adesso per una ragione
+  // migliore di prima. «La tua libreria» è stato tolto di proposito
+  // (§7); la giustificazione di allora — «la voce accesa in barra lo
+  // dice già» — non regge alla propria misura, perché quella voce è
+  // `.t-label`, 10,5px, al bordo opposto a quello dove cade l'occhio, e
+  // se bastasse dovrebbero cadere anche i titoli di Quaderni, Lettori e
+  // Profilo, che ripetono la parola accesa tali e quali. A reggere il
+  // titolo mancante è invece `.barra-titolo`: l'orientamento arriva allo
+  // scorrimento, quindi la prima schermata non deve pagarlo.
+  //
+  // Liberata da quel compito, la riga dedicata qui sotto smette di
+  // essere un cerchietto e basta: prende il saluto (`lib/saluto.ts`,
+  // `.t-saluto`), che a 24px sta in 27,6 e quindi entra nell'altezza del
+  // cerchietto senza spostare nulla. Un titolo vero gliene darebbe uno
+  // ma costerebbe la prima mensola, e per un giorno (25 agosto 2026) è
+  // stato il conteggio dei volumi: un totale è una misura del contenuto,
+  // non il contenuto, e a corpo 56 gridava un dato che nessuno cercava.
   const haTitoloProprio = ["/annals", "/readers", "/profilo", "/quaderni", "/aggiungi"].some(
     (rotta) => pathname === rotta || pathname.startsWith(`${rotta}/`),
   );
@@ -99,8 +110,11 @@ export function Chrome({
             <PortaProfilo userName={userName} />
           </div>
         ) : (
-          <div className="mb-1 flex justify-end sm:hidden">
-            <PortaProfilo userName={userName} />
+          <div className="mb-1 flex items-center gap-3 sm:hidden">
+            {pathname === "/" && <p className="t-saluto min-w-0 truncate">{saluto}</p>}
+            <div className="ml-auto">
+              <PortaProfilo userName={userName} />
+            </div>
           </div>
         )}
         {children}

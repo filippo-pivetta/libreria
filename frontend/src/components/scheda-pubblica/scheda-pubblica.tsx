@@ -129,7 +129,7 @@ export function SchedaPubblica({
         </div>
 
         <div className="flex min-w-0 flex-col items-start gap-2.5 sm:gap-3.5 sm:pt-1">
-          <h1 className="t-display text-[1.75rem] sm:text-[2.5rem] lg:text-[2.875rem]">
+          <h1 className="t-contenuto">
             {scheda.titolo}
           </h1>
           {autori && <p className="t-body text-ink-soft sm:text-[1.0625rem]">{autori}</p>}

@@ -18,8 +18,11 @@ export const metadata = { title: "Quaderni" };
  * sintesi ancora generata".
  */
 export default function QuaderniPage() {
+  // Senza `py-4`: quel padding in più, mai spiegato, sommato a quello di
+  // `<main>` (chrome.tsx) teneva il titolo 16px più in basso che su
+  // Lettori e Profilo, la stessa testata a un'altezza diversa.
   return (
-    <div className="flex flex-col gap-8 py-4">
+    <div className="flex flex-col gap-8">
       <Quaderni />
     </div>
   );

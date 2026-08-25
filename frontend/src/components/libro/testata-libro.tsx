@@ -72,7 +72,13 @@ export function TestataLibro({ voce, isOwner }: { voce: VoceDettaglio; isOwner: 
 
       <div className="flex min-w-0 flex-col items-start gap-2.5 sm:gap-3.5 sm:pt-1">
         <PastigliaStato stato={voce.stato} />
-        <h1 className="t-display text-[1.75rem] sm:text-[2.5rem] lg:text-[2.875rem]">
+        {/* `.t-contenuto` (34/46) e non `.t-display` a corpo scritto qui: il
+            titolo di un libro e' una stringa di lunghezza ignota, la stessa
+            natura del nome di un collegato, e le due condividono una scala
+            sola. Era 28px con `"opsz" 72`, cioe' piu' piccolo della parola
+            «Profilo» e con le proporzioni di un carattere da manifesto
+            (design-frontend.md §4). */}
+        <h1 className="t-contenuto">
           {voce.libro.titoloCanonico}
         </h1>
         {autori && <p className="t-body text-ink-soft sm:text-[1.0625rem]">{autori}</p>}
