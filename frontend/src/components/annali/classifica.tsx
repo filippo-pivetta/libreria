@@ -7,6 +7,7 @@ import type { VoceClassifica } from "@/lib/api/metriche";
 // zero superfluo): riusata invece di reimplementarla, esattamente il
 // motivo per cui è esportata da voto-stelle.tsx.
 import { formattaVoto as formattaPeso } from "@/components/libro/voto-stelle";
+import { Button } from "@/components/ui/button";
 import { TitoloConChiosa } from "@/components/ui/chiosa";
 
 const MOSTRATE_INIZIALMENTE = 5;
@@ -87,13 +88,14 @@ export function Classifica({
             ))}
           </ul>
           {righe.length > MOSTRATE_INIZIALMENTE && (
-            <button
-              type="button"
+            <Button
+              variant="quiet"
+              size="testo"
+              className="mt-4"
               onClick={() => setEspansa((v) => !v)}
-              className="t-meta mt-4 inline-flex min-h-11 items-center underline decoration-line-strong underline-offset-4 hover:decoration-ink sm:min-h-0"
             >
               {espansa ? "mostra meno" : `mostra tutti e ${righe.length}`}
-            </button>
+            </Button>
           )}
         </>
       )}

@@ -36,10 +36,15 @@ export default function GlobalError({
         <p className="max-w-sm text-sm text-ink-soft">
           Riprova, o torna alla pagina precedente.
         </p>
+        {/* Scritto a mano di proposito — vedi sopra: qui meno dipendenze
+            si tirano dentro, meglio è — ma alla misura che la scala dei
+            comandi dà all'unica azione di una zona (44px, `ui/button.tsx`
+            taglia `lg`). Era alto 30, cioè il peso minimo per l'unica
+            cosa che si può fare in una schermata di ultima istanza. */}
         <button
           type="button"
           onClick={retry}
-          className="rounded-field bg-accent px-3 py-1.5 text-sm font-medium text-on-accent"
+          className="inline-flex h-11 items-center justify-center rounded-field bg-accent px-5 text-[0.9375rem] font-medium text-on-accent"
         >
           Riprova
         </button>

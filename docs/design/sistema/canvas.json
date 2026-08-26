@@ -1,32 +1,25 @@
 {
   "artboards": [
-    {
-      "file": "Main.dc.html",
-      "x": 0,
-      "y": 0,
-      "w": 900,
-      "h": 820,
-      "title": "I comandi"
-    },
-    {
-      "file": "Testo.dc.html",
-      "x": 980,
-      "y": 0,
-      "w": 900,
-      "h": 900,
-      "title": "La scala del testo"
-    }
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 900, "h": 880, "title": "I comandi" },
+    { "file": "Pastiglie.dc.html", "x": 1000, "y": 0, "w": 900, "h": 1080, "title": "Pastiglie e campi" },
+    { "file": "Tocco.dc.html", "x": 2000, "y": 0, "w": 940, "h": 1180, "title": "Il tocco" },
+    { "file": "Testo.dc.html", "x": 0, "y": 1320, "w": 900, "h": 900, "title": "La scala del testo" }
   ],
   "annotations": [
     {
       "id": "sistema",
       "x": 0,
-      "y": -230,
-      "w": 560,
-      "text": "IL SISTEMA — non una schermata.\n\nQueste due tavole non riguardano solo la scheda del libro: sono il vocabolario che ogni schermata dell'app eredita. Per questo sono le uniche sopravvissute al canvas del ridisegno — le tavole di schermata (prima/dopo, mobile, stati, ospite, insight) sono state buttate una volta implementate: il ragionamento vive in docs/design-frontend.md, che si rivede in un diff e sta accanto al codice, mentre un mockup che diverge dal codice non dice più quale sia l'intenzione.\n\nQui invece la prosa non basta: una tabella che dice «38 px / 44 px» non te li fa vedere.\n\nNiente famiglie nuove, niente colori nuovi, nessun piano 3. Due ruoli tipografici aggiunti, quattro pesi di comando al posto di sette grammatiche."
+      "y": -280,
+      "w": 620,
+      "text": "IL SISTEMA — non una schermata.\n\nQueste tavole non riguardano una pagina: sono il vocabolario che ogni schermata dell'app eredita. Per questo sono le uniche sopravvissute ai canvas dei ridisegni — le tavole di schermata sono state buttate una volta implementate: il ragionamento vive in docs/design-frontend.md, che si rivede in un diff e sta accanto al codice, mentre un mockup che diverge dal codice non dice più quale sia l'intenzione.\n\nQui invece la prosa non basta: una tabella che dice «38 px / 44 px» non te li fa vedere, e «il bersaglio non è il riquadro» si capisce in un secondo guardando il tratteggio."
+    },
+    {
+      "id": "sessione-comandi",
+      "x": 1000,
+      "y": -280,
+      "w": 620,
+      "text": "SESSIONE DEL 26 AGOSTO 2026 — l'uniformazione dei comandi.\n\nIl problema non era brutto: era plurale. Sette grammatiche per due cose sole, premere e cercare. Tre versioni del comando testuale leggero, cinque della pastiglia, cinque del campo di ricerca, due riquadri di campo data scritti a mano.\n\nIl difetto vero non è la ripetizione — è che le copie DIVERGEVANO, e le differenze non significavano niente: due file di pastiglie sulla stessa pagina alte una 30 e una 36, un campo che si sposta di quattro pixel cambiando pagina.\n\nQuattro primitivi nuovi (pastiglia, campo-ricerca, riferimento-libro, interruttori-scritto), un quinto peso di comando (quiet), una regola di tocco riscritta. §24 del documento."
     }
   ],
-  "launch": {
-    "view": "canvas"
-  }
+  "launch": { "view": "canvas" }
 }

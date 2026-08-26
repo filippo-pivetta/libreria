@@ -38,7 +38,12 @@ export function PortaProfilo({
       href="/profilo"
       aria-current={attiva ? "page" : undefined}
       aria-label={`Profilo di ${userName}`}
-      className={`flex shrink-0 items-center gap-2 rounded-full transition-colors duration-(--dur-micro) ${
+      // `bersaglio`: le iniziali sono un cerchio di 32px, e sotto i 640px
+      // sono l'UNICA porta del profilo (`layout/chrome.tsx`) — in un
+      // angolo dello schermo, per giunta, dove si sbaglia mira. L'area
+      // sensibile arriva a 44 in entrambe le direzioni senza gonfiare il
+      // cerchio, che a 44px diventerebbe un disco.
+      className={`bersaglio flex shrink-0 items-center gap-2 rounded-full transition-colors duration-(--dur-micro) ${
         attiva ? "text-ink" : "text-ink-soft hover:text-ink"
       }`}
     >

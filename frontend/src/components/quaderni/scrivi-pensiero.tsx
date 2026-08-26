@@ -7,9 +7,11 @@ import { creaInsight, type Visibilita } from "@/lib/api/insight";
 import { getVoci, type VoceConLibro } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { Button } from "@/components/ui/button";
+import { CampoRicerca } from "@/components/ui/campo-ricerca";
+import { InterruttoriScritto } from "@/components/ui/interruttori-scritto";
 import { Messaggio } from "@/components/ui/messaggio";
-import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";
-import { IconaCollegati, IconaCoperto, IconaLucchetto } from "@/components/ui/icone";
+import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
+import { cn } from "@/lib/utils";
 
 /** Quanti libri proporre prima di chiedere di scrivere il titolo. Sei
  * riempiono una riga su desktop e due su un telefono: oltre, il selettore
@@ -127,13 +129,9 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
           <h2 className="t-label">Su quale libro</h2>
           {scelta && (
-            <button
-              type="button"
-              onClick={() => setVoceId(null)}
-              className="tocco-esteso t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-            >
+            <Button variant="quiet" size="testo" onClick={() => setVoceId(null)}>
               Cambia libro
-            </button>
+            </Button>
           )}
         </div>
 
@@ -149,16 +147,13 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            <label>
-              <span className="sr-only">Cerca un libro della tua libreria</span>
-              <input
-                type="search"
-                value={cerca}
-                onChange={(evento) => setCerca(evento.target.value)}
-                placeholder="Cerca fra i tuoi libri"
-                className="field-line w-full border-0 border-b border-line bg-transparent pb-1 font-ui text-sm text-ink outline-none placeholder:text-ink-soft"
-              />
-            </label>
+            <CampoRicerca
+              taglia="riga"
+              valore={cerca}
+              onCambia={setCerca}
+              etichetta="Cerca un libro della tua libreria"
+              segnaposto="Cerca fra i tuoi libri"
+            />
 
             {proposte.length === 0 ? (
               <p className="t-meta">
@@ -173,7 +168,11 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
                     <button
                       type="button"
                       onClick={() => setVoceId(voce.id)}
-                      className="inline-flex max-w-64 items-baseline gap-2 rounded-full border border-line px-3 py-1.5 text-left font-ui text-xs text-ink-soft transition-colors duration-(--dur-micro) hover:border-line-strong hover:text-ink"
+                      {...attributiPastiglia}
+                      className={cn(
+                        pastigliaVariants({ taglia: "filtro" }),
+                        "max-w-64 text-left",
+                      )}
                     >
                       <span className="truncate text-ink">{voce.libro.titoloCanonico}</span>
                       {(voce.stato === "in_lettura" || voce.stato === "in_pausa") && (
@@ -197,39 +196,36 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
         className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
       />
 
-      <div className="flex flex-wrap items-center gap-2.5 border-t border-line pt-3.5">
-        <PastigliaInterruttore pressed={spoiler} onPressedChange={setSpoiler}>
-          <IconaCoperto />
-          Copri lo spoiler
-        </PastigliaInterruttore>
-        <PastigliaInterruttore
-          pressed={visibilita === "condiviso"}
-          onPressedChange={(condiviso) => setVisibilita(condiviso ? "condiviso" : "privato")}
-        >
-          {visibilita === "condiviso" ? (
-            <>
-              <IconaCollegati />
-              Condiviso
-            </>
-          ) : (
-            <>
-              <IconaLucchetto />
-              Solo tuo
-            </>
-          )}
-        </PastigliaInterruttore>
+      {/* LA BARRA, IN DUE GRUPPI CHE NON SI MESCOLANO.
 
-        <span className="ml-auto flex items-center gap-1.5">
-          <Button variant="ghost" onClick={onChiudi}>
+          Era un solo `flex-wrap` con quattro controlli e un `ml-auto` sul
+          terzo: su 390px il punto in cui la riga si spezzava dipendeva
+          dalla lunghezza delle etichette, non dal senso, e capitava che
+          "Salva" finisse in riga con un interruttore. Ora sono due
+          gruppi dichiarati — che cosa sarà questo testo, e cosa farne —
+          impilati sotto i 640px e affiancati sopra. */}
+      <div className="flex flex-col gap-3 border-t border-line pt-3.5 sm:flex-row sm:items-center sm:gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <InterruttoriScritto
+            spoiler={spoiler}
+            onSpoiler={setSpoiler}
+            visibilita={visibilita}
+            onVisibilita={setVisibilita}
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:ml-auto">
+          <Button variant="ghost" className="flex-1 sm:flex-none" onClick={onChiudi}>
             Annulla
           </Button>
           <Button
+            className="flex-1 sm:flex-none"
             disabled={!voceId || testo.trim() === "" || salva.isPending}
             onClick={() => salva.mutate()}
           >
             Salva
           </Button>
-        </span>
+        </div>
       </div>
 
       <Messaggio>{errore}</Messaggio>

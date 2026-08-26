@@ -3,8 +3,7 @@
 import Link from "next/link";
 
 import type { Risultato } from "@/lib/api/ricerca";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Messaggio } from "@/components/ui/messaggio";
 import { percorsoScheda } from "@/lib/percorso-scheda";
 import { useTranslations } from "next-intl";
@@ -80,7 +79,7 @@ export function RigaRisultato({
     <div className="flex items-start gap-3 p-4">
       <Copertina risultato={risultato} />
 
-      <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {/* Il titolo è un link alla scheda del libro, il verbo resta il
             verbo: sono due gesti diversi — guardare e prendere — e §13
             vuole che l'aggiunta non porti via dalla ricerca. Fondere i due
@@ -99,17 +98,24 @@ export function RigaRisultato({
         {riga && <span className="t-meta">{riga}</span>}
       </div>
 
-      <div className="ml-auto flex shrink-0 flex-col items-end gap-1">
+      <div className="flex shrink-0 flex-col items-end gap-1">
         {voce ? (
-          /* `buttonVariants` su un Link invece di un Button che avvolge un
-             Link: il primitivo `Button` non espone `asChild`, e annidare
-             un Link dentro un <button> darebbe markup non valido. */
-          <Link
-            href={`/libro/${voce.id}`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          /* `render` e non `buttonVariants` su un `<Link>` nudo: il
+             primitivo `Button` di Base UI espone `render`, e il commento
+             che diceva il contrario era vecchio di una versione — lo
+             stesso file `libro/nella-tua-libreria.tsx` lo usava già così.
+             La differenza non è di stile: passando dal primitivo, il link
+             prende il cedimento alla pressione, `data-slot="button"` (e
+             quindi la regola del tocco) e il fuoco dell'app, che con le
+             sole classi restavano fuori. */
+          <Button
+            render={<Link href={`/libro/${voce.id}`} />}
+            nativeButton={false}
+            variant="outline"
+            size="sm"
           >
             {voce.stato === "letto" || voce.stato === "abbandonato" ? "Rileggi" : "Vai al libro"}
-          </Link>
+          </Button>
         ) : (
           <Button variant="outline" size="sm" disabled={inCorso} onClick={onAggiungi}>
             {inCorso ? t("attesa.aggiungo") : "Aggiungi"}

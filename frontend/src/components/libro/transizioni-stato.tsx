@@ -160,27 +160,39 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
         )}
       </div>
 
+      {/* Quattro elementi in `flex-wrap` su 390px si spezzavano in tre
+          righe di cui l'ultima portava "Annulla" da solo, allineato a
+          sinistra: la via d'uscita nel punto più simile a un'azione
+          primaria. Ora è una struttura dichiarata — la frase, poi la
+          data, poi i due comandi affiancati che si dividono la riga — e
+          da 640px in su torna tutto su una riga sola. */}
       {pendente && (
-        <div className="pannello plane-1 grain flex flex-wrap items-center gap-3 p-4">
-          <span className="t-body min-w-0 flex-1 text-sm">{pendente.etichetta}, con data</span>
-          <span className="inline-flex items-center rounded-field border border-line-strong bg-surface-1 px-3">
-            <CampoData
-              id="data-transizione"
-              ariaLabel="Data"
-              value={data}
-              max={oggiISO()}
-              onChange={setData}
-            />
-          </span>
-          <Button
-            disabled={mutazione.isPending}
-            onClick={() => mutazione.mutate({ stato: pendente.stato, conData: data })}
-          >
-            Conferma
-          </Button>
-          <Button variant="ghost" onClick={() => setPendente(null)}>
-            Annulla
-          </Button>
+        <div className="pannello plane-1 grain flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+          <span className="t-body min-w-0 text-sm sm:flex-1">{pendente.etichetta}, con data</span>
+          <CampoData
+            riquadro
+            id="data-transizione"
+            ariaLabel="Data"
+            value={data}
+            max={oggiISO()}
+            onChange={setData}
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              className="flex-1 sm:flex-none"
+              disabled={mutazione.isPending}
+              onClick={() => mutazione.mutate({ stato: pendente.stato, conData: data })}
+            >
+              Conferma
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex-1 sm:flex-none"
+              onClick={() => setPendente(null)}
+            >
+              Annulla
+            </Button>
+          </div>
         </div>
       )}
     </div>

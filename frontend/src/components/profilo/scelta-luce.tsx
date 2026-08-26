@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { type PreferenzaLuce } from "@/lib/light";
 import { impostaLuce } from "@/components/profilo/azione-luce";
+import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 
 const OPZIONI: { valore: PreferenzaLuce; etichetta: string }[] = [
   { valore: "ora", etichetta: "Segui l’ora" },
@@ -61,7 +62,7 @@ export function SceltaLuce({ iniziale }: { iniziale: PreferenzaLuce }) {
       <div
         role="radiogroup"
         aria-label="Luce della stanza"
-        className="flex flex-wrap gap-1"
+        className="flex flex-wrap gap-2"
       >
         {OPZIONI.map(({ valore, etichetta }) => {
           const attiva = scelta === valore;
@@ -73,11 +74,8 @@ export function SceltaLuce({ iniziale }: { iniziale: PreferenzaLuce }) {
               aria-checked={attiva}
               disabled={inCorso}
               onClick={() => cambia(valore)}
-              className={`rounded-full border px-3 py-1 font-ui text-xs transition-colors duration-(--dur-micro) disabled:opacity-60 ${
-                attiva
-                  ? "border-transparent bg-ink/9 font-medium text-ink"
-                  : "border-line text-ink-soft hover:border-line-strong hover:text-ink"
-              }`}
+              {...attributiPastiglia}
+              className={pastigliaVariants({ taglia: "filtro", acceso: attiva })}
             >
               {etichetta}
             </button>

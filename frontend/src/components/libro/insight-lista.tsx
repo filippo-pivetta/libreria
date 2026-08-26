@@ -18,14 +18,8 @@ import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Invito } from "@/components/ui/invito";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
-import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";
-import {
-  IconaAltro,
-  IconaCollegati,
-  IconaCoperto,
-  IconaLucchetto,
-  IconaMatita,
-} from "@/components/ui/icone";
+import { InterruttoriScritto } from "@/components/ui/interruttori-scritto";
+import { IconaAltro, IconaCoperto, IconaLucchetto, IconaMatita } from "@/components/ui/icone";
 import { useLocale, useTranslations } from "next-intl";
 
 // Soglia tra i due trattamenti tipografici (design doc §10): sotto,
@@ -91,44 +85,39 @@ function ModuloInsight({
         placeholder="Cosa ti ha colpito?"
         className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
       />
-      <div className="mt-3.5 flex flex-wrap items-center gap-2.5 border-t border-line pt-3.5">
-        {/* Prima erano due comandi testuali sottolineati la cui etichetta
-            era anche lo stato ("Segna come spoiler" ⇄ "Contrassegnato
-            spoiler"), quindi da fermo non si sapeva se descrivessero o
-            promettessero — su una scelta che decide cosa i collegati
-            leggeranno. Ora sono interruttori premuti, con `aria-pressed`. */}
-        <PastigliaInterruttore pressed={spoiler} onPressedChange={setSpoiler}>
-          <IconaCoperto />
-          Copri lo spoiler
-        </PastigliaInterruttore>
-        <PastigliaInterruttore
-          pressed={visibilita === "condiviso"}
-          onPressedChange={(condiviso) => setVisibilita(condiviso ? "condiviso" : "privato")}
-        >
-          {visibilita === "condiviso" ? (
-            <>
-              <IconaCollegati />
-              Condiviso
-            </>
-          ) : (
-            <>
-              <IconaLucchetto />
-              Solo tuo
-            </>
-          )}
-        </PastigliaInterruttore>
+      {/* Prima erano due comandi testuali sottolineati la cui etichetta
+          era anche lo stato ("Segna come spoiler" ⇄ "Contrassegnato
+          spoiler"), quindi da fermo non si sapeva se descrivessero o
+          promettessero — su una scelta che decide cosa i collegati
+          leggeranno. Ora sono interruttori premuti, con `aria-pressed`,
+          e stanno in un componente solo (`ui/interruttori-scritto.tsx`):
+          questa barra era ricopiata alla lettera anche nel modulo dei
+          Quaderni.
 
-        <span className="ml-auto flex items-center gap-1.5">
-          <Button variant="ghost" onClick={onAnnulla}>
+          Due gruppi, impilati sotto i 640px: che cosa sarà questo testo,
+          e cosa farne. Vedi lo stesso commento in `scrivi-pensiero.tsx`. */}
+      <div className="mt-3.5 flex flex-col gap-3 border-t border-line pt-3.5 sm:flex-row sm:items-center sm:gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <InterruttoriScritto
+            spoiler={spoiler}
+            onSpoiler={setSpoiler}
+            visibilita={visibilita}
+            onVisibilita={setVisibilita}
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:ml-auto">
+          <Button variant="ghost" className="flex-1 sm:flex-none" onClick={onAnnulla}>
             Annulla
           </Button>
           <Button
+            className="flex-1 sm:flex-none"
             disabled={testo.trim() === "" || inCorso}
             onClick={() => onSalva({ testo: testo.trim(), spoiler, visibilita })}
           >
             {etichettaSalva}
           </Button>
-        </span>
+        </div>
       </div>
     </div>
   );
@@ -303,9 +292,9 @@ function UnSoloInsight({
         </p>
         {isAppunto && !espansa && (
           <Button
-            variant="link"
-            size="sm"
-            className="mt-1 px-0"
+            variant="quiet"
+            size="testo"
+            className="mt-2"
             onClick={() => setEspansa(true)}
           >
             Mostra tutto
@@ -413,7 +402,7 @@ function GruppoInsight({
       ))}
 
       {nascosti > 0 && (
-        <Button variant="link" size="sm" className="self-start px-0" onClick={() => setTutti(true)}>
+        <Button variant="quiet" size="testo" className="self-start" onClick={() => setTutti(true)}>
           {nascosti === 1
             ? "Mostra l’altro insight di questa lettura"
             : `Mostra gli altri ${nascosti} insight di questa lettura`}

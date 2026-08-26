@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getLibreriaCollegato } from "@/lib/api/utenti";
 import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
 import { createClient } from "@/lib/supabase/server";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/states/error-state";
 import { BarraContesto } from "@/components/lettori/barra-contesto";
 import { getTranslations } from "next-intl/server";
@@ -54,12 +55,12 @@ export default async function LibreriaCollegatoLayout(
             title="Non più accessibile"
             message={t("assenze.libreriaChiusa")}
           />
-          <Link
-            href="/readers"
-            className="font-ui text-sm text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-          >
+          {/* Era un comando testuale sottolineato: in una pagina che è un
+              vicolo cieco, l'unica via d'uscita non può avere il peso più
+              leggero della scala. */}
+          <Button render={<Link href="/readers" />} nativeButton={false} variant="outline">
             Torna ai lettori
-          </Link>
+          </Button>
         </div>
       </main>
     );

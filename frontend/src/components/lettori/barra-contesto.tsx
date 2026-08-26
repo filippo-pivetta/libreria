@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { IconaFreccia } from "@/components/ui/icone";
 import { iniziali } from "@/lib/iniziali";
 import { PulsanteEsci } from "@/components/layout/pulsante-esci";
 
@@ -135,12 +136,17 @@ export function BarraContesto({
           <div className="flex h-11 items-center">
             {scorso ? (
               <div className="grid w-full grid-cols-[44px_1fr_44px] items-center">
+                {/* Era il glifo `‹` a corpo 22: un carattere di testo, con
+                    tutto quel che comporta (disegno e larghezza decisi dal
+                    font di sistema su Android). Il tracciato è quello di
+                    ogni altra freccia dell'app. Il bersaglio resta 44×44,
+                    che è la ragione per cui la griglia ha quella colonna. */}
                 <Link
                   href="/readers"
                   aria-label="Torna a Lettori"
-                  className="flex h-11 items-center justify-center text-[22px] leading-none text-ink"
+                  className="flex h-11 items-center justify-center text-ink"
                 >
-                  ‹
+                  <IconaFreccia aria-hidden className="size-5 rotate-90" />
                 </Link>
                 <span className="flex min-w-0 items-center justify-center gap-2 px-1">
                   <span
@@ -192,7 +198,8 @@ export function BarraContesto({
           href="/readers"
           className="inline-flex items-center gap-1.5 font-ui text-[13px] text-ink-soft hover:text-ink"
         >
-          <span aria-hidden className="text-[17px] leading-none">‹</span> Lettori
+          <IconaFreccia aria-hidden className="size-4 rotate-90" />
+          Lettori
         </Link>
 
         <div className="mt-5 flex items-center gap-5">

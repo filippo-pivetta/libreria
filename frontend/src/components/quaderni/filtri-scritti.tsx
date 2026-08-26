@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSfaccettature, type FiltriScritti, type TipoContenuto } from "@/lib/api/scritti";
 import { getAccessToken } from "@/lib/api/access-token";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
+import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { IconaFreccia } from "@/components/ui/icone";
 import { SelettoreLibro } from "@/components/quaderni/selettore-libro";
 
@@ -19,10 +20,13 @@ import { SelettoreLibro } from "@/components/quaderni/selettore-libro";
  * nasconderle dietro un disclosure. Prima dei Quaderni ridisegnati questa
  * pagina non aveva un solo gesto che non passasse da OpenAI.
  *
- * Vestiti identici a `libreria/scaffale.tsx`, comprese le due classi di
- * stato: una pastiglia accesa è inchiostro al 9% senza bordo, mai un
- * riempimento colorato — i libri restano l'unico posto dell'app dove il
- * colore è un dato.
+ * Vestiti identici a `libreria/scaffale.tsx` — ora davvero identici: il
+ * disegno sta in `ui/pastiglia.tsx` invece di essere ricopiato qui e là.
+ * Una pastiglia accesa è inchiostro PIENO, mai un riempimento colorato:
+ * i libri restano l'unico posto dell'app dove il colore è un dato.
+ * (Era `bg-ink/9`, cioè inchiostro al 9%: a distanza di un braccio non si
+ * distingueva da spenta, e sotto il sole di un telefono nemmeno da
+ * vicino. I temi, sulla stessa pagina, usavano già il pieno.)
  *
  * ---------------------------------------------------------------------------
  * "TUTTI" È UNO STATO DICHIARATO, non dedotto — stessa correzione che lo
@@ -61,14 +65,10 @@ export function FiltriScrittiBarra({
   const nessunFiltro =
     !filtri.tipo && !filtri.soloSpoiler && filtri.anno == null && !filtri.voceIds?.length;
 
-  function classePill(attivo: boolean): string {
-    return attivo
-      ? "border-transparent bg-ink/9 text-ink font-medium"
-      : "border-line text-ink-soft hover:text-ink hover:border-line-strong";
-  }
-
-  const basePill =
-    "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-ui text-xs transition-colors duration-(--dur-micro)";
+  // Il vestito è di `ui/pastiglia.tsx`: `basePill` e `classePill` erano
+  // ricopiati alla lettera anche in `libreria/scaffale.tsx`, e le due
+  // copie avevano già cominciato a divergere.
+  const pill = (attivo: boolean) => pastigliaVariants({ taglia: "filtro", acceso: attivo });
 
   function scegliTipo(tipo: TipoContenuto | null) {
     onCambia({ ...filtri, tipo: filtri.tipo === tipo ? null : tipo });
@@ -92,7 +92,8 @@ export function FiltriScrittiBarra({
         type="button"
         aria-pressed={nessunFiltro}
         onClick={() => onCambia({})}
-        className={`${basePill} ${classePill(nessunFiltro)}`}
+        {...attributiPastiglia}
+        className={pill(nessunFiltro)}
       >
         Tutti
       </button>
@@ -101,7 +102,8 @@ export function FiltriScrittiBarra({
         type="button"
         aria-pressed={filtri.tipo === "insight"}
         onClick={() => scegliTipo("insight")}
-        className={`${basePill} ${classePill(filtri.tipo === "insight")}`}
+        {...attributiPastiglia}
+        className={pill(filtri.tipo === "insight")}
       >
         Insight
       </button>
@@ -110,7 +112,8 @@ export function FiltriScrittiBarra({
         type="button"
         aria-pressed={filtri.tipo === "recensione"}
         onClick={() => scegliTipo("recensione")}
-        className={`${basePill} ${classePill(filtri.tipo === "recensione")}`}
+        {...attributiPastiglia}
+        className={pill(filtri.tipo === "recensione")}
       >
         Recensioni
       </button>
@@ -119,7 +122,8 @@ export function FiltriScrittiBarra({
         type="button"
         aria-pressed={!!filtri.soloSpoiler}
         onClick={() => onCambia({ ...filtri, soloSpoiler: !filtri.soloSpoiler })}
-        className={`${basePill} ${classePill(!!filtri.soloSpoiler)}`}
+        {...attributiPastiglia}
+        className={pill(!!filtri.soloSpoiler)}
       >
         Spoiler
       </button>
@@ -127,7 +131,8 @@ export function FiltriScrittiBarra({
       {(sfaccettature?.anni.length ?? 0) > 1 && (
         <Menu>
           <MenuTrigger
-            className={`${basePill} ${classePill(filtri.anno != null)}`}
+            {...attributiPastiglia}
+            className={pill(filtri.anno != null)}
             aria-label="Filtra per anno"
           >
             {filtri.anno ?? "Ogni anno"}
@@ -153,7 +158,7 @@ export function FiltriScrittiBarra({
           libri={sfaccettature?.libri ?? []}
           selezionato={libroScelto ?? null}
           onScegli={(chiave) => onCambia({ ...filtri, voceIds: chiave ? [chiave] : null })}
-          classePill={`${basePill} ${classePill(!!filtri.voceIds?.length)}`}
+          classePill={pill(!!filtri.voceIds?.length)}
         />
       )}
     </div>

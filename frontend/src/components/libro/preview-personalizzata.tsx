@@ -7,6 +7,8 @@ import { cancellaArtefatto, generaPreview, getPreview } from "@/lib/api/preview"
 import { getAccessToken } from "@/lib/api/access-token";
 import { getMe } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
+import { IconaAltro } from "@/components/ui/icone";
+import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { Messaggio } from "@/components/ui/messaggio";
 import { useTranslations } from "next-intl";
 
@@ -167,19 +169,20 @@ export function PreviewPersonalizzata({
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
           {!apertoPerIntero && (
-            <Button variant="link" size="sm" className="px-0" onClick={() => setApertoPerIntero(true)}>
+            <Button variant="quiet" size="testo" onClick={() => setApertoPerIntero(true)}>
               Continua a leggere
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
+          {/* La cancellazione di un artefatto generato sta in un menù, non
+              accanto al comando che lo rigenera: stessa correzione fatta
+              ai temi dei Quaderni (`quaderni/temi.tsx`) e stesso pattern
+              già in uso sulle righe di insight. Buttare un parere non ha
+              lo stesso peso di aprirlo per intero, e prima ce l'aveva. */}
+          <MenuCancella
             className="ml-auto"
-            onClick={() => cancella.mutate(preview.id)}
-            disabled={cancella.isPending}
-          >
-            Cancella
-          </Button>
+            inCorso={cancella.isPending}
+            onCancella={() => cancella.mutate(preview.id)}
+          />
         </div>
         <Messaggio className="mt-2">{errore}</Messaggio>
       </section>
@@ -193,10 +196,10 @@ export function PreviewPersonalizzata({
       {preview ? (
         <div className="mt-3.5 flex flex-col gap-4">
           <p className="t-sentenza max-w-[60ch]">{preview.testo}</p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {!spentaDavvero && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => genera.mutate()}
                 disabled={genera.isPending}
@@ -204,20 +207,15 @@ export function PreviewPersonalizzata({
                 {genera.isPending ? t("attesa.penso") : "Chiedine un altro"}
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => cancella.mutate(preview.id)}
-              disabled={cancella.isPending}
-            >
-              Cancella
-            </Button>
+            <MenuCancella
+              inCorso={cancella.isPending}
+              onCancella={() => cancella.mutate(preview.id)}
+            />
           </div>
         </div>
       ) : spentaDavvero ? (
         <p className="t-meta mt-2 max-w-[52ch]">
-          L&apos;elaborazione assistita è spenta. Puoi riaccenderla dalle impostazioni nella
-          profilo.
+          L&apos;elaborazione assistita è spenta. Puoi riaccenderla dal profilo.
         </p>
       ) : (
         <>
@@ -238,5 +236,48 @@ export function PreviewPersonalizzata({
 
       <Messaggio className="mt-2">{errore}</Messaggio>
     </section>
+  );
+}
+
+/**
+ * Il menù di manutenzione di un parere: una voce sola, e va bene così.
+ *
+ * Una voce in un menù sembra troppo, finché non si guarda l'alternativa:
+ * "Cancella" scritto accanto a "Chiedine un altro", allo stesso corpo e
+ * allo stesso colore, con la differenza che uno dei due non torna
+ * indietro. Il menù non nasconde la cancellazione — la mette dove l'app
+ * mette già le azioni che si compiono di rado e che non si vogliono
+ * sfiorare per sbaglio (le righe di insight, i temi dei Quaderni), cioè
+ * dietro un gesto in più.
+ */
+function MenuCancella({
+  inCorso,
+  onCancella,
+  className,
+}: {
+  inCorso: boolean;
+  onCancella: () => void;
+  className?: string;
+}) {
+  return (
+    <Menu>
+      <MenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className={className}
+            aria-label="Altre azioni sul parere"
+          >
+            <IconaAltro />
+          </Button>
+        }
+      />
+      <MenuContenuto align="end">
+        <MenuVoce disabled={inCorso} onClick={onCancella}>
+          Cancella il parere
+        </MenuVoce>
+      </MenuContenuto>
+    </Menu>
   );
 }

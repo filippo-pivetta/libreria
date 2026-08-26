@@ -52,7 +52,7 @@ export function Chiosa({ etichetta, children }: { etichetta: string; children: R
         // una pillola ellittica invece di un cerchio attorno al "?" —
         // stesso genere di override già necessario altrove per i controlli
         // nativi (globals.css, il calendario di `campo-data.tsx`).
-        className="ml-1.5 inline-flex size-4 shrink-0 translate-y-px appearance-none items-center justify-center rounded-full border border-line-strong bg-transparent font-ui text-[10px] leading-none text-ink-soft transition-colors duration-(--dur-micro) hover:border-ink hover:text-ink data-[popup-open]:border-ink data-[popup-open]:text-ink"
+        className="bersaglio ml-1.5 inline-flex size-4 shrink-0 translate-y-px appearance-none items-center justify-center rounded-full border border-line-strong bg-transparent font-ui text-[10px] leading-none text-ink-soft transition-colors duration-(--dur-micro) hover:border-ink hover:text-ink data-[popup-open]:border-ink data-[popup-open]:text-ink"
       >
         ?
       </Popover.Trigger>

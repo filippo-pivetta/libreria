@@ -211,8 +211,25 @@
 
   /* Lampada: un solo radial-gradient, fisso, ancorato in alto a sinistra.
      Non si muove, non pulsa, non segue il puntatore.
-     È l'unica ragione per cui il piano 0 non è del tutto piatto. */
-  --lamp: radial-gradient(62% 48% at 22% 18%, var(--raw-lamp), transparent 72%);
+     È l'unica ragione per cui il piano 0 non è del tutto piatto.
+
+     BUG TROVATO IL 26 AGOSTO 2026: "non si muove" era scritto, non vero.
+     `.plane-0-lit` sta sul contenitore di pagina (`app/(protected)/layout.tsx`,
+     `min-h-screen flex flex-col`), la cui altezza NON è il viewport ma
+     quella del contenuto — cresce con la pagina. Le percentuali di un
+     `radial-gradient` (posizione E raggio, quando espresso in %) sono
+     relative al box dello sfondo, cioè a QUELLA altezza: filtrare i
+     Quaderni per un libro accorcia il corpus, accorcia il contenitore,
+     e "18%" ricalcolato su un'altezza minore sposta il centro caldo più
+     vicino alla cima — pochi pixel, ma proprio dove sta la barra di
+     ricerca. Non un'illusione ottica: la lampada si muoveva davvero,
+     ogni volta che il conteggio dei risultati cambiava — filtro, ricerca,
+     apertura di un tema.
+
+     `vw`/`vh` invece di `%`: legati al viewport, che non cambia mai per
+     un'interazione in pagina, non al contenitore che invece cambia a ogni
+     filtro. Stessa posizione visiva sullo schermo, ora davvero fissa. */
+  --lamp: radial-gradient(62vw 48vh at 22vw 18vh, var(--raw-lamp), transparent 72%);
 
   /* Raggi: uno per famiglia, mai sopra i 14px. */
   --radius-object: 4px;   /* pastiglie, dorsi, barre */
@@ -331,6 +348,22 @@
      zero anche su un iPhone.
      -------------------------------------------------------------------- */
   --tap: 44px;
+
+  /* La stella del voto. È il solo bersaglio dell'app che non può
+     arrivare a `--tap`: mezza stella significa DUE bersagli dentro la
+     larghezza di uno, quindi allargarli a 44 ciascuno darebbe una riga
+     di 440px che su un telefono non esiste. Si allarga invece la stella
+     stessa dove c'è un dito — 28px col mouse, 40 sotto il dito, cioè
+     20px per ciascuna metà invece di 14 — e la precisione la recupera
+     l'ingrandimento, non una regola generale.
+
+     Il commento in `libro/voto-stelle.tsx` diceva che le due metà
+     arrivavano a `--tap` "dalla regola pointer: coarse". Non era vero:
+     quei due `<button>` non hanno né `data-slot` né una classe di
+     raggio, quindi nessun selettore di quella regola li ha mai presi —
+     e `min-height` non avrebbe comunque toccato la larghezza, che è la
+     dimensione che lì manca. */
+  --stella: 1.75rem;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
@@ -471,9 +504,8 @@
 /* -----------------------------------------------------------------------------
    IL TOCCO
 
-   Due regole che valgono solo dove c'è un dito, così la densità del desktop
-   (che il documento sceglie di proposito: h-8 sui pulsanti, campi a riga sola)
-   resta intatta.
+   Regole che valgono solo dove c'è un dito, così la densità del desktop
+   (che il documento sceglie di proposito) resta intatta.
 
    1. Niente lampeggio grigio di sistema al tocco su iOS e Android: copre il
       feedback che i controlli si danno da soli e non ha nulla a che vedere con
@@ -482,41 +514,97 @@
       in sessanta componenti — e soprattutto una regola che non si dimentica al
       prossimo componente scritto.
 
-   `min-height` e non `height`: un pulsante che è già più alto non si accorcia,
-   e uno che contiene due righe di testo cresce come deve.
+   DUE MODI DI ARRIVARE A 44, E LA DIFFERENZA CONTA (revisione 26 agosto 2026).
+
+   Prima ce n'era uno solo: `min-height: var(--tap)` su tutto, pastiglie
+   comprese. Su un pulsante è giusto — un pulsante È il suo riquadro, e un
+   riquadro alto 44 sotto il dito è esattamente ciò che si vuole. Su una
+   PASTIGLIA è sbagliato: una pastiglia di filtro porta un'etichetta di 12px,
+   e stirarne il riquadro a 44 dà una capsula alta il doppio del suo testo,
+   con l'etichetta che ci galleggia in mezzo. Sei di quelle in fila sono una
+   fascia di 44px di riquadri quasi vuoti — la riga più pesante della pagina,
+   per i comandi più leggeri.
+
+   Apple risolve così da sempre: il bersaglio è più grande del pixel. Il
+   riquadro resta della misura che il disegno vuole, e l'area sensibile si
+   allarga sotto e sopra con uno pseudo-elemento che non occupa flusso.
+   `.bersaglio` fa quello, ed è la stessa meccanica che `.tocco-esteso` già
+   dava ai comandi testuali — ora una classe sola per entrambi, perché il
+   problema era sempre stato lo stesso.
+
+   `min-height` e non `height` dove il riquadro cresce: un pulsante che è già
+   più alto non si accorcia, e uno che contiene due righe di testo cresce come
+   deve.
    -------------------------------------------------------------------------- */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Il bersaglio allargato, SENZA riquadro allargato.
+
+   Fuori da `pointer: coarse` per una ragione precisa: un portatile con schermo
+   tattile è `pointer: fine` e ha comunque un dito. Costa uno pseudo-elemento
+   trasparente e non sposta nulla, quindi non c'è ragione di negarlo lì.
+
+   `inset: 50% 0 0 0` più `translate` centra la fascia sull'elemento invece di
+   appenderla a un bordo: un chip alto 30 in una riga con 8 di gap prende 7px
+   sopra e 7 sotto, che è metà del gap — non ruba il bersaglio del vicino. */
+.bersaglio {
+  position: relative;
+}
+.bersaglio::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  /* `width/height: 100%` più i due minimi: l'area parte dalla misura
+     dell'elemento e si allarga solo dove è sotto i 44. Su una pastiglia
+     larga 90px cresce in altezza e basta; su un bersaglio quadrato —
+     le iniziali del profilo, il "?" di una chiosa, la croce che svuota
+     un campo — cresce in tutte e due le direzioni, che è il caso che
+     `inset: 50% 0 0 0` non copriva: quello lasciava la larghezza a
+     32px e allargava solo sopra e sotto. */
+  width: 100%;
+  height: 100%;
+  min-width: var(--tap);
+  min-height: var(--tap);
+}
+
+/* Il nome vecchio resta valido: `.tocco-esteso` è `.bersaglio`. Un alias e
+   non una sostituzione cieca — il giorno in cui sparisce dall'ultimo
+   componente si toglie di qui, non prima. */
+.tocco-esteso {
+  position: relative;
+}
+.tocco-esteso::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 0 0;
+  translate: 0 -50%;
+  min-height: var(--tap);
+}
+
 @media (pointer: coarse) {
-  [data-slot="button"],
+  :root {
+    --stella: 2.5rem;
+  }
+
+  /* `:not(.bersaglio)` è l'unica cosa che separa i due modi, e li separa
+     una volta per tutte: chi porta già il proprio bersaglio allargato non
+     viene stirato. Vale per le pastiglie e per i comandi `quiet` di
+     `ui/button.tsx`, che sono `data-slot="button"` a tutti gli effetti —
+     senza questa esclusione un "Mostrane un altro" in coda a una carta
+     aprirebbe nel flusso un buco alto 44px, cioè esattamente il difetto
+     che `min-h-11` scritto a mano dava negli Annali. */
+  [data-slot="button"]:not(.bersaglio),
   [data-slot="input"],
   [data-slot="switch"],
   .field-line,
   summary,
   [role="slider"],
-  a[class*="rounded-field"],
-  a[class*="rounded-object"],
-  /* Le pastiglie del filtro per stato: non passano da <Button>, quindi non
-     hanno `data-slot`, e restavano gli unici bersagli sotto i 44px rimasti
-     in pagina (misurati: 26px). */
-  button[class*="rounded-full"],
-  a[class*="rounded-full"] {
-    min-height: var(--tap);
-  }
-
-  /* I comandi testuali in linea (".Mostra tutto", "Cancella", i due toggle di
-     visibilità) non hanno riquadro e non devono prenderlo: si allargano
-     l'area di tocco oltre il testo, senza spostare nulla nel flusso. */
-  .tocco-esteso {
-    position: relative;
-  }
-  .tocco-esteso::before {
-    content: "";
-    position: absolute;
-    inset: 50% 0 0 0;
-    translate: 0 -50%;
+  a[class*="rounded-field"]:not(.bersaglio),
+  a[class*="rounded-object"]:not(.bersaglio) {
     min-height: var(--tap);
   }
 }

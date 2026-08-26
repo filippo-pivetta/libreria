@@ -85,21 +85,30 @@
     .measure{position:relative;display:inline-flex;align-items:center;gap:8px}
     .measure b{font-family:var(--font-ui);font-size:11px;font-weight:600;color:oklch(0.470 0.170 27);font-variant-numeric:tabular-nums}
     .measure b.ok{color:oklch(0.420 0.100 150)}
-    .btn-quiet{font-family:var(--font-ui);font-size:13px;line-height:1.45;color:var(--ink-soft);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:4px}
-    .btn-ghost.aperto{background:var(--surface-2);color:var(--ink)}
-    .scala{display:flex;flex-direction:column;margin-top:26px}
-    .peso{display:grid;grid-template-columns:190px 1fr;gap:26px;align-items:center;padding:19px 0;border-top:1px solid var(--line)}
-    .peso > .peso-h{grid-column:1;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
-    .peso > :nth-child(2){grid-column:2;justify-self:start}
-    .peso > .peso-d{grid-column:2;font-family:var(--font-ui);font-size:12.5px;line-height:1.55;color:var(--ink-soft);max-width:72ch}
-    .peso-n{font-family:var(--font-display);font-variation-settings:"opsz" 24;font-size:15px;color:var(--ink-soft)}
-    .peso-t{font-family:var(--font-ui);font-size:13.5px;font-weight:600;color:var(--ink)}
-    .peso-h b{font-family:var(--font-ui);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
-    .peso strong{color:var(--ink);font-weight:600}
-    .peso code,.nota code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11.5px;color:var(--ink)}
-    .nuovo .peso-t::after{content:"nuovo";margin-left:8px;font-size:9.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:oklch(0.420 0.100 150);vertical-align:1px}
-    .nota{margin-top:30px;padding-top:24px;border-top:1px solid var(--line-strong)}
-    .rif{display:inline-flex;align-items:center;gap:6px;max-width:22ch;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 9px;font-family:var(--font-ui);font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pg{display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-soft);font-family:var(--font-ui);white-space:nowrap}
+    .pg.filtro{height:30px;padding:0 12px;font-size:12px;gap:6px}
+    .pg.comando{height:36px;padding:0 14px;font-size:13px;font-weight:500}
+    .pg.tema{height:32px;padding:0 14px;font-family:var(--font-display);font-variation-settings:"opsz" 24;font-size:15px;color:var(--ink)}
+    .pg.on{border-color:var(--ink);background:var(--ink);color:var(--surface-1)}
+    .pg.debole{border-color:transparent;background:color-mix(in oklab, var(--ink) 9%, transparent);color:var(--ink);font-weight:500}
+    .pg .sq{width:7px;height:7px;border-radius:2px;flex:none}
+    .campo{position:relative;display:flex;align-items:center;border-bottom:1px solid var(--line)}
+    .campo svg.lente{position:absolute;left:0;color:var(--ink-soft)}
+    .campo input{width:100%;border:0;background:none;outline:none;color:var(--ink);font-family:var(--font-ui)}
+    .campo .x{position:absolute;right:0;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);background:none;cursor:pointer}
+    .campo.insegna{padding:12px 0}.campo.insegna input{font-family:var(--font-display);font-variation-settings:"opsz" 44;font-size:24px;padding-left:32px}.campo.insegna svg.lente{width:20px;height:20px}
+    .campo.piena{padding:10px 0}.campo.piena input{font-size:16px;padding-left:28px}.campo.piena svg.lente{width:17px;height:17px}
+    .campo.riga{padding:8px 0}.campo.riga input{font-size:14px;padding-left:24px}.campo.riga svg.lente{width:16px;height:16px}
+    .blocco{padding:22px 0;border-top:1px solid var(--line)}
+    .blocco:first-of-type{border-top:0}
+    .btit{display:flex;align-items:baseline;gap:10px;margin-bottom:13px}
+    .btit span:first-child{font-family:var(--font-ui);font-size:13.5px;font-weight:600;color:var(--ink)}
+    .btit span:last-child{font-family:var(--font-ui);font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+    .bdesc{font-family:var(--font-ui);font-size:12.5px;line-height:1.55;color:var(--ink-soft);max-width:76ch;margin-top:12px}
+    .bdesc strong{color:var(--ink);font-weight:600}
+    .bdesc code{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11.5px;color:var(--ink)}
+    .male{color:oklch(0.470 0.170 27)}
+    .bene{color:oklch(0.420 0.100 150)}
   </style>
 </helmet>
 
@@ -117,71 +126,66 @@
 </defs></svg>
 
 <div class="room" style="padding:34px 36px">
-  <p class="t-title" style="font-size:23px">I comandi</p>
-  <p class="t-meta2" style="margin-top:6px;max-width:84ch">Cinque pesi, e per ogni gesto ne esiste <span style="color:var(--ink);font-weight:500">uno solo</span>. Tutto passa da <code>ui/button.tsx</code>: non esistono <code>&lt;button&gt;</code> vestiti a mano. Le altezze qui sono quelle del desktop &mdash; sotto il dito ogni bersaglio arriva comunque a 44&nbsp;px, ma <em>come</em> ci arriva cambia (vedi la tavola "Il tocco").</p>
+  <p class="t-title" style="font-size:23px">Pastiglie e campi</p>
+  <p class="t-meta2" style="margin-top:6px;max-width:84ch">Erano <span style="color:var(--ink);font-weight:500">cinque</span> pastiglie e <span style="color:var(--ink);font-weight:500">cinque</span> campi di ricerca, ricopiati a mano da una pagina all'altra. Il difetto non era la ripetizione: era che le copie divergevano, e le differenze non significavano niente.</p>
 
-  <div class="scala">
-    <div class="peso">
-      <div class="peso-h"><span class="peso-n">1</span><span class="peso-t">Piena</span><b class="ok">44&thinsp;px</b></div>
-      <button class="btn btn-primary">Segna la pagina</button>
-      <p class="peso-d"><strong>Una per zona.</strong> L'azione che la zona esiste per compiere. 44&thinsp;px <em>anche col mouse</em>: quel numero appartiene alla gerarchia, non al pollice.</p>
+  <div class="blocco" style="margin-top:22px">
+    <div class="btit"><span>Filtro</span><span>30&thinsp;px &middot; corpo 12</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="pg filtro on">Tutti</button>
+      <button class="pg filtro">Insight</button>
+      <button class="pg filtro">Recensioni</button>
+      <button class="pg filtro">Spoiler</button>
+      <button class="pg filtro">Ogni anno<svg class="icon" width="11" height="11" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg></button>
+      <span style="width:14px"></span>
+      <button class="pg filtro on"><span class="sq" style="background:var(--r-reading)"></span>In lettura</button>
+      <button class="pg filtro"><span class="sq" style="background:var(--r-done)"></span>Letto</button>
     </div>
-
-    <div class="peso">
-      <div class="peso-h"><span class="peso-n">2</span><span class="peso-t">Di contorno</span><b class="ok">38&thinsp;px</b></div>
-      <button class="btn btn-secondary">Metti in pausa</button>
-      <p class="peso-d">La seconda azione. Riempimento sul piano&nbsp;1 e non trasparente: un comando posato sulla carta, non un buco nel bordo.</p>
-    </div>
-
-    <div class="peso">
-      <div class="peso-h"><span class="peso-n">3</span><span class="peso-t">Piano</span><b class="ok">38&thinsp;px</b></div>
-      <span style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-ghost">Altro<svg class="icon" width="15" height="15" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg></button>
-        <button class="btn btn-ghost aperto">Altro<svg class="icon" width="15" height="15" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg></button>
-      </span>
-      <p class="peso-d">Manutenzione, e le linguette che aprono un men&ugrave;. <strong>Resta acceso finch&eacute; il men&ugrave; &egrave; aperto</strong> (a destra): senza, il grilletto tornava neutro proprio quando il puntatore lo lasciava per andare sul riquadro.</p>
-    </div>
-
-    <div class="peso nuovo">
-      <div class="peso-h"><span class="peso-n">4</span><span class="peso-t">Quiet</span><b class="ok">nessun riquadro</b></div>
-      <span style="display:flex;gap:20px;align-items:center;padding:4px 0">
-        <button class="btn-quiet">Mostrane un altro</button>
-        <button class="btn-quiet">mostra tutti e 12</button>
-      </span>
-      <p class="peso-d"><strong>Il peso che mancava</strong>, e la sua assenza costava cara: il comando leggero era stato riscritto a mano <strong>otto volte in tre grammatiche</strong>. Il posto che occupava, <code>variant="link"</code>, usava l'accento come testo &mdash; ci&ograve; che &sect;3 vieta &mdash; quindi non lo usava nessuno.</p>
-    </div>
-
-    <div class="peso">
-      <div class="peso-h"><span class="peso-n">5</span><span class="peso-t">Invito</span><b class="ok">48&thinsp;px</b></div>
-      <button class="invito"><span class="plus"><svg class="icon" width="15" height="15" viewBox="0 0 24 24"><use href="#i-plus"></use></svg></span>Scrivi una recensione</button>
-      <p class="peso-d">Non un pulsante: il posto di ci&ograve; che non c'&egrave; ancora. Contorno tratteggiato, larghezza piena, l'atto centrale del prodotto.</p>
-    </div>
+    <p class="bdesc">Restringe ci&ograve; che sta sotto. Stessa taglia nello scaffale e nei Quaderni &mdash; ora <strong>davvero</strong> stessa: <code>basePill</code> era ricopiato alla lettera nei due file, e le due copie avevano gi&agrave; cominciato a divergere.</p>
   </div>
 
-  <div class="nota">
-    <p class="t-label" style="margin-bottom:9px">Un comando non ha la faccia di un rimando</p>
-    <div style="display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap">
-      <div style="flex:1;min-width:230px">
-        <p class="t-meta2" style="margin-bottom:9px;color:oklch(0.470 0.170 27);font-weight:500">Prima &mdash; sulla stessa carta</p>
-        <div style="display:flex;justify-content:space-between;gap:16px;align-items:center">
-          <span class="old-link">Le citt&agrave; invisibili &middot; Italo Calvino</span>
-          <span class="old-link">Mostrane un altro</span>
-        </div>
-        <p class="t-meta2" style="margin-top:11px;line-height:1.55">Due promesse opposte &mdash; uno porta via dalla pagina, l'altro cambia qualcosa qui &mdash; rese identiche.</p>
-      </div>
-      <div style="flex:1;min-width:230px">
-        <p class="t-meta2" style="margin-bottom:9px;color:oklch(0.420 0.100 150);font-weight:500">Ora</p>
-        <div style="display:flex;justify-content:space-between;gap:16px;align-items:center">
-          <span class="rif"><svg class="icon" width="14" height="14" viewBox="0 0 24 24" style="opacity:.7"><use href="#i-book"></use></svg>Le citt&agrave; invisibili</span>
-          <button class="btn-quiet">Mostrane un altro</button>
-        </div>
-        <p class="t-meta2" style="margin-top:11px;line-height:1.55">Il libro non &egrave; un'azione: &egrave; la <em>provenienza</em> del pensiero. Un dato con dentro un rimando, e un dato con un contorno &egrave; una pastiglia. Il titolo si tronca; gli autori restano nel nome accessibile.</p>
-      </div>
+  <div class="blocco">
+    <div class="btit"><span>Comando</span><span>36&thinsp;px &middot; corpo 13</span></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="pg comando on"><svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 20 20 4"/></svg>Spoiler</button>
+      <button class="pg comando"><svg class="icon" width="15" height="15" viewBox="0 0 24 24"><use href="#i-lock"></use></svg>Solo tuo</button>
+      <button class="pg comando on"><svg class="icon" width="15" height="15" viewBox="0 0 24 24"><use href="#i-people"></use></svg>Condiviso</button>
     </div>
+    <p class="bdesc">Commuta uno stato, e <strong>l'etichetta nomina lo stato, non l'atto</strong>. Era &laquo;<span class="male">Copri lo spoiler</span>&raquo;: un imperativo accanto a due nomi. Da premuto si leggeva come un fatto, da spento come una promessa &mdash; su una scelta che decide che cosa i collegati vedranno. Ora &egrave; &laquo;<span class="bene">Spoiler</span>&raquo;, la stessa parola che il filtro dei Quaderni usa gi&agrave; una riga sopra.</p>
+  </div>
+
+  <div class="blocco">
+    <div class="btit"><span>Tema</span><span>32&thinsp;px &middot; Fraunces 15</span></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="pg tema on">La solitudine <span style="font-family:var(--font-ui);font-size:11px;opacity:.7">7</span></button>
+      <button class="pg tema">Il tempo che passa <span style="font-family:var(--font-ui);font-size:11px;color:var(--ink-soft)">4</span></button>
+      <button class="pg tema">Case e stanze <span style="font-family:var(--font-ui);font-size:11px;color:var(--ink-soft)">3</span></button>
+    </div>
+    <p class="bdesc">Un nome che il modello ha scritto: materia della stessa famiglia dei titoli (&sect;4), quindi Fraunces. Non &egrave; una quarta grammatica &mdash; &egrave; la stessa capsula con un altro carattere, perch&eacute; apre un'<em>interpretazione</em> invece di restringere un attributo.</p>
+  </div>
+
+  <div class="blocco">
+    <div class="btit"><span>Accesa</span><span>un solo modo</span></div>
+    <div style="display:flex;gap:30px;align-items:center;flex-wrap:wrap">
+      <span style="display:flex;gap:8px;align-items:center"><button class="pg filtro debole">In lettura</button><span class="t-meta2 male">prima &middot; ink 9%</span></span>
+      <span style="display:flex;gap:8px;align-items:center"><button class="pg filtro on">In lettura</button><span class="t-meta2 bene">ora &middot; inchiostro pieno</span></span>
+    </div>
+    <p class="bdesc">Lo scaffale e i Quaderni usavano <code>bg-ink/9</code>; i temi, <em>sulla stessa pagina</em>, usavano gi&agrave; il pieno. Due risposte diverse alla stessa domanda a un dito di distanza &mdash; e quella al 9% a distanza di un braccio non si distingue da spenta. Nessun riempimento colorato in nessuno dei due casi: i libri restano l'unico posto dell'app dove il colore &egrave; un dato (&sect;3).</p>
+  </div>
+
+  <div class="blocco">
+    <div class="btit"><span>Il campo di ricerca</span><span>tre taglie</span></div>
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:520px">
+      <div class="campo insegna"><svg class="lente" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10.75" cy="10.75" r="6.25"/><path d="m15.4 15.4 4.1 4.1"/></svg><input value="Calvino" readonly><button class="x"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="m8 8 8 8M16 8l-8 8"/></svg></button></div>
+      <div class="campo piena"><svg class="lente" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10.75" cy="10.75" r="6.25"/><path d="m15.4 15.4 4.1 4.1"/></svg><input placeholder="Titolo o autore" readonly></div>
+      <div class="campo riga"><svg class="lente" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10.75" cy="10.75" r="6.25"/><path d="m15.4 15.4 4.1 4.1"/></svg><input placeholder="Nome di un lettore" readonly></div>
+    </div>
+    <p class="bdesc"><strong>insegna</strong> (il campo <em>&egrave;</em> la pagina) &middot; <strong>piena</strong> &middot; <strong>riga</strong>. Mai sotto i 16&thinsp;px dove c'&egrave; il dito: sotto quella soglia iOS ingrandisce la pagina al fuoco e non la rimpicciolisce pi&ugrave;. La <strong>croce</strong> &egrave; il comando che serviva davvero e che nessuna delle cinque copie aveva: si svuotava tenendo premuto il backspace.</p>
+    <p class="bdesc" style="margin-top:9px"><strong>&laquo;Cerca&raquo; non c'&egrave; in nessun campo &mdash; nemmeno nei Quaderni</strong>, dove la domanda costa una chiamata al fornitore. La prima stesura lo teneva l&igrave; apposta: un gesto che costa va confermato deliberatamente, si diceva, quindi ci vuole un pulsante. L'argomento &egrave; vero e la conclusione no &mdash; <strong style="color:var(--ink)">Invio &egrave; un gesto deliberato quanto un clic</strong>. Il conto sulla Libreria, dove il pulsante era davvero inutile: campo + &laquo;Cerca&raquo; (72) + &laquo;Aggiungi un libro&raquo; (152) + due gap lasciavano al campo <span class="male">110&thinsp;px, cio&egrave; sei caratteri di titolo</span>.</p>
   </div>
 </div>
 </x-dc>
-<script data-dc-script data-props='{"$preview":{"width":900,"height":880}}'>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":1080}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

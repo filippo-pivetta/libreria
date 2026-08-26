@@ -17,8 +17,10 @@ import { EmptyShelf } from "@/components/states/empty-shelf";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroScaffale } from "@/components/states/scheletri";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { CampoRicerca } from "@/components/ui/campo-ricerca";
+import { IconaPiu } from "@/components/ui/icone";
+import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { useTranslations } from "next-intl";
 
 const IN_CORSO = new Set(["in_lettura", "in_pausa"]);
@@ -130,12 +132,6 @@ export function Scaffale({
     });
   }, [data, filtroTesto, statiInclusi]);
 
-  function classePillStato(attivo: boolean): string {
-    return attivo
-      ? "border-transparent bg-ink/9 text-ink font-medium"
-      : "border-line text-ink-soft hover:text-ink hover:border-line-strong";
-  }
-
   function toggleStato(stato: StatoVoce) {
     setStatiInclusi((precedente) => {
       const successivo = new Set(precedente);
@@ -179,10 +175,16 @@ export function Scaffale({
           Puoi datare una lettura a quando è successa, non solo a oggi: la libreria storica non
           si schiaccia sulla data in cui la registri.
         </p>
+        {/* Era `outline` a 32px: il peso più leggero della scala, per la
+            sola azione che questa schermata contiene e per il primo gesto
+            che un Utente nuovo compie nell'app. La gerarchia dei comandi
+            (§9) dice che l'unica azione piena di una zona sta a 44px, e
+            qui la zona è la pagina intera. */}
         {!utenteCollegatoId && (
-          <Link href="/aggiungi" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          <Button render={<Link href="/aggiungi" />} nativeButton={false} size="lg" data-icon="inline-start">
+            <IconaPiu />
             Aggiungi il primo libro
-          </Link>
+          </Button>
         )}
       </div>
     );
@@ -203,41 +205,66 @@ export function Scaffale({
           (lib/use-container-width.ts). */}
       <div ref={sondaRef} aria-hidden className="h-0 w-(--cover-w) overflow-hidden" />
 
-      {/* 1. IL CAMPO E L'AZIONE, SULLA STESSA RIGA.
+      {/* 1. IL CAMPO E L'AZIONE.
+
           Sulla libreria di un collegato l'azione non c'è (non si aggiunge un
           libro a casa d'altri) e il campo prende tutta la riga da solo.
 
-          Il pulsante "Cerca" non fa partire nulla che il campo non stia già
-          facendo da sé: qui il filtro resta sempre attivo, ad ogni tocco di
-          tasto, esattamente come prima (§7, "sempre disponibile, nessuna
-          chiamata a nessun modello"). Sta qui per lo stesso motivo che lo
-          mette accanto al campo di Quaderni — lo stesso vestito per un campo
-          con la sola riga inferiore in tutta l'app — e perché su un
-          telefono un `type="submit"` chiude la tastiera virtuale al tocco,
-          cosa che un `<input>` da solo non offre. Il `<form>` con
-          `preventDefault` esiste solo per questo: non c'è nessuna
-          sottomissione da completare. */}
-      <form onSubmit={(event) => event.preventDefault()} className="flex items-end gap-3">
-        <label className="min-w-0 flex-1">
-          <span className="sr-only">Cerca per titolo o autore</span>
-          <input
-            type="search"
-            placeholder="Titolo o autore"
-            value={filtroTesto}
-            onChange={(event) => setFiltroTesto(event.target.value)}
-            aria-label="Cerca per titolo o autore"
-            className="field-line w-full border-0 border-b border-line bg-transparent px-0 py-2.5 font-ui text-base text-ink outline-none placeholder:text-ink-soft"
-          />
-        </label>
-        <Button type="submit" variant="outline" disabled={filtroTesto.trim().length === 0}>
-          Cerca
-        </Button>
+          ---------------------------------------------------------------
+          "CERCA" È SPARITO (26 agosto 2026), e con lui la riga a tre.
+
+          Non faceva partire niente che il campo non stesse già facendo: qui
+          il filtro è sempre attivo, a ogni battuta (§7, "sempre disponibile,
+          nessuna chiamata a nessun modello"). Restava per due argomenti, e
+          nessuno dei due regge. Il primo era la simmetria col campo di
+          Quaderni: ma quella era simmetria fra due copie dello stesso
+          errore, e ora nemmeno Quaderni ce l'ha. Il secondo era vero — su un
+          telefono un `submit` chiude la tastiera — e si ottiene senza
+          pulsante: `CampoRicerca` è già dentro un `<form role="search">` che
+          fa `blur` all'invio, quindi il tastierino di sistema mostra "Cerca"
+          e chiuderlo funziona come prima.
+
+          Il conto su 390px era questo: campo + "Cerca" (72px) + "Aggiungi un
+          libro" (152px) + due gap = al campo restavano ~110px, cioè sei
+          caratteri di titolo. Il bersaglio che non faceva nulla si prendeva
+          più spazio del campo che faceva tutto.
+
+          ---------------------------------------------------------------
+          DUE RIGHE SOTTO I 640px, UNA SOPRA.
+
+          Impilare campo e azione non è una resa: sono due gesti diversi —
+          cercare fra i propri libri, andarne a prendere uno nuovo — e su un
+          telefono nessuno dei due deve stringere l'altro. Il campo prende la
+          riga intera, l'azione sta sotto a piena larghezza dove il pollice
+          la trova. Da 640px in su tornano affiancati, perché lo spazio c'è.
+
+          L'etichetta si accorcia con lo schermo: "Aggiungi un libro" per
+          esteso dove c'è posto, "Aggiungi" sotto i 640 — il verbo è la parte
+          che porta il significato, e "un libro" in una pagina che è una
+          libreria non aggiunge nulla. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+        <CampoRicerca
+          taglia="piena"
+          valore={filtroTesto}
+          onCambia={setFiltroTesto}
+          etichetta="Cerca per titolo o autore"
+          segnaposto="Titolo o autore"
+          className="min-w-0 flex-1"
+        />
         {!utenteCollegatoId && (
-          <Link href="/aggiungi" className={cn(buttonVariants({ size: "lg" }))}>
-            Aggiungi un libro
-          </Link>
+          <Button
+            render={<Link href="/aggiungi" />}
+            nativeButton={false}
+            size="lg"
+            data-icon="inline-start"
+            className="w-full sm:w-auto"
+          >
+            <IconaPiu />
+            <span className="sm:hidden">Aggiungi</span>
+            <span className="hidden sm:inline">Aggiungi un libro</span>
+          </Button>
         )}
-      </form>
+      </div>
 
       {/* 2. LE PASTIGLIE, ADDITIVE.
 
@@ -269,7 +296,8 @@ export function Scaffale({
             type="button"
             aria-pressed={statiInclusi.size === 0}
             onClick={() => setStatiInclusi(new Set())}
-            className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 font-ui text-xs transition-colors duration-(--dur-micro) ${classePillStato(statiInclusi.size === 0)}`}
+            {...attributiPastiglia}
+            className={pastigliaVariants({ taglia: "filtro", acceso: statiInclusi.size === 0 })}
           >
             Tutti
           </button>
@@ -282,7 +310,8 @@ export function Scaffale({
                 type="button"
                 aria-pressed={attivo}
                 onClick={() => toggleStato(valore)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-ui text-xs transition-colors duration-(--dur-micro) ${classePillStato(attivo)}`}
+                {...attributiPastiglia}
+                className={pastigliaVariants({ taglia: "filtro", acceso: attivo })}
               >
                 <span
                   aria-hidden

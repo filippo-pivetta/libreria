@@ -50,6 +50,26 @@ export function IconaPiu(props: Props) {
   );
 }
 
+export function IconaLente(props: Props) {
+  return (
+    <Icona {...props}>
+      <circle cx="10.75" cy="10.75" r="6.25" />
+      <path d="m15.4 15.4 4.1 4.1" />
+    </Icona>
+  );
+}
+
+/** La croce di "svuota il campo". Griglia 24 come le altre, ma tracciata
+ * corta: sta dentro un cerchio di 18px e a misura piena toccherebbe il
+ * bordo. */
+export function IconaChiudi(props: Props) {
+  return (
+    <Icona strokeWidth={1.7} {...props}>
+      <path d="m8 8 8 8M16 8l-8 8" />
+    </Icona>
+  );
+}
+
 export function IconaFreccia(props: Props) {
   return (
     <Icona strokeWidth={1.6} {...props}>

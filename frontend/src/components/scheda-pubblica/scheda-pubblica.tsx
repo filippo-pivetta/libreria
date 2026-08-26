@@ -263,7 +263,7 @@ function DiCosaParla({ descrizione }: { descrizione: string | null }) {
         {descrizione}
       </p>
       {lunga && !aperta && (
-        <Button variant="link" size="sm" className="mt-1.5 px-0" onClick={() => setAperta(true)}>
+        <Button variant="quiet" size="testo" className="mt-2" onClick={() => setAperta(true)}>
           Continua a leggere
         </Button>
       )}
