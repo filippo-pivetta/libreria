@@ -12,9 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
-// Testi del PRD, parola per parola (docs/design-frontend.md §17):
-// dall'issue #6 servono anche nel profilo.
-import { AVVISO_VISIBILITA, TESTO_CONSENSO } from "@/lib/testi-consenso";
 import { useTranslations } from "next-intl";
 
 type Phase = "checking" | "no_session" | "form" | "submitting";
@@ -253,13 +250,13 @@ export default function CompletaAccountPage() {
 
             <Separator />
 
-            <div className="flex flex-col gap-3 text-sm text-ink-soft">
-              <p>{AVVISO_VISIBILITA}</p>
-              <p>{TESTO_CONSENSO}</p>
-            </div>
+            <p className="text-sm text-ink-soft">
+              Visibilità e consenso all&rsquo;elaborazione assistita si gestiscono dal profilo,
+              in qualsiasi momento.
+            </p>
 
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t("attesa.generica") : "Ho letto e accetto"}
+              {isSubmitting ? t("attesa.generica") : "Crea account"}
             </Button>
           </form>
         </CardContent>
