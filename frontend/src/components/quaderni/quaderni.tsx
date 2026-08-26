@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { cercaSemantica } from "@/lib/api/ricerca-semantica";
@@ -14,6 +15,8 @@ import type { Tema } from "@/lib/api/sintesi";
 import { getAccessToken } from "@/lib/api/access-token";
 import { TestataPagina } from "@/components/layout/testata-pagina";
 import { Button } from "@/components/ui/button";
+import { CampoRicerca } from "@/components/ui/campo-ricerca";
+import { IconaFreccia, IconaMatita } from "@/components/ui/icone";
 import { Messaggio } from "@/components/ui/messaggio";
 import { Corpus } from "@/components/quaderni/corpus";
 import { FiltriScrittiBarra } from "@/components/quaderni/filtri-scritti";
@@ -152,8 +155,9 @@ export function Quaderni() {
     lente === "chiedi" ? (ricerca.data?.risultati ?? []) : (elenco.data?.scritti ?? []);
   const totale = elenco.data?.totale ?? 0;
 
-  function chiedi(evento: FormEvent) {
-    evento.preventDefault();
+  // `CampoRicerca` fa già `preventDefault` sul proprio form e chiama
+  // questa: qui non arriva più l'evento, arriva la decisione.
+  function chiedi() {
     const testo = domanda.trim();
     if (testo.length < 2) return;
     setErrore(null);
@@ -225,12 +229,15 @@ export function Quaderni() {
             <p className="t-meta max-w-prose flex-1 border-b border-line pb-1.5">
               L’elaborazione assistita è spenta: la ricerca per significato e i vicini non sono
               disponibili. Ciò che hai scritto resta qui, e i temi già generati restano leggibili.{" "}
-              <a
+              {/* `<Link>` e non `<a href>`: dentro l'App Router un `<a>`
+                  ricarica il documento intero, e quindi ributta via il
+                  testo che si sta scrivendo nel pannello accanto. */}
+              <Link
                 href="/profilo"
                 className="text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink"
               >
                 Riaccendila dal profilo
-              </a>
+              </Link>
             </p>
             {!scrivendo && (
               <Button size="lg" onClick={() => setScrivendo(true)}>
@@ -239,31 +246,49 @@ export function Quaderni() {
             )}
           </div>
         ) : (
-          <form onSubmit={chiedi} className="flex flex-wrap items-end gap-3">
-            <label className="min-w-48 flex-1">
-              <span className="sr-only">Cosa cerchi</span>
-              <input
-                type="search"
-                value={domanda}
-                onChange={(evento) => setDomanda(evento.target.value)}
-                placeholder="Che cosa ho scritto sul tempo?"
-                aria-label="Cerca nei tuoi quaderni"
-                className="field-line w-full border-0 border-b border-line bg-transparent pb-1 font-ui text-base text-ink outline-none placeholder:text-ink-soft"
-              />
-            </label>
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={ricerca.isFetching || domanda.trim().length < 2}
-            >
-              Cerca
-            </Button>
+          /* IL CAMPO E L'AZIONE, ALLINEATI COME NELLA LIBRERIA.
+             Stesso pattern di `libreria/scaffale.tsx`: cercare fra i propri
+             scritti e scrivere un pensiero nuovo sono due gesti diversi
+             quanto cercare un libro e andarne a prendere uno nuovo, e lì la
+             risposta è che l'azione sta ACCANTO al campo, non altrove —
+             `sm:flex-row sm:items-end` da 640px in su, impilati sotto dove
+             nessuno dei due deve stringere l'altro.
+
+             "CERCA" È SPARITO ANCHE QUI (correzione del 26 agosto 2026).
+             La prima stesura lo teneva per un argomento che sembrava
+             regger: questo campo costa una chiamata al fornitore, quindi
+             chi lo usa deve poterla far partire deliberatamente. Ma
+             "deliberatamente" non vuol dire "con un pulsante" — vuol dire
+             "con un gesto esplicito", e Invio lo è quanto un clic:
+             `CampoRicerca` sta già dentro un `<form>` che chiama `onInvia`
+             al submit, e su un telefono `type="search"` mostra comunque il
+             tasto "Cerca" sulla tastiera di sistema. Un pulsante che fa
+             la stessa cosa di Invio, un dito più in basso, era l'unica
+             eccezione alla regola che vale ovunque nel resto dell'app: qui
+             si preme Invio, non un bottone. */
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+            <CampoRicerca
+              taglia="piena"
+              valore={domanda}
+              onCambia={setDomanda}
+              onInvia={chiedi}
+              etichetta="Cerca nei tuoi quaderni"
+              segnaposto="Che cosa ho scritto sul tempo?"
+              className="min-w-0 flex-1"
+            />
             {!scrivendo && (
-              <Button type="button" size="lg" onClick={() => setScrivendo(true)}>
+              <Button
+                type="button"
+                size="lg"
+                data-icon="inline-start"
+                className="w-full sm:w-auto"
+                onClick={() => setScrivendo(true)}
+              >
+                <IconaMatita />
                 Scrivi un pensiero
               </Button>
             )}
-          </form>
+          </div>
         )}
 
         <FiltriScrittiBarra filtri={filtri} onCambia={cambiaFiltri} />
@@ -291,13 +316,15 @@ export function Quaderni() {
               <span className="t-num">{totale}</span> · dal più recente
             </p>
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="quiet"
+              size="testo"
+              data-icon="inline-start"
               onClick={tornaASfogliare}
-              className="tocco-esteso t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
             >
-              ‹ Torna a sfogliare
-            </button>
+              <IconaFreccia aria-hidden className="rotate-90" />
+              Torna a sfogliare
+            </Button>
           )}
         </div>
 

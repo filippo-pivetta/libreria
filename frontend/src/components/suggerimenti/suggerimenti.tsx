@@ -164,13 +164,14 @@ function SuggerimentoRiga({ suggerimento }: { suggerimento: Suggerimento }) {
           {suggerimento.motivazione}
         </p>
         {motivazioneLunga && !espansa && (
-          <button
-            type="button"
+          <Button
+            variant="quiet"
+            size="testo"
+            className="self-start"
             onClick={() => setEspansa(true)}
-            className="t-meta self-start underline decoration-line-strong underline-offset-4 hover:decoration-ink"
           >
             Mostra tutto
-          </button>
+          </Button>
         )}
       </div>
     </li>

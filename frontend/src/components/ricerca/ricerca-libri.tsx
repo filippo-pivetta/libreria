@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useMemo, useState } from "react";
 
 import { RigaRisultato } from "@/components/ricerca/riga-risultato";
+import { CampoRicerca } from "@/components/ui/campo-ricerca";
 import { VicoloCieco } from "@/components/ricerca/vicolo-cieco";
 import { ErrorState } from "@/components/states/error-state";
 import { getAccessToken } from "@/lib/api/access-token";
@@ -132,24 +133,25 @@ export function RicercaLibri() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        {/* Sr-only: il titolo di pagina, appena sopra, dice già "Aggiungi
-            un libro" — un'etichetta visibile qui lo ripeterebbe. */}
-        <label htmlFor="ricerca" className="sr-only">
-          Cerca un libro per titolo o autore
-        </label>
-        {/* Un campo solo, senza selettore di modalità: il PRD è netto,
-            non esistono altre vie d’ingresso, né codice né scansione. */}
-        <input
-          id="ricerca"
-          type="search"
-          autoFocus
-          value={termine}
-          onChange={(event) => setTermine(event.target.value)}
-          placeholder="Titolo o autore"
-          className="field-line w-full max-w-lg border-0 border-b border-line bg-transparent px-0 py-3 font-display text-2xl text-ink outline-none placeholder:text-ink-soft"
-        />
-      </div>
+      {/* Un campo solo, senza selettore di modalità: il PRD è netto, non
+          esistono altre vie d’ingresso, né codice né scansione.
+
+          `max-w-lg` è caduto (26 agosto 2026). Il campo si fermava a
+          512px su una colonna da 1024: sotto di lui la lista dei
+          risultati arrivava al bordo, quindi il campo che li produce era
+          largo la metà di ciò che produce, e il taglio cadeva in un punto
+          che nessun altro elemento della pagina condivide. Su questa
+          pagina il campo È la pagina — `taglia="insegna"` lo dice, e la
+          larghezza deve dire la stessa cosa. */}
+      <CampoRicerca
+        id="ricerca"
+        autoFocus
+        taglia="insegna"
+        valore={termine}
+        onCambia={setTermine}
+        etichetta="Cerca un libro per titolo o autore"
+        segnaposto="Titolo o autore"
+      />
 
       {locali.isError && (
         <ErrorState

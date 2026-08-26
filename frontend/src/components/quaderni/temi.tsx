@@ -7,7 +7,11 @@ import { generaSintesi, getSintesi, type Tema } from "@/lib/api/sintesi";
 import type { FiltriScritti } from "@/lib/api/scritti";
 import { getAccessToken } from "@/lib/api/access-token";
 import { getMe } from "@/lib/api/me";
+import { Button } from "@/components/ui/button";
+import { IconaAltro, IconaFreccia } from "@/components/ui/icone";
+import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { Messaggio } from "@/components/ui/messaggio";
+import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -80,6 +84,9 @@ export function Temi({
   const t = useTranslations();
   const [messaggioVuoto, setMessaggioVuoto] = useState<string | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
+  // Cancellare una sintesi butta un artefatto che non torna indietro:
+  // due tocchi, come per un insight (`libro/insight-lista.tsx`).
+  const [confermaCancella, setConfermaCancella] = useState(false);
 
   const chiave = ["sintesi-tematica"];
 
@@ -138,6 +145,7 @@ export function Temi({
       if (result.status === "error") throw new Error(result.message);
     },
     onSuccess: () => {
+      setConfermaCancella(false);
       onApriTema(null);
       void queryClient.invalidateQueries({ queryKey: chiave });
     },
@@ -155,16 +163,16 @@ export function Temi({
     if (spento) return null;
     return (
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="t-label">Temi</span>
-          <button
-            type="button"
+          <Button
+            variant="quiet"
+            size="testo"
             onClick={() => genera.mutate()}
             disabled={genera.isPending}
-            className="tocco-esteso t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink disabled:opacity-50"
           >
             {genera.isPending ? t("attesa.cercoTemi") : "Cerca i temi che attraversano i tuoi libri"}
-          </button>
+          </Button>
         </div>
         {messaggioVuoto && <p className="t-meta max-w-prose">{messaggioVuoto}</p>}
         <Messaggio>{errore}</Messaggio>
@@ -174,55 +182,116 @@ export function Temi({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="-ml-4 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pb-0 sm:pl-0">
-        <span className="t-label shrink-0 pr-1">Temi</span>
+      {/* Due contenitori e non uno: il nastro scorre, il menù no. Prima
+          erano la stessa riga con `overflow-x-auto`, quindi tutto ciò che
+          stava dopo l'ultima pastiglia usciva dallo schermo con lei. */}
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="-ml-4 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pb-0 sm:pl-0">
+          <span className="t-label shrink-0 pr-1">Temi</span>
 
-        {temi.map((tema, indice) => {
-          const attivo = temaAperto?.nome === tema.nome;
-          const libri = new Set(tema.riferimenti.map((r) => r.voceId)).size;
-          return (
-            <button
-              key={`${tema.nome}-${indice}`}
-              type="button"
-              aria-pressed={attivo}
-              onClick={() => onApriTema(attivo ? null : tema)}
-              className={`inline-flex shrink-0 items-baseline gap-2 rounded-full border px-3.5 py-1.5 font-display text-[0.9375rem] transition-colors duration-(--dur-micro) ${
-                attivo
-                  ? "border-ink bg-ink text-surface-1"
-                  : "border-line bg-surface-1 text-ink hover:border-line-strong"
-              }`}
-            >
-              {tema.nome}
-              <span className={`font-ui text-[11px] ${attivo ? "opacity-70" : "text-ink-soft"}`}>
-                {libri} {libri === 1 ? "libro" : "libri"}
-              </span>
-            </button>
-          );
-        })}
+          {temi.map((tema, indice) => {
+            const attivo = temaAperto?.nome === tema.nome;
+            const libri = new Set(tema.riferimenti.map((r) => r.voceId)).size;
+            return (
+              <button
+                key={`${tema.nome}-${indice}`}
+                type="button"
+                aria-pressed={attivo}
+                onClick={() => onApriTema(attivo ? null : tema)}
+                {...attributiPastiglia}
+                className={pastigliaVariants({ taglia: "tema", acceso: attivo })}
+              >
+                {/* Il nome si tronca sotto i 640px. Un tema che il modello
+                    chiama "La solitudine dei numeri primi e altre forme
+                    di distanza" spingeva le pastiglie successive fuori
+                    dallo scorrimento utile: il titolo per esteso resta
+                    nel `title` e nel pannello che si apre sotto. */}
+                <span className="max-w-[16ch] truncate sm:max-w-none" title={tema.nome}>
+                  {tema.nome}
+                </span>
+                <span className={`font-ui text-[11px] ${attivo ? "opacity-70" : "text-ink-soft"}`}>
+                  {libri}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-        <span className="ml-auto flex shrink-0 items-baseline gap-4 pl-2">
-          {!spento && (
-            <button
-              type="button"
-              onClick={() => genera.mutate()}
-              disabled={genera.isPending}
-              className="tocco-esteso t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink disabled:opacity-50"
-            >
-              {genera.isPending ? t("attesa.cercoTemi") : "Genera di nuovo"}
-            </button>
-          )}
-          {sintesi && (
-            <button
-              type="button"
-              onClick={() => cancella.mutate(sintesi.id)}
-              disabled={cancella.isPending}
-              className="tocco-esteso t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-            >
-              Cancella
-            </button>
-          )}
-        </span>
+        {/* ERANO DUE COMANDI NUDI IN CODA ALLA STRISCIA, e sbagliavano
+            tre cose insieme.
+
+            La prima: stavano DENTRO il nastro che scorre in orizzontale.
+            Sotto i 640px "Genera di nuovo" e "Cancella" erano in fondo a
+            uno scorrimento, cioè fuori schermo finché non si scorreva
+            fino in fondo alle pastiglie — e nulla diceva che ci fossero.
+            L'`ml-auto` funziona solo quando la riga avanza spazio, che è
+            esattamente il caso in cui il nastro NON scorre.
+
+            La seconda: "Cancella" aveva lo stesso peso di "Genera di
+            nuovo". Uno rifà una cosa che si può rifare; l'altro butta un
+            artefatto che il modello ha prodotto e che non torna indietro.
+            Allo stesso corpo, allo stesso colore, a quattro pixel di
+            distanza.
+
+            La terza: erano due, e insieme al comando di ricerca in fondo
+            al pannello facevano tre bersagli testuali sottolineati sulla
+            stessa striscia.
+
+            Ora è un menù — il posto dove l'app mette già le azioni di
+            manutenzione di una riga (`ui/menu.tsx`) — ancorato FUORI dal
+            nastro, quindi sempre visibile, e la cancellazione chiede
+            conferma prima di partire invece di essere un tocco solo. */}
+        {(!spento || sintesi) && (
+          <Menu>
+            <MenuTrigger
+              render={
+                <Button variant="ghost" size="icon-sm" aria-label="Azioni sui temi">
+                  <IconaAltro />
+                </Button>
+              }
+            />
+            <MenuContenuto align="end">
+              {!spento && (
+                <MenuVoce disabled={genera.isPending} onClick={() => genera.mutate()}>
+                  {genera.isPending ? t("attesa.cercoTemi") : "Genera di nuovo"}
+                </MenuVoce>
+              )}
+              {sintesi && (
+                <MenuVoce
+                  disabled={cancella.isPending}
+                  onClick={() => setConfermaCancella(true)}
+                >
+                  Cancella i temi
+                </MenuVoce>
+              )}
+            </MenuContenuto>
+          </Menu>
+        )}
       </div>
+
+      {/* La conferma, sul posto e non in una modale: §19, l'app non ne ha.
+          Una riga che compare sotto la striscia, con il verbo per esteso
+          su un lato e la via d'uscita sull'altro. */}
+      {confermaCancella && sintesi && (
+        <div className="pannello flex flex-wrap items-center gap-3 rounded-field border border-line bg-surface-2 p-3">
+          <span className="t-body min-w-0 flex-1 text-sm">
+            I temi sono un artefatto generato: cancellarli non cancella ciò che hai scritto.
+          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={cancella.isPending}
+              onClick={() => cancella.mutate(sintesi.id)}
+            >
+              Cancella davvero
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setConfermaCancella(false)}>
+              Annulla
+            </Button>
+          </div>
+        </div>
+      )}
 
       {temaAperto && sintesi && (
         <div className="pannello flex flex-col gap-3 border-t border-line pt-5">
@@ -241,13 +310,22 @@ export function Temi({
                 sintesi tiene i sostegni più forti, la ricerca prende
                 tutto ciò che è vicino. Sono due lenti diverse, non due
                 versioni della stessa. */}
-            <button
-              type="button"
+            {/* Il chevron `›` era un glifo di testo in coda all'etichetta:
+                un carattere che cambia disegno col carattere di sistema,
+                per giunta attaccato a una frase di quaranta battute che
+                su un telefono andava a capo lasciandolo orfano su una
+                riga sua. Ora l'etichetta dice la cosa in tre parole e la
+                freccia è disegnata (`IconaFreccia`, ruotata), come ogni
+                altro segno dell'app. */}
+            <Button
+              variant="quiet"
+              size="testo"
+              data-icon="inline-end"
               onClick={() => onCercaTema(temaAperto)}
-              className="tocco-esteso t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
             >
-              Cerca tutto ciò che somiglia a questo tema ›
-            </button>
+              Cerca ciò che somiglia
+              <IconaFreccia aria-hidden className="-rotate-90" />
+            </Button>
           </div>
         </div>
       )}

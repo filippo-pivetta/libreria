@@ -9,7 +9,6 @@ import type { Lettura, VoceDettaglio } from "@/lib/api/voci";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CampoData } from "@/components/ui/campo-data";
-import { IconaCalendario } from "@/components/ui/icone";
 import { useTranslations } from "next-intl";
 
 const MESSAGGI_ERRORE: Record<string, string> = {
@@ -290,20 +289,40 @@ export function SegnalibroAvanzamento({
           Prima era `size="sm"` — 28px, corpo 12,8 — esattamente come i
           quattro comandi di cambio stato sotto, uno dei quali annulla la
           lettura in corso. */}
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" disabled={mutazione.isPending || incremento <= 0}>
+      {/* L'AZIONE E LA SUA DATA, IN UN ORDINE CHE SU UN TELEFONO NON SI
+          SPEZZA A CASO.
+
+          Era `flex-wrap` con il pulsante per primo: su 390px il pulsante
+          teneva la prima riga (176px su 358) e il campo data cadeva sulla
+          seconda, sotto di lui, cioè DOPO l'azione che quella data
+          qualifica. Si leggeva «segna la pagina… ah, e c'era anche una
+          data». Ora l'ordine è dichiarato invece che emergente: sotto i
+          640px la data sta sopra — è un dato dell'avanzamento, si guarda
+          prima di confermarlo — e il pulsante prende la riga intera in
+          fondo, dove il pollice lo trova. Da 640px in su tornano
+          affiancati nell'ordine di prima, azione a sinistra.
+
+          `items-center` con due oggetti ora della STESSA altezza: il
+          riquadro della data è passato a `h-11` (vedi `ui/campo-data.tsx`),
+          prima era 34 accanto a un pulsante da 44. */}
+      <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full sm:w-auto"
+          disabled={mutazione.isPending || incremento <= 0}
+        >
           Segna la pagina
         </Button>
-        <span className="inline-flex items-center gap-2 rounded-field border border-line-strong bg-surface-1 px-3 text-ink">
-          <IconaCalendario className="size-[1.0625rem] shrink-0 text-ink-soft" />
-          <CampoData
-            ariaLabel="Data dell’avanzamento"
-            value={data}
-            min={dataMinima}
-            max={oggiISO()}
-            onChange={setData}
-          />
-        </span>
+        <CampoData
+          riquadro
+          altezza="lg"
+          ariaLabel="Data dell’avanzamento"
+          value={data}
+          min={dataMinima}
+          max={oggiISO()}
+          onChange={setData}
+        />
       </div>
     </form>
   );

@@ -77,7 +77,12 @@ export function NellaTuaLibreria({
 
       <div className="mt-4">
         {propriaVoce ? (
-          <Button render={<Link href={`/libro/${propriaVoce.id}`} />} variant="outline" className="w-full">
+          <Button
+            render={<Link href={`/libro/${propriaVoce.id}`} />}
+            nativeButton={false}
+            variant="outline"
+            className="w-full"
+          >
             Vai alla tua copia
           </Button>
         ) : (

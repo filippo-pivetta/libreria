@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { getPensieroCheTorna, type Scritto } from "@/lib/api/scritti";
 import { getAccessToken } from "@/lib/api/access-token";
 import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
+import { RiferimentoLibro } from "@/components/ui/riferimento-libro";
 import { useLocale } from "next-intl";
 
 const SOGLIA_SENTENZA = 200;
@@ -96,27 +96,32 @@ function Contenuto({
           {scritto.testo}
         </p>
         {troncato && !espanso && (
-          <Button variant="link" size="sm" className="mt-1 px-0" onClick={() => setEspanso(true)}>
+          <Button variant="quiet" size="testo" className="mt-2" onClick={() => setEspanso(true)}>
             Mostra tutto
           </Button>
         )}
       </div>
 
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-        <Link
-          href={`/libro/${scritto.voceId}`}
-          className="t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-        >
-          {scritto.titolo}
-          {scritto.autori.length > 0 && ` · ${scritto.autori.join(", ")}`}
-        </Link>
-        <button
-          type="button"
-          onClick={onMostraAltro}
-          className="tocco-esteso t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-        >
+      {/* PROVENIENZA A SINISTRA, COMANDO A DESTRA — e ora si distinguono.
+
+          Erano due righe sottolineate identiche, appaiate sulla stessa
+          riga: una porta a un libro, l'altra ripesca un altro pensiero, e
+          niente nel disegno diceva quale facesse cosa. Il libro è
+          diventato una pastiglia (`ui/riferimento-libro.tsx`), il comando
+          è passato al `quiet` del primitivo.
+
+          `items-center` e non `items-baseline`: una pastiglia ha un
+          riquadro, e allinearne il riquadro alla linea di base del testo
+          accanto lo fa sedere basso di due pixel. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <RiferimentoLibro
+          voceId={scritto.voceId}
+          titolo={scritto.titolo}
+          autori={scritto.autori}
+        />
+        <Button variant="quiet" size="testo" onClick={onMostraAltro}>
           Mostrane un altro
-        </button>
+        </Button>
       </div>
     </div>
   );

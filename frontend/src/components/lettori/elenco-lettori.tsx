@@ -13,6 +13,8 @@ import {
 import { getAccessToken } from "@/lib/api/access-token";
 import { iniziali } from "@/lib/iniziali";
 import { Button } from "@/components/ui/button";
+import { CampoRicerca } from "@/components/ui/campo-ricerca";
+import { IconaFreccia } from "@/components/ui/icone";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroElenco } from "@/components/states/scheletri";
@@ -277,14 +279,14 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
             guarda. Non c'è e non ci sarà un totale dei membri: su
             un'istanza aperta quanti siano gli iscritti non è
             un'informazione che questa pagina debba dare. */}
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-          <input
-            type="search"
-            value={ricerca}
-            onChange={(event) => setRicerca(event.target.value)}
-            placeholder="Nome di un lettore"
-            aria-label="Cerca un lettore per nome"
-            className="field-line min-w-0 flex-1 border-0 border-b border-line bg-transparent px-0 py-2 font-ui text-sm text-ink outline-none placeholder:text-ink-soft sm:max-w-sm sm:flex-none"
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <CampoRicerca
+            taglia="riga"
+            valore={ricerca}
+            onCambia={setRicerca}
+            etichetta="Cerca un lettore per nome"
+            segnaposto="Nome di un lettore"
+            className="min-w-0 flex-1 sm:max-w-sm sm:flex-none"
           />
           {data.collegati.length > 0 && (
             <span className="t-meta t-num shrink-0 sm:ml-auto">
@@ -332,10 +334,15 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
                     key={membro.id}
                     className="flex items-center justify-between gap-3 p-4"
                   >
-                    <span className="t-meta">
+                    <span className="t-meta min-w-0 flex-1 truncate">
                       {membro.nomeUtente} — collegamento interrotto
                     </span>
-                    <Button variant="outline" size="sm" onClick={() => annullaInterruzione(id)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => annullaInterruzione(id)}
+                    >
                       Annulla
                     </Button>
                   </li>
@@ -357,12 +364,13 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
                     className="flex items-center gap-3 p-4 transition-colors duration-(--dur-micro) hover:bg-surface-2"
                   >
                     <Iniziali nome={membro.nomeUtente} />
-                    <span className="font-ui text-sm font-medium text-ink">
+                    <span className="min-w-0 flex-1 truncate font-ui text-sm font-medium text-ink">
                       {membro.nomeUtente}
                     </span>
-                    <span aria-hidden className="ml-auto text-ink-soft">
-                      ›
-                    </span>
+                    <IconaFreccia
+                      aria-hidden
+                      className="size-4 shrink-0 -rotate-90 text-ink-soft"
+                    />
                   </Link>
                 </li>
               );
@@ -393,13 +401,25 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
                   </Riga>
                 ) : (
                   <Riga key={membro.id} membro={membro} errore={errore}>
+                    {/* "Chiedi il collegamento" era l'unica etichetta di
+                        tre parole in una colonna di verbi singoli —
+                        Accetta, Rifiuta, Ritira, Interrompi — e misurava
+                        165px in una riga che su 390px ne ha 358 in tutto,
+                        iniziali e nome compresi. Il nome, che è il dato
+                        della riga, si schiacciava per far posto al
+                        comando. La frase intera resta dove serve davvero:
+                        nell'etichetta accessibile, che dice anche A CHI —
+                        cosa che il testo visibile non poteva fare, e che a
+                        chi ascolta l'elenco serve più che a chi lo
+                        guarda. */}
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label={`Chiedi il collegamento a ${membro.nomeUtente}`}
                       onClick={() => chiedi.mutate(membro.id)}
                       disabled={chiedi.isPending && chiedi.variables === membro.id}
                     >
-                      Chiedi il collegamento
+                      Chiedi
                     </Button>
                   </Riga>
                 ),
@@ -473,8 +493,15 @@ function Riga({
   return (
     <li className="flex items-center gap-3 p-4">
       <Iniziali nome={membro.nomeUtente} />
-      <span className="font-ui text-sm font-medium text-ink">{membro.nomeUtente}</span>
-      <div className="ml-auto flex flex-col items-end gap-1">
+      {/* `min-w-0` più `truncate`: senza il primo il secondo non fa nulla
+          — un figlio flex non scende sotto la larghezza del proprio
+          contenuto se non glielo si concede. Era il motivo per cui su un
+          telefono un nome lungo spingeva il comando fuori dalla riga
+          invece di troncarsi. */}
+      <span className="min-w-0 flex-1 truncate font-ui text-sm font-medium text-ink">
+        {membro.nomeUtente}
+      </span>
+      <div className="flex shrink-0 flex-col items-end gap-1">
         <div className="flex items-center gap-2">{children}</div>
         {errore?.id === idErrore && (
           <Messaggio className="text-right">{errore.messaggio}</Messaggio>

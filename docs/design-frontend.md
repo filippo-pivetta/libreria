@@ -672,7 +672,9 @@ non dice una frazione, lo si legge solo perché accanto c'è il numero.
 non il libro che ti dice dove sei. Restano le due più frequenti in evidenza e le altre sotto
 "Altro", e l'interfaccia non offre mai una transizione vietata, invece di offrirla e poi
 rifiutarla. Il campo data usa sempre uno stile proprio (`CampoData`), mai l'aspetto nativo del
-browser.
+browser — e quando accompagna un pulsante prende il riquadro e la **sua stessa altezza** (§24): il
+riquadro scritto a mano che c'era prima era alto 34 accanto a un pulsante da 44, e la riga non
+aveva una linea di base.
 
 ### Zona 3, il giudizio
 
@@ -680,9 +682,12 @@ Voto, recensione e nota di intenzione stanno in una carta sola: sono tre modi di
 cosa, cioè che cosa ne pensi.
 
 Il voto resta 1–5 a scatti di mezza stella, con ogni stella divisa in due zone cliccabili e il
-sollevamento al passaggio del mouse; un secondo clic sul valore già scelto lo cancella. Stelle a
-27px, come tracciati SVG, non glifi di testo — un bersaglio di precisione va reso grande e
-disegnato dall'app, non dal font di sistema.
+sollevamento al passaggio del mouse; un secondo clic sul valore già scelto lo cancella. Stelle
+come tracciati SVG, non glifi di testo — un bersaglio di precisione va reso grande e disegnato
+dall'app, non dal font di sistema. **La misura cambia col puntatore** (`--stella`, §24): 28px col
+mouse, 40 sotto il dito. Con 28 ciascuna metà era larga 14px, ed era l'unico bersaglio dell'app
+che nessuna regola poteva salvare — due bersagli dentro la larghezza di uno non si allargano
+ciascuno per conto suo: si allarga ciò che li contiene.
 
 ### Zona 4, il libro
 
@@ -1856,3 +1861,174 @@ sua introduzione, dice già che si tratta di proposte del modello.
 Due stati vuoti, entrambi testo e non un riquadro rosso: consenso revocato ("L'elaborazione
 assistita è spenta", con rimando al Profilo) e profilo insufficiente (nessun libro amato, nessuna
 lettura conclusa, nessun deluso).
+
+---
+
+## 24. Comandi, campi e bersagli
+
+Sessione del 26 agosto 2026. Le sezioni precedenti dicono cosa fa ogni schermata; questa dice con
+quali oggetti, e vale su tutte. Dove una schermata la contraddica, vince questa.
+
+### Il problema che c'era
+
+Non era brutto: era **plurale**. Sette grammatiche per due sole cose — premere e cercare.
+
+| Cosa | Dove | Quante versioni |
+|---|---|---|
+| Comando testuale leggero | Quaderni, Annali, Suggerimenti | **3** (`tocco-esteso …`, `min-h-11 … sm:min-h-0`, `self-start …`) |
+| Pastiglia | Scaffale, Quaderni, temi, Profilo, scrivi-pensiero | **5** (tre altezze, tre corpi, due modi di dire "accesa") |
+| Campo di ricerca | 5 pagine | **5** (`py-3`/`py-2.5`/`py-2`/`pb-1`, tre corpi, quattro larghezze massime) |
+| Campo data in riga | Segnalibro, transizioni | **2** riquadri scritti a mano, nessuno dei due con un'altezza |
+
+Il difetto vero non è la ripetizione — è che le copie **divergevano**, e le differenze non
+significavano niente. Due file di pastiglie sulla stessa pagina, alte una 30 e una 36. Un campo
+che si sposta di quattro pixel cambiando pagina. Un `variant="link"` che usava l'accento come
+testo — proprio ciò che §3 vieta — e che quindi nessuno usava, con la conseguenza che il comando
+leggero è stato riscritto a mano otto volte.
+
+### La scala dei comandi: cinque pesi, uno solo per gesto
+
+Tutto passa da `ui/button.tsx`. Non esistono `<button>` vestiti a mano.
+
+| Peso | Altezza | Quando |
+|---|---|---|
+| `default` (pieno) | 44 (`lg`) / 38 | **Una per zona.** L'azione che la zona esiste per compiere |
+| `outline` | 38 / 32 (`sm`) | La seconda azione. Un oggetto posato sulla carta, non un buco nel bordo |
+| `secondary` | 38 / 32 | Dichiara di essere **dentro una modalità** (il "Fine" di Modifica) |
+| `ghost` | 38 / 32 / icona | Manutenzione, linguette di menù. Resta acceso finché il menù è aperto |
+| `quiet` | nessuna | Il comando che non chiede spazio: filetto in `line-strong`, inchiostro tenue |
+
+`quiet` + `size="testo"` **sostituisce le tre grammatiche testuali** di prima. Non ha riquadro,
+quindi sta in fondo a un paragrafo senza aprirvi un buco alto 32px; porta `.bersaglio` da sé,
+quindi ha 44px sotto il dito senza occuparli nel flusso; ed è un pulsante vero, quindi ha
+`disabled`, il fuoco dell'app e il cedimento alla pressione — che i `<button>` scritti a mano non
+avevano.
+
+**Nessun accento come testo, in nessun peso.** L'accento è un riempimento (§3). Il vecchio
+`variant="link"` era l'unica eccezione ed era un errore.
+
+### Un comando non ha la faccia di un rimando
+
+Nei Quaderni il libro da cui viene un pensiero portava lo stesso vestito di "Mostrane un altro",
+sulla stessa carta, a due centimetri: `t-meta` sottolineato. Due promesse opposte — uno porta via
+dalla pagina, l'altro cambia qualcosa qui — rese identiche.
+
+La correzione non è dare al rimando un colore suo: due sottolineature di tinta diversa restano due
+sottolineature. È **dargli la forma di quel che è**. Il libro non è un'azione, è la *provenienza*
+del pensiero: un dato con dentro un rimando, e un dato con un contorno in quest'app è una
+pastiglia (`ui/riferimento-libro.tsx`). Il titolo si tronca su `max-w`; gli autori escono dal
+visibile e restano nel nome accessibile, dove servono davvero.
+
+Resta sottolineato solo il rimando **dentro una frase**, che è l'unico posto dove non può avere
+una forma propria.
+
+### Le pastiglie: tre taglie, un solo modo di accendersi
+
+`ui/pastiglia.tsx`. `filtro` 30px · `comando` 36px (gli interruttori) · `tema` 32px in Fraunces.
+
+"Accesa" è **inchiostro pieno**, sempre. Era `bg-ink/9` nello scaffale e nei Quaderni — inchiostro
+al 9%, che a distanza di un braccio non si distingue da spenta — e pieno nei temi, cioè due
+risposte diverse alla stessa domanda sulla stessa pagina.
+
+### I campi: `ui/campo-ricerca.tsx`, tre taglie
+
+`insegna` (Fraunces 24, il campo *è* la pagina) · `piena` (Inter 16) · `riga` (Inter 16, 14 da
+640px). Mai sotto i 16px dove c'è il dito: sotto quella soglia iOS ingrandisce la pagina al fuoco
+e non la rimpicciolisce più.
+
+Il campo porta **la lente e la croce**. La croce — svuotare — è il comando che serviva davvero e
+che nessuna delle cinque copie aveva: si cancellava tenendo premuto il backspace.
+
+**"Cerca" è sparito dalla Libreria.** Non faceva partire niente: il filtro è sempre attivo, a ogni
+battuta. Restava per due argomenti, e nessuno regge — la simmetria con Quaderni era simmetria fra
+due copie dello stesso errore, e la chiusura della tastiera su mobile si ottiene dal `<form
+role="search">` che il campo ha già dentro. Il conto su 390px: campo + "Cerca" (72px) + "Aggiungi
+un libro" (152px) + due gap lasciavano al campo **110px, cioè sei caratteri di titolo**. Il
+bersaglio che non faceva nulla si prendeva più spazio del campo che faceva tutto.
+
+**"Cerca" non c'è in nessun campo, nemmeno nei Quaderni** — dove la domanda esce verso il
+fornitore e costa. La prima stesura di questa sezione lo teneva lì apposta, con l'argomento che un
+gesto che costa va confermato deliberatamente. L'argomento è vero e la conclusione no: Invio *è*
+un gesto deliberato quanto un clic, e `onInvia` esiste in `CampoRicerca` proprio per i campi che
+devono far partire qualcosa — non serve un riquadro in più per renderlo intenzionale. Un pulsante
+che ripete Invio un dito più in basso era l'unica eccezione alla regola che vale ovunque nel resto
+dell'app.
+
+### Il bersaglio non è il riquadro
+
+Questa è la regola che cambia di più il mobile, ed è il modo in cui Apple risolve la stessa cosa
+da sempre.
+
+Prima `pointer: coarse` imponeva `min-height: 44px` a tutto, pastiglie comprese. Su un pulsante è
+giusto — un pulsante *è* il suo riquadro. Su una pastiglia no: un'etichetta di 12px dentro una
+capsula alta 44 ci galleggia in mezzo, e sei in fila sono la fascia più pesante della pagina per i
+comandi più leggeri.
+
+`.bersaglio` (tokens.css) tiene il riquadro alla misura che il disegno vuole e allarga l'area
+sensibile a `--tap` con uno pseudo-elemento che non occupa flusso, **in entrambe le direzioni** —
+serve per i bersagli quadrati: le iniziali del profilo (32px, e sotto i 640px sono l'unica porta
+del profilo, per giunta in un angolo), il "?" di una chiosa, la croce di un campo.
+
+Tre bersagli erano sotto soglia e **nessuna regola li copriva**, perché non avevano né `data-slot`
+né una classe di raggio: gli anni degli Annali (28px), le loro frecce (28px), e le due metà di una
+stella del voto (**14×28**). Il commento nel codice affermava che la regola `pointer: coarse` le
+coprisse; non era mai stato vero, e `min-height` non avrebbe comunque toccato la larghezza, che è
+la dimensione che lì manca.
+
+**La stella è l'unico bersaglio che non può arrivare a 44**: mezza stella significa due bersagli
+dentro la larghezza di uno, e 44 ciascuno darebbe una riga da 440px. Si allarga la stella —
+`--stella`, 28px col mouse, 40 sotto il dito — e la precisione la recupera l'ingrandimento.
+
+### Righe che non si schiacciano
+
+Tre regole che valgono ovunque ci sia un nome accanto a un comando:
+
+1. **`min-w-0` insieme a `truncate`.** Senza il primo il secondo non fa nulla: un figlio flex non
+   scende sotto la larghezza del proprio contenuto se non glielo si concede. Era il motivo per cui
+   nell'elenco dei Lettori un nome lungo spingeva il comando fuori dalla riga.
+2. **L'azione è `shrink-0`, il dato è `flex-1`.** Il dato si tronca, il comando no.
+3. **Le etichette lunghe si accorciano, la frase intera va nel nome accessibile.** "Chiedi il
+   collegamento" era l'unica etichetta di tre parole in una colonna di verbi singoli — Accetta,
+   Rifiuta, Ritira, Interrompi — e misurava 165px su una riga che a 390px ne ha 358 in tutto. Ora
+   è "Chiedi", e `aria-label` dice anche **a chi**, cosa che il testo visibile non poteva fare.
+
+### `flex-wrap` non è un'impaginazione mobile
+
+`flex-wrap` fa decidere alla **lunghezza delle etichette** dove la riga si spezza. Il risultato
+erano orfani sistematici: "Annulla" da solo su una terza riga, allineato a sinistra, nel punto più
+simile a un'azione primaria; il campo data *sotto* il pulsante che quella data qualifica; "Salva"
+in riga con un interruttore.
+
+Sotto i 640px la struttura si **dichiara**: `flex-col`, gruppi che non si mescolano, azione
+primaria a piena larghezza in fondo dove arriva il pollice, e `sm:flex-row` per tornare affiancati
+sopra. Nel segnalibro l'ordine si inverte (`flex-col-reverse`): la data sta sopra, perché è un
+dato dell'avanzamento e si guarda **prima** di confermarlo.
+
+### Le etichette
+
+- **L'etichetta di un interruttore nomina lo stato, non l'atto.** "Copri lo spoiler" è diventato
+  **"Spoiler"**: l'interruttore accanto dice già "Condiviso" e "Solo tuo", cioè due nomi, e questo
+  diceva un imperativo. Da premuto si leggeva come un fatto, da spento come una promessa. È anche
+  la parola che la pastiglia di filtro dei Quaderni usa già, una riga sopra.
+- **Cancellare un artefatto generato non ha il peso di rigenerarlo.** "Genera di nuovo" e
+  "Cancella" erano due comandi identici a quattro pixel di distanza — e per giunta *dentro* il
+  nastro che scorre in orizzontale, quindi fuori schermo su un telefono finché non si scorreva
+  fino in fondo. Ora la manutenzione sta in un menù `⋯` ancorato fuori dal nastro, e la
+  cancellazione chiede conferma. Vale per i temi dei Quaderni e per il parere della scheda.
+- **Nessun glifo di testo come icona.** `‹ › ⋯ ▾` cambiano disegno e larghezza col carattere che
+  il sistema sceglie per quel codepoint. Erano rimasti nel selettore d'anno, nelle due barre
+  contestuali e in coda a "Cerca tutto ciò che somiglia a questo tema ›". Tutti tracciati, ora.
+
+### Riferimento rapido
+
+| Serve | Si usa |
+|---|---|
+| Un'azione | `<Button variant size>` — mai un `<button>` vestito a mano |
+| Un comando leggero in coda a un testo | `<Button variant="quiet" size="testo">` |
+| Un'azione che naviga | `<Button render={<Link href/>} nativeButton={false} …>` — non `buttonVariants` su un `<Link>`, e sempre con `nativeButton={false}`: Base UI presume un `<button>` vero dietro `render`, e un `<a>` non lo è (mancato in tutti e cinque i punti dell'app alla prima stesura) |
+| Un filtro, un interruttore, un tema | `pastigliaVariants` + `attributiPastiglia` |
+| Un campo che cerca o filtra | `<CampoRicerca taglia>` |
+| Una data in riga con un pulsante | `<CampoData riquadro altezza>` |
+| Il libro di uno scritto | `<RiferimentoLibro>` |
+| Spoiler + visibilità | `<InterruttoriScritto>` |
+| Un bersaglio più grande del suo riquadro | `.bersaglio` |

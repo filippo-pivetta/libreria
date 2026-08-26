@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 
 import type { Sfaccettatura } from "@/lib/api/scritti";
+import { CampoRicerca } from "@/components/ui/campo-ricerca";
 import { IconaFreccia } from "@/components/ui/icone";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +77,11 @@ export function SelettoreLibro({
         if (!valore) setCerca("");
       }}
     >
-      <Popover.Trigger className={cn(classePill, "max-w-56")} aria-label="Filtra per libro">
+      <Popover.Trigger
+        data-slot="pastiglia"
+        className={cn(classePill, "max-w-56")}
+        aria-label="Filtra per libro"
+      >
         <span className="truncate">{selezionato?.etichetta ?? "Ogni libro"}</span>
         <IconaFreccia aria-hidden className="size-3" />
       </Popover.Trigger>
@@ -91,13 +96,12 @@ export function SelettoreLibro({
             )}
           >
             <div className="border-b border-line p-3">
-              <input
-                type="search"
-                value={cerca}
-                onChange={(evento) => setCerca(evento.target.value)}
-                placeholder="Cerca per titolo o autore"
-                aria-label="Cerca un libro fra i tuoi filtri"
-                className="field-line w-full border-0 border-b border-line bg-transparent pb-1 font-ui text-sm text-ink outline-none placeholder:text-ink-soft"
+              <CampoRicerca
+                taglia="riga"
+                valore={cerca}
+                onCambia={setCerca}
+                etichetta="Cerca un libro fra i tuoi filtri"
+                segnaposto="Titolo o autore"
               />
             </div>
 

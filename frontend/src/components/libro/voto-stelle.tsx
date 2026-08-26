@@ -103,17 +103,19 @@ export function VotoStelle({
       <div
         role="group"
         aria-label={`Il tuo voto, ${voto !== null ? formattaVoto(voto) : "nessuno"} stelle su cinque`}
-        className="flex gap-0.5 text-accent-strong"
+        className="flex gap-1 text-accent-strong sm:gap-0.5"
         onMouseLeave={() => setAnteprima(null)}
       >
         {STELLE.map((n) => (
-          // 27px invece di 18, e con il sollevamento al passaggio: è un
-          // gesto di precisione (mezze stelle), quindi il bersaglio deve
-          // essere grande. Sotto il dito ognuna delle due metà arriva
-          // comunque a `--tap` dalla regola `pointer: coarse`.
+          // La stella cresce dove c'è un dito: `--stella` vale 28px col
+          // mouse e 40px sotto `pointer: coarse` (tokens.css). È un gesto
+          // di precisione — mezze stelle, cioè due bersagli dentro la
+          // larghezza di uno — e l'unico modo di renderlo praticabile al
+          // tocco è ingrandire la stella, perché i due bersagli non
+          // possono allargarsi ciascuno per conto suo.
           <span
             key={n}
-            className="relative inline-block size-7 transition-[translate] duration-(--dur-micro) ease-(--ease-rise) hover:z-10 hover:-translate-y-0.5"
+            className="relative inline-block size-(--stella) transition-[translate] duration-(--dur-micro) ease-(--ease-rise) hover:z-10 hover:-translate-y-0.5"
           >
             <Stella riempimento={mostrato - (n - 1)} chiave={`mio-${voceId}-${n}`} />
             <span className="absolute inset-0 flex">

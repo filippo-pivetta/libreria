@@ -1,5 +1,7 @@
 "use client";
 
+import { IconaFreccia } from "@/components/ui/icone";
+
 /** Quanti anni stanno nella finestra. Tre: quello scelto e i suoi due
  * vicini. Con cinque la riga tornava a essere larga quanto la mezza
  * intestazione, che è il difetto che questa finestra esiste per togliere. */
@@ -58,7 +60,7 @@ export function SelettoreAnno({
     <div className="flex flex-col items-start gap-1 sm:items-end">
       <div className="flex items-center gap-1">
         <Freccia
-          verso="‹"
+          verso="precedente"
           etichetta="Anno precedente"
           disabilitata={anno <= annoMinimo}
           onClick={() => onCambiaAnno(anno - 1)}
@@ -73,7 +75,11 @@ export function SelettoreAnno({
                 type="button"
                 aria-current={corrente ? "true" : undefined}
                 onClick={() => onCambiaAnno(a)}
-                className={`t-num relative px-2.5 py-1.5 font-ui text-sm font-medium transition-colors duration-(--dur-micro) ${
+                // `bersaglio`: la riga degli anni misurava 28px di altezza
+                // e nessuna regola la copriva — questi `<button>` non hanno
+                // né `data-slot` né una classe di raggio, quindi i selettori
+                // del blocco "IL TOCCO" non li hanno mai presi.
+                className={`bersaglio t-num relative px-2.5 py-1.5 font-ui text-sm font-medium transition-colors duration-(--dur-micro) ${
                   corrente
                     ? "text-ink after:absolute after:inset-x-1.5 after:bottom-0 after:h-px after:bg-ink"
                     : "text-ink-soft hover:text-ink"
@@ -86,7 +92,7 @@ export function SelettoreAnno({
         </div>
 
         <Freccia
-          verso="›"
+          verso="successivo"
           etichetta="Anno successivo"
           disabilitata={anno >= annoMassimo}
           onClick={() => onCambiaAnno(anno + 1)}
@@ -96,13 +102,22 @@ export function SelettoreAnno({
   );
 }
 
+/**
+ * Stesso difetto delle due voci sopra, in doppio: il riquadro è 28px e i
+ * segni erano i glifi di testo `‹` e `›`, che cambiano disegno e
+ * larghezza col carattere che il sistema decide di usare per quel
+ * codepoint — la correzione che `ui/icone.tsx` ha già fatto per `⋯` e
+ * `▾`. Ora il tracciato è disegnato e `bersaglio` porta l'area sensibile
+ * a 44 senza gonfiare il riquadro, che in una riga di anni deve restare
+ * piccolo.
+ */
 function Freccia({
   verso,
   etichetta,
   disabilitata,
   onClick,
 }: {
-  verso: string;
+  verso: "precedente" | "successivo";
   etichetta: string;
   disabilitata: boolean;
   onClick: () => void;
@@ -113,9 +128,12 @@ function Freccia({
       aria-label={etichetta}
       disabled={disabilitata}
       onClick={onClick}
-      className="flex size-7 shrink-0 items-center justify-center rounded-field border border-line-strong font-ui text-ink transition-colors duration-(--dur-micro) hover:bg-surface-2 disabled:border-line disabled:text-ink-soft/40 disabled:hover:bg-transparent"
+      className="bersaglio flex size-7 shrink-0 items-center justify-center rounded-field border border-line-strong text-ink transition-colors duration-(--dur-micro) hover:bg-surface-2 disabled:border-line disabled:text-ink-soft/40 disabled:hover:bg-transparent"
     >
-      {verso}
+      <IconaFreccia
+        aria-hidden
+        className={`size-4 ${verso === "precedente" ? "rotate-90" : "-rotate-90"}`}
+      />
     </button>
   );
 }

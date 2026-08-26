@@ -2,6 +2,7 @@
 
 import { Toggle } from "@base-ui/react/toggle";
 
+import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,13 +33,17 @@ export function PastigliaInterruttore({
 }: Toggle.Props) {
   return (
     <Toggle
-      data-slot="button"
+      {...attributiPastiglia}
       className={cn(
-        "inline-flex shrink-0 items-center gap-2 rounded-full border border-line-strong bg-transparent px-3.5 py-2 font-ui text-[0.8125rem] font-medium text-ink-soft outline-none select-none",
-        "transition-[background-color,color,border-color] duration-(--dur-micro) ease-(--ease-rise)",
-        "hover:text-ink",
+        // Il vestito è quello del sistema (`ui/pastiglia.tsx`, taglia
+        // "comando"). Prima era scritto qui a mano, con un'altezza data
+        // dal padding (`py-2`, cioè ~34px) che non coincideva con nessuna
+        // delle altre pastiglie della stessa pagina.
+        pastigliaVariants({ taglia: "comando", acceso: false }),
+        // Lo stato acceso lo dichiara `data-pressed` di Base UI, non una
+        // prop: qui `acceso` resta false e le classi del pieno arrivano
+        // dopo, così vincono per ordine.
         "data-pressed:border-ink data-pressed:bg-ink data-pressed:text-surface-1",
-        "[&_svg]:size-[0.9375rem] [&_svg]:shrink-0",
         className,
       )}
       {...props}

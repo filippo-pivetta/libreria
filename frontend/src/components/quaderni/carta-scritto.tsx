@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { getVicini, type Scritto } from "@/lib/api/scritti";
@@ -9,6 +8,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { IconaCoperto, IconaLucchetto } from "@/components/ui/icone";
+import { RiferimentoLibro } from "@/components/ui/riferimento-libro";
 import { useLocale } from "next-intl";
 
 /** Soglia fra i due trattamenti tipografici (design doc §10): sotto,
@@ -85,14 +85,15 @@ export function CartaScritto({
       // che gli sta accanto, e a mezza colonna si leggerebbe come tale.
       style={viciniAperti ? { gridColumn: "1 / -1" } : undefined}
     >
-      <Link
-        href={`/libro/${scritto.voceId}`}
+      {/* Era una riga sottolineata identica ai comandi della stessa carta.
+          Ora è una pastiglia: un dato con dentro un rimando, non un'azione
+          (vedi `ui/riferimento-libro.tsx`). */}
+      <RiferimentoLibro
+        voceId={scritto.voceId}
+        titolo={scritto.titolo}
+        autori={scritto.autori}
         onClick={onApriLibro}
-        className="t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-      >
-        {scritto.titolo}
-        {scritto.autori.length > 0 && ` · ${scritto.autori.join(", ")}`}
-      </Link>
+      />
 
       <div className="min-w-0">
         <p
@@ -102,7 +103,7 @@ export function CartaScritto({
           {scritto.testo}
         </p>
         {isAppunto && !espansa && (
-          <Button variant="link" size="sm" className="mt-1 px-0" onClick={() => setEspansa(true)}>
+          <Button variant="quiet" size="testo" className="mt-2" onClick={() => setEspansa(true)}>
             Mostra tutto
           </Button>
         )}
@@ -129,18 +130,17 @@ export function CartaScritto({
         </span>
 
         {scritto.vicini !== null && scritto.vicini > 0 && (
-          <button
-            type="button"
+          <Button
+            variant="quiet"
+            size="testo"
             aria-expanded={viciniAperti}
             onClick={() => setViciniAperti((aperti) => !aperti)}
-            className={`tocco-esteso t-meta underline underline-offset-4 hover:decoration-ink ${
-              viciniAperti ? "text-ink decoration-ink" : "decoration-line-strong"
-            }`}
+            className={viciniAperti ? "text-ink decoration-ink" : undefined}
           >
             {viciniAperti
               ? "Nascondi i vicini"
               : `${scritto.vicini} ${scritto.vicini === 1 ? "vicino" : "vicini"}`}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -160,13 +160,11 @@ export function CartaScritto({
 
           {vicini?.map((vicino) => (
             <div key={vicino.contenutoId} className="flex flex-col gap-1.5">
-              <Link
-                href={`/libro/${vicino.voceId}`}
-                className="t-meta underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-              >
-                {vicino.titolo}
-                {vicino.autori.length > 0 && ` · ${vicino.autori.join(", ")}`}
-              </Link>
+              <RiferimentoLibro
+                voceId={vicino.voceId}
+                titolo={vicino.titolo}
+                autori={vicino.autori}
+              />
               <p
                 className={
                   vicino.testo.length > SOGLIA_SENTENZA ? "t-appunto" : "t-sentenza max-w-[34ch]"
