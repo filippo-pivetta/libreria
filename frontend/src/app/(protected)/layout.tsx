@@ -36,7 +36,16 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     data: { session },
   } = await supabase.auth.getSession();
 
-  const me = session ? await getMe(session.access_token) : { status: "error" as const, message: "Sessione assente." };
+  // getMe e getCollegamenti non dipendono l'uno dall'altro (il secondo
+  // usa solo il token, non il risultato del primo): in parallelo invece
+  // che in sequenza, ogni navigazione nell'area protetta risparmia un
+  // giro di rete intero rispetto a prima.
+  const [me, collegamenti] = session
+    ? await Promise.all([getMe(session.access_token), getCollegamenti(session.access_token)])
+    : [
+        { status: "error" as const, message: "Sessione assente." },
+        { status: "error" as const, message: "Sessione assente." },
+      ];
 
   if (me.status === "not_provisioned") {
     // Sessione valida ma account non ancora completato: capita a chi ha
@@ -60,9 +69,6 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   // Il contatore delle richieste ricevute accanto a Lettori (design doc
   // §5): un fallimento qui non deve bloccare il layout, a differenza di
   // getMe sopra — il badge resta semplicemente assente.
-  const collegamenti = session
-    ? await getCollegamenti(session.access_token)
-    : { status: "error" as const, message: "Sessione assente." };
   const receivedRequestCount =
     collegamenti.status === "ok"
       ? collegamenti.data.filter((c) => c.stato === "in_attesa" && !c.richiestoDaMe).length

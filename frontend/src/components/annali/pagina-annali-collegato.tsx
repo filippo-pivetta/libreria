@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { getMetriche, getMetricheCollegato, type Metriche } from "@/lib/api/metriche";
 import { getAccessToken } from "@/lib/api/access-token";
@@ -63,6 +63,11 @@ export function PaginaAnnaliCollegato({
       return result.data;
     },
     initialData: anno === metricheCollegatoIniziali.anno ? metricheCollegatoIniziali : undefined,
+    // Stessa correzione di pagina-annali.tsx: senza `keepPreviousData` il
+    // cambio d'anno rimandava `isPending` a vero e faceva sparire la
+    // carta per un istante (stesso scatto che `pensiero-che-torna.tsx`
+    // documenta e risolve identicamente).
+    placeholderData: keepPreviousData,
   });
 
   // Le proprie metriche dello stesso anno, solo per l'affiancamento: non
@@ -80,6 +85,7 @@ export function PaginaAnnaliCollegato({
       return result.status === "ok" ? result.data : null;
     },
     initialData: anno === metricheCollegatoIniziali.anno ? metrichePropriaIniziale : undefined,
+    placeholderData: keepPreviousData,
   });
 
   if (collegatoQuery.isPending) return (

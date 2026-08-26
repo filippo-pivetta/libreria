@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { getMetriche, type Metriche } from "@/lib/api/metriche";
 import { getAccessToken } from "@/lib/api/access-token";
@@ -41,6 +41,12 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
       return result.data;
     },
     initialData: anno === metricheIniziali.anno ? metricheIniziali : undefined,
+    // Senza questo, cambiare anno faceva sparire la carta intera per un
+    // istante (`isPending` torna vero su una chiave nuova senza dati):
+    // stesso scatto che `pensiero-che-torna.tsx` documenta e risolve
+    // allo stesso modo. Con `keepPreviousData` l'anno VECCHIO resta a
+    // schermo mentre il nuovo arriva in sottofondo.
+    placeholderData: keepPreviousData,
   });
 
   if (isPending) return (

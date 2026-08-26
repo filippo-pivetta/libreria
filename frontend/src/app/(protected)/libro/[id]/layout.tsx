@@ -61,8 +61,13 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
   const isOwner = voce.data.utenteId === session.user.id;
 
   if (isOwner) {
-    const me = await getMe(session.access_token);
-    const collegamenti = await getCollegamenti(session.access_token);
+    // Indipendenti l'uno dall'altro (nessuno dei due usa il risultato
+    // dell'altro): in parallelo invece che in sequenza risparmiano un
+    // giro di rete intero prima che la barra possa comparire.
+    const [me, collegamenti] = await Promise.all([
+      getMe(session.access_token),
+      getCollegamenti(session.access_token),
+    ]);
     const receivedRequestCount =
       collegamenti.status === "ok"
         ? collegamenti.data.filter((c) => c.stato === "in_attesa" && !c.richiestoDaMe).length
