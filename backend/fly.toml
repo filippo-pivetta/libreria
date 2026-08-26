@@ -1,21 +1,77 @@
+# Configurazione di deploy del backend (FastAPI + worker dei lavori,
+# docs/adr/0016). Il frontend sta altrove (Vercel: vedi il commento sul
+# CORS in app/main.py), qui gira solo l'API.
+
 app = "montaigne"
 primary_region = "ams"
+
+# Lo spegnimento passa da uvicorn: SIGINT chiude il lifespan, che ferma il
+# worker aspettando fino a 30s il lavoro in corso (app/lavori/worker.py,
+# `ferma(timeout=30.0)`). Con il kill_timeout di default — 5 secondi — un
+# lavoro in corso durante un deploy verrebbe ucciso a metà e resterebbe
+# 'in_corso' fino al recupero degli orfani, dieci minuti dopo.
+kill_signal = "SIGINT"
+kill_timeout = 35
+
+[env]
+  # Variabili non segrete: stanno qui e non tra i secrets perché sono
+  # configurazione versionata, e perché cambiare un secret fa ripartire le
+  # macchine. Le chiavi (Supabase, Google Books, OpenAI) e CORS_ORIGINS
+  # restano `fly secrets`.
+  ENVIRONMENT = "production"
+  # Il worker gira dentro il processo dell'API di proposito: un process
+  # group separato sarebbe una seconda macchina accesa, cioè il doppio del
+  # costo per una coda che sta ferma quasi sempre. Se un giorno le
+  # conversioni delle copertine daranno fastidio alla latenza, l'ADR 0016
+  # dice come separarli (WORKER_ABILITATO=false qui + `python -m app.lavori`).
+  WORKER_ABILITATO = "true"
+  WORKER_INTERVALLO_SECONDI = "2.0"
 
 [http_service]
   internal_port = 8000
   force_https = true
-  auto_stop_machines = "off"
+
+  # La macchina si sospende quando non ci sono richieste e si risveglia
+  # alla prima che arriva. "suspend" invece di "stop" perché conserva la
+  # memoria del processo: il risveglio è nell'ordine dei centesimi di
+  # secondo invece dei secondi che l'immagine Python impiega a ripartire da
+  # zero. Fly non lo garantisce (migrazioni di host, manutenzione), quindi
+  # va considerato uno stop veloce: il worker regge entrambi i casi, perché
+  # riapre la connessione al database quando la trova chiusa e i lavori
+  # lasciati 'in_corso' rientrano in coda col recupero degli orfani.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
-  min_machines_running = 1
+  # Zero macchine accese a riposo: è la voce che decide il conto. Il prezzo
+  # da pagare è che i lavori in coda avanzano solo mentre qualcuno usa
+  # l'app — accettabile, perché è mentre la si usa che vengono accodati.
+  min_machines_running = 0
   processes = ["app"]
 
+  [http_service.concurrency]
+    # Su una macchina sola i limiti non servono a distribuire il carico ma
+    # a difenderla: 512MB non reggono un numero indefinito di richieste
+    # contemporanee. Il soft_limit è anche la soglia con cui il proxy
+    # giudica se c'è capacità in eccesso, quindi non va tenuto basso.
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 100
+
   [[http_service.checks]]
+    # A 15s erano 5.760 connessioni al giorno aperte e chiuse verso
+    # Supabase: /health apre una connessione nuova a ogni chiamata
+    # (app/repositories/database.py, `ping`). E il controllo risponde 200
+    # anche col database irraggiungibile, quindi a Fly dice soltanto che il
+    # processo è vivo: un minuto è la frequenza giusta per quella domanda.
     path = "/health"
     method = "GET"
-    interval = "15s"
+    interval = "60s"
     timeout = "5s"
+    # L'immagine Python non serve richieste dal primo istante: senza grazia
+    # il primo controllo dopo un avvio da freddo fallirebbe da solo.
+    grace_period = "15s"
 
 [[vm]]
+  size = "shared-cpu-1x"
   memory = "512mb"
   cpu_kind = "shared"
   cpus = 1
