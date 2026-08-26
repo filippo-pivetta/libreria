@@ -63,6 +63,37 @@ jobs:
       - name: Test (pytest)
         run: pytest
 
+  supabase:
+    name: Supabase (verifiche SQL su RLS/RPC/trigger)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          version: latest
+
+      - name: Chiave di firma JWT (richiesta da `supabase start`, mai committata)
+        run: supabase gen signing-key --algorithm ES256 > supabase/signing_keys.json
+
+      - name: Avvia Supabase locale e applica le migrazioni
+        # Esclusi solo i servizi che le verifiche non toccano: parlano
+        # direttamente a Postgres, impersonando i ruoli con
+        # `request.jwt.claims` invece di passare da PostgREST/Kong.
+        run: supabase start --exclude studio,imgproxy,logflare,vector,mailpit,edge-runtime
+
+      - name: Esegui le sei verifiche (ciascuna transazionale, con ROLLBACK finale)
+        # Ogni script crea le proprie fixture e non lascia righe dietro di sé
+        # (AGENTS.md, supabase/tests/*.sql): nessun seed esterno serve qui.
+        # `-v ON_ERROR_STOP=1` è essenziale, altrimenti psql continua dopo un
+        # fallimento invece di fermarsi al primo.
+        run: |
+          set -e
+          for script in supabase/tests/verifica_*.sql; do
+            echo "--- $script ---"
+            psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$script"
+          done
+
   semgrep:
     name: Semgrep
     runs-on: ubuntu-latest
