@@ -154,3 +154,63 @@ def test_delete_recensione_requires_authentication(client: TestClient) -> None:
     response = client.delete(f"/voci/{_VOCE_ID}/recensione")
 
     assert response.status_code == 401
+
+
+# --- l'esistenza di una recensione altrui non deve trapelare ---------------
+
+
+def _errore_postgrest(codice: str) -> Exception:
+    from postgrest.exceptions import APIError
+
+    return APIError({"message": "no", "code": codice, "hint": None, "details": None})
+
+
+@pytest.mark.parametrize("codice", ["23503", "42501"])
+def test_scrivere_su_una_voce_altrui_da_sempre_la_stessa_risposta(
+    monkeypatch: pytest.MonkeyPatch, codice: str
+) -> None:
+    """Due codici, una sola risposta.
+
+    Su una Voce altrui l'upsert si ferma in due punti diversi a seconda di
+    ciò che c'è dall'altra parte: senza recensione preesistente lo blocca
+    la FK composita (23503), con una recensione preesistente il conflitto
+    porta al ramo `do update` e a fermarlo è la `using` della policy
+    (42501). Trattare il secondo come un errore imprevisto significava
+    rispondere 500 dove si risponde 404 — e quella differenza dice a un
+    collegato se sul libro esiste una recensione privata che il percorso di
+    lettura gli nasconde.
+    """
+    import asyncio
+
+    from app.repositories import recensione_repository
+
+    def _rifiuta(*args: Any, **kwargs: Any) -> None:
+        raise _errore_postgrest(codice)
+
+    monkeypatch.setattr(recensione_repository, "upsert", _rifiuta)
+
+    esito = asyncio.run(
+        recensioni_service.scrivi("test-token", _USER_ID, _VOCE_ID, "testo", "condiviso")
+    )
+
+    assert esito is None, f"il codice {codice} deve tradursi in 404, non in 500"
+
+
+def test_un_errore_davvero_imprevisto_continua_a_propagare(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """La rete allargata a 42501 non deve diventare un ingoia-tutto: un
+    codice che non c'entra resta un 500, che è la risposta giusta."""
+    import asyncio
+
+    from app.repositories import recensione_repository
+
+    def _rifiuta(*args: Any, **kwargs: Any) -> None:
+        raise _errore_postgrest("08006")
+
+    monkeypatch.setattr(recensione_repository, "upsert", _rifiuta)
+
+    with pytest.raises(Exception, match="no"):
+        asyncio.run(
+            recensioni_service.scrivi("test-token", _USER_ID, _VOCE_ID, "testo", "condiviso")
+        )

@@ -776,3 +776,33 @@ def test_delete_voce_requires_authentication(client: TestClient) -> None:
     response = client.delete(f"/voci/{_VOCE_ID}")
 
     assert response.status_code == 401
+
+
+# --- l'esistenza di una nota di intenzione altrui non deve trapelare -------
+
+
+@pytest.mark.parametrize("codice", ["23503", "42501"])
+def test_correggere_la_nota_su_una_voce_altrui_da_sempre_la_stessa_risposta(
+    monkeypatch: pytest.MonkeyPatch, codice: str
+) -> None:
+    """Stesso ragionamento di `test_recensioni`, sull'altro dei due upsert.
+
+    Qui pesa di più: la nota di intenzione è il contenuto che l'ADR 0008
+    tiene più stretto di ogni altro — non esce nemmeno verso il fornitore
+    di modelli — e un 500 distinguibile da un 404 ne rivelerebbe
+    l'esistenza a un collegato.
+    """
+    import asyncio
+
+    from postgrest.exceptions import APIError
+
+    def _rifiuta(*args: Any, **kwargs: Any) -> None:
+        raise APIError({"message": "no", "code": codice, "hint": None, "details": None})
+
+    monkeypatch.setattr(voce_repository, "update_nota_intenzione", _rifiuta)
+
+    esito = asyncio.run(
+        voci_service.correggi_nota_intenzione("test-token", _USER_ID, _VOCE_ID, "una nota")
+    )
+
+    assert esito is None, f"il codice {codice} deve tradursi in 404, non in 500"

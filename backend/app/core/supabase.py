@@ -27,6 +27,24 @@ from supabase import Client, create_client
 
 from app.core.config import get_settings
 
+CODICE_FK_VIOLATA = "23503"
+"""Violazione di una FK composita `(id, utente_id)`: la riga bersaglio non
+esiste, oppure non è di chi scrive. I service la mappano su 404."""
+
+CODICE_RLS_NEGATA = "42501"
+"""Riga esistente ma di un altro Utente, su una scrittura che passa da un
+upsert.
+
+Un `insert` che viola la sola `with check` di una policy si ferma sulla FK
+composita e restituisce 23503; ma quando l'upsert trova il conflitto,
+Postgres passa al ramo `do update`, e lì è la `using` della policy di
+update a rifiutare — con 42501, non con 23503. Sono due codici per la
+stessa risposta ("quella riga non è tua"), e distinguerli nella risposta
+HTTP fa trapelare quale dei due percorsi è stato imboccato: cioè se la
+riga esiste. Vedi `recensioni_service.scrivi` e
+`voci_service.correggi_nota_intenzione`, gli unici due upsert su tabelle
+con RLS."""
+
 
 def get_user_client(access_token: str) -> Client:
     """Client che opera con l'identità dell'utente autenticato."""

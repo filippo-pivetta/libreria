@@ -40,9 +40,13 @@ logger = logging.getLogger("app.ricerca")
 class VolumeInesistenteError(Exception):
     """L'identificativo di volume non è più tra i risultati del catalogo.
 
-    Succede quando la ricerca è rimasta aperta a lungo e la cache è
-    scaduta: il volume esiste ancora, ma questo processo non lo ha più in
-    mano e ritrovarlo richiederebbe di indovinare il termine cercato.
+    Ora significa una cosa sola: Google non conosce più quel volume (404).
+    Prima significava anche "la cache di questo processo non ce l'ha più",
+    che è una circostanza nostra e non dell'Utente — e con più Utenti o più
+    processi capitava su risultati validi. Da quando
+    `google_books.opera_per_identificativi` rifà la fetch su cache mancata,
+    un risultato valido resta aggiungibile comunque, e questo errore torna
+    a dire quello che dice.
     """
 
 
@@ -230,7 +234,7 @@ async def aggiungi_da_catalogo(
     3. la Voce si crea con l'identità dell'UTENTE, non con la chiave di
        servizio (ADR 0001): il catalogo è dato condiviso, la Voce no.
     """
-    opera = google_books.opera_dalla_cache(volume_id, alternativi)
+    opera = await google_books.opera_per_identificativi(volume_id, alternativi)
     if opera is None:
         raise VolumeInesistenteError(volume_id)
 

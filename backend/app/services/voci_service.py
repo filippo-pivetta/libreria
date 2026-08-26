@@ -16,7 +16,7 @@ from fastapi.concurrency import run_in_threadpool
 from postgrest.exceptions import APIError
 
 from app.core import storage
-from app.core.supabase import get_user_client
+from app.core.supabase import CODICE_FK_VIOLATA, CODICE_RLS_NEGATA, get_user_client
 from app.repositories import recensione_repository, voce_repository
 from app.services import insight_service
 
@@ -199,6 +199,11 @@ async def correggi_nota_intenzione(
             voce_repository.update_nota_intenzione, client, voce_id, utente_id, nota_intenzione
         )
     except APIError as error:
-        if error.code == "23503":
+        # 42501 accanto a 23503 per la stessa ragione spiegata in
+        # `recensioni_service.scrivi`: su una Voce altrui che ha già una
+        # nota, l'upsert finisce nel ramo `do update` e viene fermato
+        # dalla `using` della policy invece che dalla FK. Due codici, una
+        # sola risposta: quella riga non è tua.
+        if error.code in (CODICE_FK_VIOLATA, CODICE_RLS_NEGATA):
             return None
         raise

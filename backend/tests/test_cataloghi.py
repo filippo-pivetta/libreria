@@ -334,3 +334,65 @@ def test_le_due_forme_dello_stesso_autore_finiscono_nello_stesso_gruppo() -> Non
         gb._volume(_elemento("b", "1984", ["Orwell, George"])),
     ]
     assert len(gb.collassa_per_opera([v for v in volumi if v])) == 1
+
+
+# --- l'aggiunta non dipende dalla cache di questo processo ------------------
+#
+# `POST /libri` ricomponeva l'opera SOLO da `_per_volume`, una mappa di
+# processo che si svuota in blocco quando è piena. Con più Utenti che
+# cercano insieme, o con più processi dietro un bilanciatore, un risultato
+# valido diventava un 409 "rifai la ricerca" per una circostanza nostra,
+# non sua. Da qui il fallback su `per_identificativo`.
+
+
+def test_su_cache_svuotata_l_opera_si_ricompone_rifacendo_la_fetch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il caso dell'Utente sfrattato dalle ricerche altrui: la mappa è
+    stata azzerata fra la ricerca e l'aggiunta, e il volume deve restare
+    aggiungibile."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    _con_risposta(
+        monkeypatch,
+        httpx.Response(200, json=_elemento("v1", "Il nome della rosa", ["Umberto Eco"])),
+    )
+
+    opera = __import__("asyncio").run(gb.opera_per_identificativi("v1", []))
+
+    assert opera is not None
+    assert opera.rappresentante.volume_id == "v1"
+    assert opera.rappresentante.titolo == "Il nome della rosa"
+
+
+def test_un_volume_che_google_non_conosce_piu_resta_un_risultato_scaduto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il 409 non sparisce: cambia solo di significato. Ora lo dice Google
+    con un 404, non la nostra cache con una scadenza."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    _con_risposta(monkeypatch, httpx.Response(404))
+
+    assert __import__("asyncio").run(gb.opera_per_identificativi("sparito", [])) is None
+
+
+def test_con_la_cache_calda_non_si_tocca_la_rete(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Il fallback non deve diventare la strada normale: finché la ricerca
+    è recente, l'aggiunta continua a non costare una chiamata di quota."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    _con_risposta(
+        monkeypatch,
+        httpx.Response(200, json={"items": [_elemento("v1", "Le città invisibili")]}),
+    )
+    __import__("asyncio").run(gb.cerca("calvino"))
+
+    def _vietato(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
+        raise AssertionError("cache calda: non deve partire alcuna chiamata")
+
+    monkeypatch.setattr(gb.httpx, "AsyncClient", _vietato)
+    opera = __import__("asyncio").run(gb.opera_per_identificativi("v1", []))
+
+    assert opera is not None
+    assert opera.rappresentante.volume_id == "v1"

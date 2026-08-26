@@ -457,6 +457,45 @@ def opera_dalla_cache(volume_id: str, alternativi: list[str]) -> Opera | None:
     return Opera(rappresentante=voce[1], alternativi=altri)
 
 
+async def opera_per_identificativi(volume_id: str, alternativi: list[str]) -> Opera | None:
+    """L'opera che la schermata ha mostrato, ricomposta dai soli
+    identificativi che rimanda indietro — dalla cache se c'è, rifacendo la
+    fetch se non c'è.
+
+    `opera_dalla_cache` da sola non basta a `POST /libri`. La cache è di
+    processo e si svuota in blocco quando è piena, quindi con più Utenti
+    che cercano contemporaneamente le ricerche degli uni sfrattano i
+    risultati degli altri: A cerca, guarda la riga, e mentre decide se
+    aggiungere un centinaio di ricerche altrui azzerano la mappa. Peggio
+    con più processi — `--workers N` o più repliche dietro un bilanciatore,
+    la mossa naturale per servire molti Utenti: la ricerca la serve un
+    processo e l'aggiunta ne raggiunge un altro, che quella cache non l'ha
+    mai vista. In entrambi i casi l'Utente riceveva un 409 "rifai la
+    ricerca" su un risultato che era perfettamente valido.
+
+    La via d'uscita esiste già ed è `per_identificativo`, che la scheda
+    pubblica usa per la stessa ragione (aprirsi da un link, senza una
+    ricerca alle spalle). Qui la si riusa: la cache resta la strada veloce
+    e resta quella percorsa quasi sempre, ma smette di essere l'unica.
+
+    `None` solo quando Google non conosce più il volume — il 404 vero, che
+    chi chiama traduce in "risultato scaduto". Un alternativo che sparisce
+    viene semplicemente lasciato cadere, esattamente come fa
+    `opera_dalla_cache` con un alternativo già scaduto: gli alternativi
+    aggiungono identificativi al riconoscimento, non lo decidono.
+    """
+    dalla_cache = opera_dalla_cache(volume_id, alternativi)
+    if dalla_cache is not None:
+        return dalla_cache
+
+    rappresentante = await per_identificativo(volume_id)
+    if rappresentante is None:
+        return None
+
+    altri = await asyncio.gather(*(per_identificativo(a) for a in alternativi))
+    return Opera(rappresentante=rappresentante, alternativi=[v for v in altri if v is not None])
+
+
 def svuota_cache() -> None:
     """Solo per i test: la cache è di processo e sopravviverebbe tra casi."""
     _cache.clear()
