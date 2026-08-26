@@ -1,7 +1,47 @@
+"use client";
+
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { VoceConLibro } from "@/lib/api/voci";
 import { coloreDorso } from "@/lib/spine-color";
 import { Stella, formattaVoto } from "@/components/libro/voto-stelle";
 import { TitoloConChiosa } from "@/components/ui/chiosa";
+
+/**
+ * Se dopo l'ultima copertina non resta altro da scorrere, la sfumatura non
+ * deve comparire: altrimenti sembra promettere altri libri che non ci sono.
+ * Va ricalcolata allo scroll (si arriva in fondo) e al resize (la stessa
+ * lista può smettere o iniziare a debordare quando cambia la larghezza del
+ * contenitore).
+ */
+function useSfumaturaScorrimento<T extends HTMLElement>(): [RefObject<T | null>, boolean] {
+  const ref = useRef<T>(null);
+  const [visibile, setVisibile] = useState(false);
+
+  useEffect(() => {
+    const elemento = ref.current;
+    if (!elemento) return;
+
+    const aggiorna = () => {
+      // Margine di un paio di pixel: gli arrotondamenti dello scroll
+      // frazionario a volte lasciano un residuo minore di 1px anche quando
+      // si è già arrivati in fondo.
+      const restano = elemento.scrollWidth - elemento.clientWidth - elemento.scrollLeft;
+      setVisibile(restano > 2);
+    };
+
+    aggiorna();
+    elemento.addEventListener("scroll", aggiorna, { passive: true });
+    const observer = new ResizeObserver(aggiorna);
+    observer.observe(elemento);
+
+    return () => {
+      elemento.removeEventListener("scroll", aggiorna);
+      observer.disconnect();
+    };
+  }, []);
+
+  return [ref, visibile];
+}
 
 /** Le stesse cinque stelline di `VotoStelle`, ma di sola lettura: qui non
  * si vota mai, si guardano due voti affiancati.
@@ -96,6 +136,8 @@ export function LibriInComune({
     })
     .filter((v): v is { propria: VoceConLibro; collegato: VoceConLibro } => v !== null);
 
+  const [scorriRef, mostraSfumatura] = useSfumaturaScorrimento<HTMLUListElement>();
+
   if (comuni.length === 0) return null;
 
   return (
@@ -112,9 +154,11 @@ export function LibriInComune({
       />
 
       {/* La sfumatura a destra dice che la striscia continua: senza, a
-          nove libri l'ultima colonna sembra tagliata da un errore. */}
+          nove libri l'ultima colonna sembra tagliata da un errore. Ma solo
+          finché c'è altro da scorrere: in fondo alla lista sparisce, sennò
+          promette libri che non ci sono. */}
       <div className="relative mt-4">
-        <ul className="flex gap-4 overflow-x-auto pb-1">
+        <ul ref={scorriRef} className="flex gap-4 overflow-x-auto pb-1">
           {comuni.map(({ propria, collegato }) => {
             const colore = collegato.libro.copertinaColoreDominante ?? coloreDorso(collegato.libroId);
             return (
@@ -166,10 +210,12 @@ export function LibriInComune({
             );
           })}
         </ul>
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-surface-1 to-transparent"
-        />
+        {mostraSfumatura && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-surface-1 to-transparent"
+          />
+        )}
       </div>
     </div>
   );
