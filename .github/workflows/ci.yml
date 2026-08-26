@@ -74,7 +74,17 @@ jobs:
           version: latest
 
       - name: Chiave di firma JWT (richiesta da `supabase start`, mai committata)
-        run: supabase gen signing-key --algorithm ES256 > supabase/signing_keys.json
+        # `gen signing-key` scrive anche lui, come effetto collaterale, sul
+        # signing_keys_path configurato (supabase/config.toml) — non solo
+        # su stdout. Rediretto lì con `>`, la shell tronca il file a 0
+        # byte PRIMA che il CLI parta: il CLI trova quel file appena
+        # svuotato, prova a decodificarlo come chiavi preesistenti e
+        # fallisce con "Unexpected EOF" (verificato in locale). Un array
+        # vuoto valido come punto di partenza, più --append, evita la
+        # corsa: non c'è redirect sullo stesso path che il CLI legge.
+        run: |
+          echo '[]' > supabase/signing_keys.json
+          supabase gen signing-key --algorithm ES256 --append --yes
 
       - name: Avvia Supabase locale e applica le migrazioni
         # Esclusi solo i servizi che le verifiche non toccano: parlano
