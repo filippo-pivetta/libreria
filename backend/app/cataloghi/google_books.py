@@ -309,6 +309,27 @@ def _chiave_opera(volume: Volume) -> str:
     return f"{titolo}|{autore}"
 
 
+def _pagine(valore: Any) -> int | None:
+    """`pageCount` di Google, con lo zero riportato ad "assente".
+
+    Google non omette il campo quando non conosce il numero di pagine:
+    manda `pageCount: 0`. Passato cosi' com'e', quello zero arriva fino a
+    `libro.pagine_mediane_catalogo` e viola `chk_libro_pagine_mediane`
+    (`is null or > 0`), facendo fallire l'INTERA aggiunta con un 500 —
+    misurato in produzione il 27 agosto 2026 su "Un indovino mi disse".
+
+    Zero pagine non e' un libro, quindi non e' un dato da salvare: e'
+    il modo di Google di dire che non lo sa, e va tradotto qui, al
+    confine con la fonte, come si fa gia' con la marcatura nelle
+    descrizioni. Il ramo Open Library non ha mai mostrato il difetto solo
+    perche' `risoluzione` lo filtra con un `if` che considera lo zero
+    falso: una protezione a distanza, non una decisione.
+    """
+    if not isinstance(valore, int) or isinstance(valore, bool) or valore <= 0:
+        return None
+    return valore
+
+
 def _volume(elemento: dict[str, Any]) -> Volume | None:
     info = elemento.get("volumeInfo") or {}
     titolo = info.get("title")
@@ -343,7 +364,7 @@ def _volume(elemento: dict[str, Any]) -> Volume | None:
         autori=autori,
         lingua=info.get("language"),
         anno_pubblicazione=anno,
-        pagine=info.get("pageCount"),
+        pagine=_pagine(info.get("pageCount")),
         isbn13=str(isbn13) if isbn13 else None,
         categorie=tuple(str(c) for c in info.get("categories") or []),
         descrizione=_senza_marcatura(info.get("description")),

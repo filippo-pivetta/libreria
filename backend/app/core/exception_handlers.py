@@ -9,12 +9,23 @@ Registrato su `Exception` (non su un codice di stato): è l'unico modo
 per cui Starlette lo aggancia alla ServerErrorMiddleware, il livello
 più esterno, che vede anche le eccezioni sollevate fuori da una route
 riconosciuta (dependency, middleware).
+
+Quel livello è anche **fuori dal CORSMiddleware**, e da qui la seconda
+responsabilità di questo modulo: le intestazioni CORS le scrive lui,
+perché nessuno le aggiungerà a valle. Senza, ogni 500 arriva al browser
+senza `Access-Control-Allow-Origin`, e la console mostra un errore di
+CORS al posto dell'errore vero — il messaggio che il frontend avrebbe
+saputo leggere resta invisibile, e si finisce a cercare un problema di
+configurazione che non esiste. Costato un'ora il 27 agosto 2026, su un
+500 che era una violazione di CHECK in `crea_scheda`.
 """
 
 import logging
 
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
+
+from app.core.config import get_settings
 
 logger = logging.getLogger("app.errori_non_gestiti")
 
@@ -35,4 +46,28 @@ async def gestore_eccezioni_non_gestite(request: Request, exc: Exception) -> JSO
         # (vedi app/routers/me.py): chi consuma l'API non deve distinguere
         # un errore previsto da uno imprevisto per leggere il messaggio.
         content={"detail": MESSAGGIO_GENERICO},
+        headers=_intestazioni_cors(request),
     )
+
+
+def _intestazioni_cors(request: Request) -> dict[str, str]:
+    """Le stesse intestazioni che il CORSMiddleware metterebbe, se questa
+    risposta gli passasse davanti — cosa che non accade (vedi il docstring
+    del modulo).
+
+    L'origine si rispecchia una per una e non con `*`: il middleware è
+    montato con `allow_credentials=True` (app/main.py), e con le
+    credenziali il carattere jolly non è ammesso dalla specifica. Un'origine
+    non in elenco non riceve nulla, esattamente come dal middleware: qui si
+    replica una decisione già presa altrove, non se ne prende una nuova.
+    """
+    origine = request.headers.get("origin")
+    if not origine or origine not in get_settings().cors_origins_list:
+        return {}
+    return {
+        "Access-Control-Allow-Origin": origine,
+        "Access-Control-Allow-Credentials": "true",
+        # La risposta dipende dall'origine: senza, una cache condivisa
+        # potrebbe servirne una a un'origine diversa.
+        "Vary": "Origin",
+    }

@@ -496,3 +496,31 @@ def test_l_agente_dichiara_un_contatto() -> None:
     assert ua.startswith("Montaigne/")
     fra_parentesi = ua[ua.index("(") + 1 : ua.index(")")]
     assert "://" in fra_parentesi or "@" in fra_parentesi
+
+
+# --- numero di pagine -------------------------------------------------------
+
+
+def test_pagecount_zero_diventa_assente() -> None:
+    """Google non omette `pageCount` quando non lo conosce: manda 0.
+
+    Passato così com'è, quello zero arriva a `libro.pagine_mediane_catalogo`
+    e viola `chk_libro_pagine_mediane` (`is null or > 0`), facendo fallire
+    l'intera aggiunta con un 500. Osservato in produzione il 27 agosto 2026
+    su "Un indovino mi disse".
+    """
+    assert gb._volume(_elemento("x", "Un indovino mi disse", pageCount=0)).pagine is None
+
+
+def test_pagecount_valido_resta() -> None:
+    assert gb._volume(_elemento("x", "Un libro", pageCount=320)).pagine == 320
+
+
+def test_pagecount_assente_resta_assente() -> None:
+    assert gb._volume(_elemento("x", "Un libro")).pagine is None
+
+
+@pytest.mark.parametrize("valore", [-1, "320", 3.5, True, None])
+def test_pagecount_non_intero_positivo_e_assente(valore: Any) -> None:
+    """`True` compreso: in Python è un int, e varrebbe "1 pagina"."""
+    assert gb._volume(_elemento("x", "Un libro", pageCount=valore)).pagine is None
