@@ -15,6 +15,8 @@ import logging
 import re
 from collections.abc import Awaitable, Callable
 
+from app.core.testo import ha_trattini_lunghi
+
 logger = logging.getLogger("app.services.testo_generato")
 
 _VIRGOLETTE = '"«»“”„‘'
@@ -44,6 +46,15 @@ def conforme(testo: str, massimo_parole: int) -> bool:
     if not testo.strip():
         return False
     if conta_parole(testo) > massimo_parole:
+        return False
+    # Il trattino lungo è vietato ai testi generati (app/core/testo.py) e
+    # ogni prompt lo dice. Il controllo esiste perché il prompt è una
+    # richiesta, non una garanzia: qui si verifica, e un secondo tentativo
+    # basta quasi sempre. Non si ripara sostituendolo con una virgola —
+    # per la stessa ragione per cui non si troncano le risposte troppo
+    # lunghe: un testo aggiustato verrebbe firmato come se il modello
+    # l'avesse scritto così.
+    if ha_trattini_lunghi(testo):
         return False
     return not any(c in testo for c in _VIRGOLETTE)
 

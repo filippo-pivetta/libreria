@@ -11,6 +11,42 @@ Orwell" finivano in gruppi diversi.
 import re
 import unicodedata
 
+TRATTINI_LUNGHI = "—–―"
+"""Lineetta em, lineetta en e barra orizzontale.
+
+Non compaiono in nessun testo che il modello produce per un Utente
+(design-frontend.md, regole di scrittura). Due ragioni, e la prima da
+sola basterebbe: sono il segno di interpunzione con cui si riconosce a
+colpo d'occhio una prosa scritta da un modello, e un testo che l'app
+firma come generato non ha bisogno di dichiararlo anche nella
+punteggiatura. La seconda è che in italiano l'inciso con lineetta è
+raro fuori dalla prosa letteraria, e questi testi sono descrizioni di
+catalogo e pareri, non racconti.
+
+Il trattino breve (-) resta ammesso: è un'altra cosa, e serve nelle
+parole composte.
+
+La regola vale per l'OUTPUT del modello, non per il codice e la
+documentazione, dove la lineetta è di casa (questo file compreso)."""
+
+REGOLA_TRATTINI_PER_IL_MODELLO = (
+    "MAI il trattino lungo (—) o il trattino medio (–), in nessun punto "
+    "del testo: usa la virgola o il punto, scrivendo frasi che non ne "
+    "abbiano bisogno."
+)
+"""La stessa regola, nella forma che va nei prompt.
+
+Le parole non sono nuove: erano già scritte così dentro il prompt dei
+suggerimenti di lettura, l'unico dei sei che le avesse. Qui non si
+riformula, si sposta — una costante invece della frase ripetuta a mano
+in ogni prompt, che è la lezione di `app/cataloghi/agente.py`: la stessa
+stringa in quattro file mancava proprio dove serviva di più."""
+
+
+def ha_trattini_lunghi(testo: str) -> bool:
+    return any(c in testo for c in TRATTINI_LUNGHI)
+
+
 _CONNETTIVI_NOME = frozenset({"de", "del", "della", "di", "da", "van", "von", "der", "dos", "la"})
 """Particelle che fanno parte del cognome e non lo terminano: senza di
 esse "Giuseppe Tomasi di Lampedusa" darebbe "lampedusa" e "Ludwig van
