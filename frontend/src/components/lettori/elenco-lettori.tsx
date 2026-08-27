@@ -431,7 +431,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
 
         {!cercando && data.altri.length > 0 && (
           <p className="t-meta max-w-md">
-            Gli ultimi arrivati. Per trovare qualcun altro, cerca il nome.
+            Gli ultimi arrivati. Se cerchi qualcuno in particolare, chiamalo per nome.
           </p>
         )}
 

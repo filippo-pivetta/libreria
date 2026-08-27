@@ -175,8 +175,8 @@ export function Scaffale({
       <div className="plane-1 grain flex flex-col items-center justify-center gap-4 px-6 py-14 text-center sm:py-16">
         <EmptyShelf className="h-[70px] w-auto text-ink-soft" />
         <p className="max-w-sm text-sm text-ink-soft">
-          Puoi datare una lettura a quando è successa, non solo a oggi: la libreria storica non
-          si schiaccia sulla data in cui la registri.
+          Puoi datare una lettura a quando è successa davvero, non a oggi: i libri di anni fa
+          entrano al loro posto, non nel giorno in cui li registri.
         </p>
         {/* Era `outline` a 32px: il peso più leggero della scala, per la
             sola azione che questa schermata contiene e per il primo gesto

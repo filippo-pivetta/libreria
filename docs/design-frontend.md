@@ -1456,6 +1456,46 @@ scritto così); e `tests/test_prompt_trattini.py`, che impedisce a un prompt nuo
 contraddirla usando lineette nelle proprie istruzioni — che è esattamente com'era nato il
 difetto, con la regola presente in uno solo dei sei prompt.
 
+**Il registro dei testi che scrive il modello.** I prompt vincolavano i fatti, la lunghezza e la
+punteggiatura, e non dicevano nulla sulla lingua: "neutro, informativo, mai promozionale" nomina
+il difetto ma non lo fa riconoscere, e un modello che non sa quali frasi siano di mestiere le
+scrive lo stesso. `REGOLA_STILE_PER_IL_MODELLO` (`app/core/testo.py`, accanto a quella dei
+trattini) vieta per nome le formule da quarta di copertina — capolavoro, imperdibile, avvincente,
+indimenticabile, magistrale, un viaggio dentro qualcosa, una riflessione profonda, ti terrà
+incollato alle pagine — insieme alle domande retoriche, alle esclamazioni e all'aggettivo che non
+dice nulla che il sostantivo non dica già; e chiede il concreto invece dell'astratto, il verbo
+invece della nominalizzazione, e frasi di lunghezza diversa invece di tre uguali in fila. Un
+elenco di parole e non un aggettivo sul tono: è l'unica forma di questa regola che si possa
+davvero rispettare. Il pubblico è la ragione — chi tiene un registro delle proprie letture
+distingue un testo scritto da uno assemblato, e una descrizione che scivola nella quarta di
+copertina squalifica la scheda intera.
+
+Vale per i **cinque prompt che producono prosa da leggere**: le due standardizzazioni di
+descrizione, il parere, i temi, i suggerimenti. Resta fuori la traduzione, che deve restare fedele
+anche a un originale scritto male, e restano fuori le classificazioni, che non producono prosa. La
+regola non usa virgolette di alcun tipo, perché il prompt del parere le vieta nell'output:
+mostrargliene una sarebbe lo stesso difetto del trattino lungo scritto dentro la regola che lo
+vietava. `tests/test_prompt_trattini.py` verifica entrambe le cose, e che nessuno dei cinque
+prompt perda la regola per strada.
+
+**Due voci, non una.** La regola di stile dice come *non* si scrive; la voce dice a chi si parla, e
+non può essere la stessa per tutti e cinque. `VOCE_PERSONALE` (parere, temi, suggerimenti) dà del
+tu, vieta i convenevoli e l'entusiasmo pubblicitario, e proibisce il preambolo — senza, un modello
+apre con «Ecco cinque proposte per te» e chiude con «Buona lettura», due righe che nessuno ha
+chiesto. `VOCE_CATALOGO` (le due standardizzazioni di descrizione) tiene la terza persona, non si
+rivolge mai a chi legge e non dà giudizi di valore: **una descrizione è dato condiviso**, la stessa
+riga la leggono tutti, e dandole del tu direbbe a ogni lettore una cosa che vale per un altro.
+
+Il confine fra le due coincide con quello fra `llm.py` e `llm_personale.py`, che esiste per la
+regola 19 del PRD (docs/adr/0018) — cioè per vedere a colpo d'occhio quali funzioni inviano
+contenuti di un Utente. Non è una coincidenza: è personale ciò che è rivolto a qualcuno.
+
+Perché sono costanti e non frasi nei prompt: `genera_suggerimenti` **non stabiliva alcuna voce**,
+pur producendo la prosa più lunga che l'app mostri (cinque motivazioni di tre o quattro frasi), e
+gli altri due la scrivevano a mano in due forme già divergenti — «senza convenevoli e senza
+entusiasmo pubblicitario» nel parere, «senza convenevoli» nei temi. La stessa deriva del trattino
+lungo, presente in uno solo dei sei prompt.
+
 **La forma di un errore: il soggetto è la cosa, e segue il passo successivo.**
 
 > "La recensione non è stata salvata. Il testo è ancora qui."

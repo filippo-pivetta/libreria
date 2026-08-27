@@ -27,7 +27,7 @@ export const TESTO_CONSENSO =
  * l'informazione più rassicurante della schermata."
  */
 export const NOTE_FUORI_DAL_CONSENSO =
-  "Le note di intenzione non escono mai, in nessuno stato del consenso.";
+  "Le note di intenzione non escono mai da qui, qualunque cosa dica questo interruttore.";
 
 /**
  * Cosa succede spegnendo, e cosa NON succede (design doc §17, regola 32
@@ -42,7 +42,7 @@ export const NOTE_FUORI_DAL_CONSENSO =
  * qualcosa — e che è anche il più rassicurante dei due.
  */
 export const EFFETTO_REVOCA =
-  "Spegnendo, i pareri e le sintesi già generati restano nella tua libreria: sono contenuti tuoi.";
+  "Spegnendo, i pareri e le sintesi che hai già chiesto restano nella tua libreria: sono tuoi.";
 
 export const EFFETTO_RIATTIVAZIONE =
-  "Gli indici si ricostruiscono da capo. Finché non sono pronti la ricerca semantica è incompleta e te lo dice.";
+  "Gli indici si ricostruiscono da capo. Finché non sono pronti la ricerca nei quaderni trova meno di quanto hai scritto, e te lo dice.";

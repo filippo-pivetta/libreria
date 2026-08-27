@@ -122,7 +122,6 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  placeholder="la tua password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base"

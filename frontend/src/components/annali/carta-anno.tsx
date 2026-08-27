@@ -87,7 +87,7 @@ export function CartaAnno({
       <>
         {libriSenzaPagine > 0 && (
           <p>
-            {soggetto} un conteggio di pagine adottato: {libriSenzaPagine === 1 ? "" : "di quelli "}
+            {soggetto} un totale di pagine: {libriSenzaPagine === 1 ? "" : "di quelli "}
             contano solo le pagine che {altrui ? "ha" : "hai"} segnato a mano, quindi{" "}
             {pagineLette.toLocaleString("it-IT")} è una somma per difetto.
           </p>

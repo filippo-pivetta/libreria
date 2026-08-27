@@ -146,7 +146,7 @@ export function VotoStelle({
         {voto !== null ? (
           <>
             {formattaVoto(voto)} su 5
-            <span className="text-ink-soft"> · ripremi per togliere</span>
+            <span className="text-ink-soft"> · premi di nuovo per toglierlo</span>
           </>
         ) : (
           <span className="text-ink-soft">Non l&rsquo;hai ancora votato</span>

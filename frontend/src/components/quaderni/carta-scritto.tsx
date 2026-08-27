@@ -154,7 +154,7 @@ export function CartaScritto({
 
           {vicini?.length === 0 && !viciniInCorso && (
             <p className="t-meta max-w-prose">
-              Gli indici non hanno più questo pensiero. Riprova fra qualche minuto.
+              Di questo pensiero, per ora, non si trovano i vicini. Riprova fra qualche minuto.
             </p>
           )}
 

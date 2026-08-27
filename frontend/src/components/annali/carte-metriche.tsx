@@ -54,7 +54,7 @@ export function CarteMetriche({
           <Classifica
             titolo="Autori più letti"
             righe={metriche.autoriPiuLetti}
-            nota="Un libro scritto in due si divide fra i due autori, e lo stesso vale per i generi. Un libro vale sempre uno, mai due."
+            nota="Un libro scritto a quattro mani va metà all’uno e metà all’altro, e con i generi vale la stessa regola. Nessuno viene contato due volte: resta sempre un libro solo."
           />
         </div>
 

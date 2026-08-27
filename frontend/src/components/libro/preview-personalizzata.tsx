@@ -224,8 +224,9 @@ export function PreviewPersonalizzata({
       ) : (
         <>
           <p className="t-meta mt-2 max-w-[60ch]">
-            Un parere a partire da quello che hai già letto e scritto. Resta tuo, non lo vede
-            nessun altro.
+            Un parere che nasce dai libri che hai letto e da ciò che ne hai scritto: come
+            chiederlo a qualcuno che conosce i tuoi scaffali. Resta tuo, non lo vede nessun
+            altro.
           </p>
           <Button
             variant="outline"

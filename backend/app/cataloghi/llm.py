@@ -31,7 +31,11 @@ personale. Il trasporto condiviso dai due moduli sta in `openai_client.py`
 from dataclasses import dataclass
 
 from app.cataloghi.openai_client import chiama_json
-from app.core.testo import REGOLA_TRATTINI_PER_IL_MODELLO
+from app.core.testo import (
+    REGOLA_STILE_PER_IL_MODELLO,
+    REGOLA_TRATTINI_PER_IL_MODELLO,
+    VOCE_CATALOGO,
+)
 
 
 @dataclass(frozen=True)
@@ -336,9 +340,8 @@ async def espandi_descrizione(
             "role": "system",
             "content": (
                 "Riformuli descrizioni di opere letterarie troppo corte "
-                "portandole a uno standard editoriale, nello stile "
-                "dell'incipit di una voce enciclopedica: neutro, "
-                "informativo, mai promozionale.\n\n"
+                "portandole a uno standard editoriale.\n\n"
+                f"{VOCE_CATALOGO}\n\n"
                 "FINGI DI NON SAPERE NULL'ALTRO sull'opera oltre a ciò che "
                 "ricevi qui sotto: comportati come se il testo sorgente e "
                 "i dati verificati fossero la tua UNICA fonte di "
@@ -360,6 +363,7 @@ async def espandi_descrizione(
                 "100-200 caratteri che si limita a riformulare quel fatto "
                 "è CORRETTO e PREFERIBILE a un testo più lungo con anche "
                 "un solo dettaglio non presente nella fonte."
+                f"\n\n{REGOLA_STILE_PER_IL_MODELLO}"
                 f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
@@ -453,9 +457,8 @@ async def accorcia_descrizione(
             "content": (
                 "Riformuli descrizioni di opere letterarie troppo lunghe "
                 "o dal tono promozionale (tipicamente testo di quarta di "
-                "copertina) portandole a uno standard editoriale, nello "
-                "stile dell'incipit di una voce enciclopedica: neutro, "
-                "informativo, mai promozionale.\n\n"
+                "copertina) portandole a uno standard editoriale.\n\n"
+                f"{VOCE_CATALOGO}\n\n"
                 "REGOLA ASSOLUTA: puoi SOLO togliere o riformulare in "
                 "modo più sintetico ciò che è già nel testo sorgente. "
                 "Non aggiungere mai un fatto, un nome o un dettaglio che "
@@ -468,6 +471,7 @@ async def accorcia_descrizione(
                 "restare sopra i 600 caratteri che perdere un fatto "
                 "qualificante.\n\n"
                 "Obiettivo di lunghezza: 400-600 caratteri, 3-5 frasi."
+                f"\n\n{REGOLA_STILE_PER_IL_MODELLO}"
                 f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },

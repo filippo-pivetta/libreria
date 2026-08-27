@@ -36,8 +36,8 @@ export function CartaVoti({
           senzaVoto > 0 && votoMedio !== null ? (
             <p>
               {senzaVoto} dei {libriFiniti} libri finiti {altrui ? "non li ha votati" : "non li hai votati"}:
-              la media di {formattaVoto(votoMedio)} è calcolata sui {libriVotati} che hanno un voto.
-              I mezzi voti stanno nella colonna della stella superiore.
+              la media di {formattaVoto(votoMedio)} viene dai {libriVotati} che un voto ce l’hanno.
+              I mezzi voti si appoggiano alla stella più alta.
             </p>
           ) : undefined
         }

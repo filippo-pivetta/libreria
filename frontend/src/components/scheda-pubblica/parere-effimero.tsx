@@ -121,8 +121,9 @@ export function ParereEffimero({
       ) : (
         <>
           <p className="t-meta mt-2 max-w-[60ch]">
-            Un parere a partire da quello che hai già letto e scritto, prima di decidere se
-            prenderlo. Resta tuo, non lo vede nessun altro, e vive quanto questa pagina: non viene
+            Un parere che nasce dai libri che hai letto e da ciò che ne hai scritto: come
+            chiederlo a qualcuno che conosce i tuoi scaffali, prima di decidere se prendere anche
+            questo. Resta tuo, non lo vede nessun altro, e dura quanto questa pagina: non viene
             salvato.
           </p>
           <Button

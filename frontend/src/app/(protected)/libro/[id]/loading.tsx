@@ -11,7 +11,7 @@ import { ScheletroScheda } from "@/components/states/scheletri";
 export default function Loading() {
   return (
     <main role="status" aria-busy className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
-      <span className="sr-only">Caricamento del libro…</span>
+      <span className="sr-only">Un momento…</span>
       <ScheletroScheda />
     </main>
   );

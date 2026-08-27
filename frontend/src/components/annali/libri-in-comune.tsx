@@ -146,9 +146,10 @@ export function LibriInComune({
         titolo={`Letti da tutti e due · ${comuni.length}`}
         chiosa={
           <p>
-            L’insieme è l’intersezione delle due librerie sull’identità del Libro. Un’opera che i
-            cataloghi hanno registrato due volte, per esempio un originale e una traduzione non
-            ricondotti fra loro, resta fuori: per il prodotto sono due libri diversi.
+            I libri che stanno su tutti e due gli scaffali. Se i cataloghi hanno schedato la
+            stessa opera due volte — l’originale da una parte, una traduzione dall’altra, senza
+            mai ricondurle l’una all’altra — quelle due schede restano fuori: da qui sono due
+            libri diversi, non uno.
           </p>
         }
       />
