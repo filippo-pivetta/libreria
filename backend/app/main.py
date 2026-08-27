@@ -34,6 +34,74 @@ from app.routers import (
 
 logger = logging.getLogger("app.lavori")
 
+# Un tag per router (stesso ordine di app.include_router sotto), letto da
+# Swagger UI/ReDoc per raggruppare e descrivere le rotte — senza, i tag
+# comparirebbero comunque (da APIRouter(tags=[...])) ma senza descrizione
+# né ordine esplicito.
+_TAGS_METADATA = [
+    {"name": "health", "description": "Stato di salute del servizio."},
+    {
+        "name": "me",
+        "description": "Il proprio account: profilo, consenso alle funzioni assistite, "
+        "esportazione e cancellazione.",
+    },
+    {
+        "name": "voci",
+        "description": "La libreria personale: aggiungere un libro già presente nel "
+        "catalogo, seguirne il ciclo di stato, cancellarne la Voce.",
+    },
+    {"name": "letture", "description": "Cancellazione di una Lettura, aperta o chiusa."},
+    {
+        "name": "avanzamenti",
+        "description": "Registrare, correggere, cancellare un Avanzamento di lettura.",
+    },
+    {
+        "name": "recensioni",
+        "description": "Scrivere (upsert) e cancellare la recensione di una propria Voce.",
+    },
+    {
+        "name": "insight",
+        "description": "Creare, correggere, cancellare un Insight, e rivelarne il testo "
+        "se contrassegnato spoiler.",
+    },
+    {
+        "name": "utenti",
+        "description": "Elenco dei membri, libreria e metriche di un collegato.",
+    },
+    {
+        "name": "collegamenti",
+        "description": "Richiesta, accettazione, rifiuto e interruzione di un "
+        "collegamento fra utenti.",
+    },
+    {
+        "name": "metriche",
+        "description": "Le proprie metriche di lettura, aggregate per anno solare.",
+    },
+    {
+        "name": "ricerca",
+        "description": "Ricerca di un libro nei cataloghi bibliografici e sua aggiunta.",
+    },
+    {
+        "name": "preview",
+        "description": 'Preview personalizzata "me lo consigli?" di un libro.',
+    },
+    {
+        "name": "schede",
+        "description": "Scheda pubblica di un libro non ancora in libreria, e il parere "
+        "che se ne può chiedere.",
+    },
+    {"name": "sintesi", "description": "Sintesi tematica della propria libreria."},
+    {
+        "name": "quaderni",
+        "description": "Il corpus dei Quaderni — insight e recensioni proprie — e le "
+        "sue lenti (ricerca, sfaccettature, pensiero che torna, vicini).",
+    },
+    {
+        "name": "suggerimenti",
+        "description": "Suggerimenti di lettura personalizzati.",
+    },
+]
+
 
 @asynccontextmanager
 async def _ciclo_di_vita(_app: FastAPI) -> AsyncIterator[None]:
@@ -70,6 +138,13 @@ def create_app() -> FastAPI:
     docs_abilitati = settings.environment != "production"
     app = FastAPI(
         title="Montaigne API",
+        description="API di Montaigne, applicazione di tracciamento letture con "
+        "visibilità privata e condivisa fra utenti collegati (docs/prd.md). "
+        "Ogni rotta salvo `/health` richiede un token di sessione Supabase "
+        "(`Authorization: Bearer <token>`, docs/adr/0012); l'identità del "
+        "chiamante arriva sempre da lì, mai dal corpo o dalla query string.",
+        version="0.1.0",
+        openapi_tags=_TAGS_METADATA,
         docs_url="/docs" if docs_abilitati else None,
         redoc_url="/redoc" if docs_abilitati else None,
         openapi_url="/openapi.json" if docs_abilitati else None,
