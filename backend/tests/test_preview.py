@@ -182,6 +182,43 @@ def test_le_virgolette_vengono_rifiutate(
         _run(preview_service.genera("t", _USER_ID, _VOCE_ID))
 
 
+@pytest.mark.parametrize(
+    "testo",
+    [
+        "Un libro che ti somiglia — e che non ti somiglia affatto.",
+        "Il tema della memoria – lo stesso dei tuoi appunti – torna qui.",
+    ],
+)
+def test_i_trattini_lunghi_vengono_rifiutati(
+    testo: str, dati: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ogni prompt vieta il trattino lungo, ma un prompt è una richiesta,
+    non una garanzia: è il segno con cui si riconosce a colpo d'occhio una
+    prosa scritta da un modello, e questi testi non devono dichiararlo
+    nella punteggiatura."""
+    con_chiave(monkeypatch)
+    con_risposta(monkeypatch, risposta_chat({"testo": testo}))
+
+    with pytest.raises(preview_service.PreviewNonConformeError):
+        _run(preview_service.genera("t", _USER_ID, _VOCE_ID))
+
+
+def test_il_trattino_breve_resta_ammesso(
+    dati: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """È un altro segno, e serve nelle parole composte: vietarlo
+    rifiuterebbe frasi corrette."""
+    con_chiave(monkeypatch)
+    con_risposta(
+        monkeypatch,
+        risposta_chat({"testo": "Un saggio anglo-americano sul post-moderno, e ti riguarda."}),
+    )
+
+    _run(preview_service.genera("t", _USER_ID, _VOCE_ID))
+
+    assert len(dati["salvati"]) == 1
+
+
 def test_gli_apostrofi_non_sono_virgolette(
     dati: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:

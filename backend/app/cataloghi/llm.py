@@ -31,6 +31,7 @@ personale. Il trasporto condiviso dai due moduli sta in `openai_client.py`
 from dataclasses import dataclass
 
 from app.cataloghi.openai_client import chiama_json
+from app.core.testo import REGOLA_TRATTINI_PER_IL_MODELLO
 
 
 @dataclass(frozen=True)
@@ -342,7 +343,7 @@ async def espandi_descrizione(
                 "ricevi qui sotto: comportati come se il testo sorgente e "
                 "i dati verificati fossero la tua UNICA fonte di "
                 "informazione al mondo, anche quando riconosci il titolo "
-                "e sai — o credi di sapere — altro sulla trama, "
+                "e sai, o credi di sapere, altro sulla trama, "
                 "l'ambientazione, l'epoca o il contesto storico. Quella "
                 "conoscenza NON va usata, nemmeno se è corretta: non hai "
                 "modo di verificarla in questo compito, e il compito "
@@ -351,14 +352,15 @@ async def espandi_descrizione(
                 "Esempio concreto di cosa NON fare: da 'Le notti bianche "
                 "è un racconto giovanile di Fëdor Dostoevskij' non si "
                 "scrive che è ambientato a San Pietroburgo durante le "
-                "notti estive, anche se è vero — quel dettaglio non è nel "
+                "notti estive, anche se è vero: quel dettaglio non è nel "
                 "testo sorgente fornito.\n\n"
-                "Obiettivo di lunghezza: 400-600 caratteri, 3-5 frasi — "
+                "Obiettivo di lunghezza: 400-600 caratteri, 3-5 frasi, "
                 "ma è un obiettivo, non un vincolo: se il testo sorgente "
                 "contiene un solo fatto essenziale, un risultato di "
                 "100-200 caratteri che si limita a riformulare quel fatto "
                 "è CORRETTO e PREFERIBILE a un testo più lungo con anche "
                 "un solo dettaglio non presente nella fonte."
+                f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
         {
@@ -410,6 +412,7 @@ async def traduci_descrizione(
                 "un dettaglio che il testo sorgente non contiene, "
                 "nemmeno se è corretto: una traduzione fedele riporta "
                 "esattamente i fatti del testo sorgente, non di più."
+                f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
         {
@@ -465,6 +468,7 @@ async def accorcia_descrizione(
                 "restare sopra i 600 caratteri che perdere un fatto "
                 "qualificante.\n\n"
                 "Obiettivo di lunghezza: 400-600 caratteri, 3-5 frasi."
+                f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
         {

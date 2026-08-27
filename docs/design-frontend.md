@@ -1437,6 +1437,25 @@ Mai "con successo", mai "per favore", nessun punto esclamativo, nessun "ops". Gl
 cosa è successo e cosa fare. Verbo prima nei comandi. Un comando mantiene lo stesso nome per
 tutto il flusso.
 
+**Nessun trattino lungo nei testi che scrive il modello.** Né la lineetta em (—) né quella en
+(–), in nessun punto di una descrizione di libro, di una preview, di una sintesi tematica o di
+una motivazione di suggerimento: al loro posto una virgola, un punto, o una frase costruita in
+modo da non averne bisogno. Due ragioni, e la prima basterebbe da sola: è il segno di
+interpunzione con cui si riconosce a colpo d'occhio una prosa scritta da un modello, e un testo
+che l'app già dichiara come generato non ha bisogno di annunciarlo anche nella punteggiatura.
+La seconda è che in italiano l'inciso fra lineette appartiene alla prosa letteraria, e questi
+sono testi di catalogo e pareri, non racconti. Il trattino breve (-) resta ammesso: è un altro
+segno, e serve nelle parole composte.
+
+La regola vale per l'**output del modello**, non per l'interfaccia scritta a mano né per questo
+documento, dove la lineetta è di casa. Vive in tre punti che si tengono insieme: la costante
+`REGOLA_TRATTINI_PER_IL_MODELLO` in `app/core/testo.py`, che ogni prompt include invece di
+riscriverla; il controllo in `app/services/testo_generato.py`, che rifiuta il testo e ne chiede
+un altro (mai lo aggiusta: un testo riparato verrebbe firmato come se il modello l'avesse
+scritto così); e `tests/test_prompt_trattini.py`, che impedisce a un prompt nuovo di
+contraddirla usando lineette nelle proprie istruzioni — che è esattamente com'era nato il
+difetto, con la regola presente in uno solo dei sei prompt.
+
 **La forma di un errore: il soggetto è la cosa, e segue il passo successivo.**
 
 > "La recensione non è stata salvata. Il testo è ancora qui."

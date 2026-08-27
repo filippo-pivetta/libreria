@@ -36,6 +36,7 @@ Le regole di questo modulo, tutte verificabili sulle firme:
 from typing import Any
 
 from app.cataloghi.openai_client import chiama_json
+from app.core.testo import REGOLA_TRATTINI_PER_IL_MODELLO
 
 _SCHEMA_PREVIEW = {
     "type": "object",
@@ -72,7 +73,7 @@ def _riga_profilo(voce: dict[str, Any], *, con_descrizione: bool) -> str:
         pezzi.append(f"({', '.join(str(g) for g in generi)})")
     voto = voce.get("voto")
     if voto is not None:
-        pezzi.append(f"— {voto:g} stelle")
+        pezzi.append(f"voto {voto:g}")
     if voce.get("stato") == "abbandonato":
         pezzi.append("[abbandonato]")
 
@@ -167,6 +168,7 @@ async def genera_preview(
                 "qualcosa su cosa non regge per lui), non su generalità. Se "
                 "il profilo non dice abbastanza per un parere onesto, "
                 "dillo in una frase invece di inventare un'affinità."
+                f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
         {
@@ -247,7 +249,7 @@ async def genera_temi(riferimenti: list[tuple[str, str]]) -> list[dict[str, obje
             "content": (
                 "Trovi i temi che tornano in ciò che un lettore ha scritto "
                 "sui suoi libri, SOLO quando lo stesso tema compare in testi "
-                "legati a libri diversi — mai un tema sostenuto da un solo "
+                "legati a libri diversi, mai un tema sostenuto da un solo "
                 "libro, per quanto forte sembri. Parli a lui, dandogli del "
                 "tu, senza convenevoli.\n\n"
                 "Per ciascun tema:\n"
@@ -260,6 +262,7 @@ async def genera_temi(riferimenti: list[tuple[str, str]]) -> list[dict[str, obje
                 "Se nessun tema attraversa libri diversi, restituisci un "
                 "elenco vuoto: meglio niente che un pattern inventato su un "
                 "solo libro."
+                f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
         {
@@ -379,13 +382,11 @@ async def genera_suggerimenti(
                 "simili). Almeno metà delle proposte deve essere "
                 "'affine'.\n"
                 "- Motivazione di tre o quattro frasi per ciascuna, non "
-                "una sola: spiega con dettagli concreti — un libro "
+                "una sola: spiega con dettagli concreti, cioè un libro "
                 "specifico del lettore, un autore, un tema che torna nei "
-                "suoi appunti, cosa aspettarsi da questo titolo — mai una "
+                "suoi appunti, cosa aspettarsi da questo titolo. Mai una "
                 "lode generica o una frase sola buttata lì.\n"
-                "- MAI il trattino lungo (—) o il trattino medio (–), in "
-                "nessun punto di nessuna motivazione: usa la virgola o il "
-                "punto, scrivendo frasi che non ne abbiano bisogno.\n"
+                f"- {REGOLA_TRATTINI_PER_IL_MODELLO}\n"
                 "- Se il materiale non basta per otto proposte oneste, "
                 "proponine di meno: mai riempire con titoli deboli solo "
                 "per arrivare al numero.\n\n"
