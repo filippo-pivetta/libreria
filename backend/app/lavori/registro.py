@@ -18,6 +18,7 @@ from app.lavori import (
     indicizzazione_semantica,
     riconduzione_autori,
     ricostruzione_indici,
+    semina,
     standardizzazione_descrizione,
     traduzione_descrizione,
 )
@@ -61,4 +62,5 @@ GESTORI: dict[str, Gestore] = {
     "ricostruzione_indici": Gestore(
         ricostruzione_indici.esegui, ricostruzione_indici.su_fallimento
     ),
+    "semina_libro": Gestore(semina.esegui, semina.su_fallimento),
 }

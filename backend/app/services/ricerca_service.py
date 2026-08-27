@@ -220,6 +220,40 @@ def voce_per_libro(client: Any, utente_id: UUID, libro_id: UUID) -> dict[str, An
     }
 
 
+async def assicura_scheda(opera: google_books.Opera) -> UUID:
+    """Dall'opera di Google alla scheda in catalogo, creandola se manca.
+
+    Estratta da `aggiungi_da_catalogo` quando è nata la semina del
+    catalogo (`app/lavori/semina.py`): sono due punti d'ingresso — un
+    Utente che aggiunge, un lavoro che semina — e una sola catena, che
+    deve restare una sola. Duplicarla significherebbe due modi di far
+    nascere una scheda che divergono alla prima correzione, cioè due
+    identità dove ADR 0002 ne vuole una.
+
+    Non crea alcuna Voce: il catalogo è dato condiviso, la Voce è di un
+    Utente (ADR 0001). Chi vuole entrambe le cose chiama questa e poi
+    `voci_service.aggiungi_libro`.
+    """
+    # Passo 1 della catena, PRIMA di qualunque chiamata esterna. Gli
+    # identificativi che abbiamo già in mano — quelli di volume e tutti
+    # gli ISBN del gruppo — bastano a riconoscere una scheda esistente, e
+    # a regime è il caso più frequente: il secondo Utente che aggiunge un
+    # libro che qualcuno ha già aggiunto. Risolvere l'identità prima di
+    # controllare significherebbe pagare la catena esterna (misurata:
+    # oltre dieci secondi) per scoprire di sapere già la risposta.
+    noti: list[tuple[str, str]] = [
+        ("google_books", opera.rappresentante.volume_id),
+        *[("google_books", a.volume_id) for a in opera.alternativi],
+        *[("isbn13", i) for i in opera.isbn_disponibili],
+    ]
+    libro_id = await run_in_threadpool(_libro_per_riferimenti, noti)
+
+    if libro_id is None:
+        scheda = await risoluzione.risolvi(opera)
+        libro_id = await run_in_threadpool(_trova_o_crea, scheda)
+    return libro_id
+
+
 async def aggiungi_da_catalogo(
     access_token: str, utente_id: UUID, volume_id: str, alternativi: list[str]
 ) -> tuple[UUID, dict[str, Any], bool]:
@@ -238,23 +272,7 @@ async def aggiungi_da_catalogo(
     if opera is None:
         raise VolumeInesistenteError(volume_id)
 
-    # Passo 1 della catena, PRIMA di qualunque chiamata esterna. Gli
-    # identificativi che abbiamo già in mano — quelli di volume e tutti
-    # gli ISBN del gruppo — bastano a riconoscere una scheda esistente, e
-    # a regime è il caso più frequente: il secondo Utente che aggiunge un
-    # libro che qualcuno ha già aggiunto. Risolvere l'identità prima di
-    # controllare significherebbe pagare la catena esterna (misurata:
-    # oltre dieci secondi) per scoprire di sapere già la risposta.
-    noti: list[tuple[str, str]] = [
-        ("google_books", opera.rappresentante.volume_id),
-        *[("google_books", a.volume_id) for a in opera.alternativi],
-        *[("isbn13", i) for i in opera.isbn_disponibili],
-    ]
-    libro_id = await run_in_threadpool(_libro_per_riferimenti, noti)
-
-    if libro_id is None:
-        scheda = await risoluzione.risolvi(opera)
-        libro_id = await run_in_threadpool(_trova_o_crea, scheda)
+    libro_id = await assicura_scheda(opera)
 
     from app.services import voci_service
 
