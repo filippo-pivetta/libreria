@@ -47,9 +47,14 @@ class SchedaRisolta:
     titolo_canonico: str
     autori: list[str]
     anno_prima_pubblicazione: int | None
-    anno_dedotto: bool
+    """`anno_dedotto`/`lingua_dedotta` NON stanno qui, benché le colonne
+    esistano: da questa catena arrivano solo valori di fonte, mai dedotti,
+    quindi erano due `False` costanti che nessuno leggeva —
+    `crea_scheda` non li prende nemmeno come parametro. Ad alzarli è la
+    sola scrittura che deduce davvero, quella del lavoro assistito
+    (`catalogo_repository.scrivi_arricchimento_bibliografico`), e lo fa
+    in SQL guardando il valore precedente della riga."""
     lingua_originale: str | None
-    lingua_dedotta: bool
     pagine_mediane: int | None
     generi: list[str]
     soggetti: list[str] = field(default_factory=list)
@@ -186,6 +191,34 @@ async def _arricchisci(scheda: SchedaRisolta, work_id: str | None, volume: Volum
         scheda.riferimenti.append(("open_library", opera.open_library_work_id, True))
 
 
+def _contenuto_affidabile(opera_ol: open_library.OperaOL, volume: Volume) -> bool:
+    """Se di questo record di Open Library ci si può fidare per titolo,
+    anno e pagine — non solo per l'identificativo.
+
+    La guardia `e_plausibile` esisteva già ma era applicata al solo passo
+    3 (ricerca per testo). Il passo 2 (ISBN) prendeva `opere[0]` a scatola
+    chiusa, e `risolvi` ne copiava titolo e anno SENZA condizioni. Su un
+    record orfano — misurato: `isbn:` restituisce regolarmente opere con
+    `edition_count: 1` — questo significa due dati sbagliati scritti nel
+    catalogo CONDIVISO, che è il posto peggiore in cui sbagliare:
+
+    - il titolo canonico diventa la stringa grezza con cui quel singolo
+      record è stato importato, spesso peggiore del titolo già ripulito
+      che arrivava da Google;
+    - `anno_prima_pubblicazione` diventa l'anno di quella singola
+      edizione. Per una ristampa moderna di un classico è l'errore che il
+      PRD nomina per esteso — "plausibile e sbagliato", quindi invisibile.
+
+    Un record ricco (molte edizioni) resta la fonte migliore che abbiamo e
+    vince sul titolo di Google, com'è sempre stato. Un record povero è
+    accettato lo stesso se il suo titolo corrisponde a quello di partenza:
+    lì non sta dicendo nulla di nuovo, quindi non può nemmeno sbagliarlo.
+    """
+    if opera_ol.e_plausibile:
+        return True
+    return _titoli_vicini(volume.titolo, opera_ol.titolo)
+
+
 async def risolvi(opera_google: google_books.Opera) -> SchedaRisolta:
     """Percorre la catena e restituisce la scheda da far nascere.
 
@@ -200,9 +233,7 @@ async def risolvi(opera_google: google_books.Opera) -> SchedaRisolta:
         titolo_canonico=volume.titolo,
         autori=list(volume.autori),
         anno_prima_pubblicazione=None,
-        anno_dedotto=False,
         lingua_originale=None,
-        lingua_dedotta=False,
         # Ripiego sul conteggio del volume scelto quando Open Library non
         # ha l'opera e quindi non può dare la mediana. È meno preciso ma è
         # un dato di fonte, e resta correggibile sulla propria copia (PRD).
@@ -230,14 +261,26 @@ async def risolvi(opera_google: google_books.Opera) -> SchedaRisolta:
         opera_ol = await _per_testo(volume)
 
     if opera_ol is not None:
+        # L'IDENTITÀ si registra sempre: quel work_id è, per Open Library,
+        # l'opera a cui quell'ISBN appartiene, e vale come riferimento
+        # anche quando il record è povero. È il CONTENUTO che va filtrato.
         scheda.riferimenti.append(("open_library", opera_ol.work_id, True))
-        # Il titolo dell'opera secondo il catalogo canonico è l'identità
-        # della scheda, non ciò che si mostra (PRD: "un titolo canonico che
-        # serve a identificare l'opera, non a essere mostrato").
-        scheda.titolo_canonico = opera_ol.titolo
-        scheda.anno_prima_pubblicazione = opera_ol.anno_prima_pubblicazione
-        if opera_ol.pagine_mediane:
-            scheda.pagine_mediane = opera_ol.pagine_mediane
+        if _contenuto_affidabile(opera_ol, volume):
+            # Il titolo dell'opera secondo il catalogo canonico è l'identità
+            # della scheda, non ciò che si mostra (PRD: "un titolo canonico che
+            # serve a identificare l'opera, non a essere mostrato").
+            scheda.titolo_canonico = opera_ol.titolo
+            scheda.anno_prima_pubblicazione = opera_ol.anno_prima_pubblicazione
+            if opera_ol.pagine_mediane:
+                scheda.pagine_mediane = opera_ol.pagine_mediane
+        else:
+            logger.info(
+                "Record Open Library %s povero (%d edizioni, titolo %r): "
+                "tengo il riferimento ma non il suo contenuto.",
+                opera_ol.work_id,
+                opera_ol.numero_edizioni,
+                opera_ol.titolo,
+            )
 
     # I generi si mappano sull'UNIONE dei soggetti delle due fonti, non su
     # una con l'altra come ripiego. Google restituisce spesso una categoria

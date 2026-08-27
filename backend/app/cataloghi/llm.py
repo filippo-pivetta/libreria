@@ -103,7 +103,6 @@ async def classifica_e_deduci(
     `necessita_*`, ma la risposta porta comunque tutti e tre i campi — lo
     schema strict di OpenAI non ammette proprietà opzionali.
     """
-    elenco_generi = "\n".join(f"- {id_}: {etichetta}" for id_, etichetta in generi_ammessi)
     richieste = [
         campo
         for campo, necessario in (
@@ -113,6 +112,29 @@ async def classifica_e_deduci(
         )
         if necessario
     ]
+
+    # L'elenco chiuso dei generi (28 voci) si manda SOLO quando il genere
+    # è fra le richieste. Prima partiva a ogni chiamata: su una scheda a
+    # cui mancava solo l'anno erano ventotto righe di contesto che non
+    # servivano a decidere nulla, e per giunta invitavano il modello a
+    # classificare un libro il cui genere era già stato deciso da qualcun
+    # altro — proposta che la scrittura scarta comunque
+    # (`scrivi_arricchimento_bibliografico` non sovrascrive un genere
+    # esistente), ma pagata a ogni volta.
+    blocco_generi = ""
+    if necessita_genere:
+        elenco = "\n".join(f"- {id_}: {etichetta}" for id_, etichetta in generi_ammessi)
+        blocco_generi = (
+            "\n\nIl genere va scelto SOLO da questo elenco chiuso (fino a 3 "
+            f"id, i più pertinenti prima):\n{elenco}\n"
+            "Se nessuno si applica con certezza, restituisci un elenco vuoto."
+        )
+    else:
+        # Lo schema strict di OpenAI non ammette proprietà opzionali: il
+        # campo torna comunque, e va detto esplicitamente come riempirlo,
+        # altrimenti il modello lo inventa per obbedire allo schema.
+        blocco_generi = "\n\nNon classificare il genere: restituisci `generi` come elenco vuoto."
+
     messaggi = [
         {
             "role": "system",
@@ -121,7 +143,10 @@ async def classifica_e_deduci(
                 "Rispondi solo con dati che puoi dedurre da titolo, autori e "
                 "soggetti forniti: se non puoi determinare un campo con "
                 "ragionevole certezza, restituiscilo null. Non inventare mai "
-                "un anno o una lingua plausibili ma non certi."
+                "un anno o una lingua plausibili ma non certi.\n\n"
+                "Restituisci null anche per i campi che non ti vengono "
+                "chiesti: chi domanda ha già una risposta per quelli, e la "
+                "tua verrebbe scartata comunque."
             ),
         },
         {
@@ -130,11 +155,8 @@ async def classifica_e_deduci(
                 f"Titolo: {titolo}\n"
                 f"Autori: {', '.join(autori) or '(nessuno)'}\n"
                 f"Soggetti di catalogo: {', '.join(soggetti) or '(nessuno)'}\n\n"
-                f"Determina {', '.join(richieste) or 'i campi richiesti'}.\n\n"
-                "Il genere va scelto SOLO da questo elenco chiuso (fino a 3 "
-                f"id, i più pertinenti prima):\n{elenco_generi}\n"
-                "Se nessuno si applica con certezza, restituisci un elenco "
-                "vuoto."
+                f"Determina {', '.join(richieste)}."
+                f"{blocco_generi}"
             ),
         },
     ]

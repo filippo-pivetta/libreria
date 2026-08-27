@@ -41,7 +41,13 @@ async def esegui(payload: dict[str, Any]) -> None:
         with database.apri_connessione() as connessione:
             return catalogo_repository.generi_ammessi(connessione)
 
-    generi_ammessi = await run_in_threadpool(_leggi_generi_ammessi)
+    # Solo se il genere è fra ciò che manca: quando il lavoro è stato
+    # accodato per il solo anno o la sola lingua, l'elenco chiuso non
+    # entra nel prompt (vedi `llm.classifica_e_deduci`) e leggerlo era una
+    # connessione aperta per niente.
+    generi_ammessi = (
+        await run_in_threadpool(_leggi_generi_ammessi) if necessita.get("genere") else []
+    )
 
     try:
         risposta = await llm.classifica_e_deduci(

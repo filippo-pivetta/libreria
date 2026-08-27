@@ -34,13 +34,14 @@ from typing import Any
 
 import httpx
 
+from app.cataloghi import agente
 from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.core.testo import cognomi
 
 _URL = "https://www.wikidata.org/w/api.php"
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "wikidata"
-_INTESTAZIONI = {"User-Agent": "Montaigne/0.1 (applicazione privata di tracciamento letture)"}
+
 
 # P31 "istanza di": i tipi che contano come opera scritta. Comprende il
 # libro e il romanzo, ma non il film né la serie televisiva, che sono il
@@ -112,7 +113,7 @@ _LINGUE = {
 
 async def _chiama(parametri: dict[str, str]) -> dict[str, Any]:
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_INTESTAZIONI) as client:
+        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=agente.intestazioni()) as client:
             risposta = await client.get(_URL, params={**parametri, "format": "json"})
     except httpx.HTTPError as errore:
         raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore

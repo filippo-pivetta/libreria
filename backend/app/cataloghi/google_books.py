@@ -12,6 +12,8 @@ con `quota_limit_value: "0"`, non un limite ridotto.
 
 import asyncio
 import html
+import logging
+import random
 import re
 import time
 from dataclasses import dataclass, field
@@ -27,39 +29,85 @@ _URL = "https://www.googleapis.com/books/v1/volumes"
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "google_books"
 
-_TENTATIVI_MASSIMI = 3
-"""Non un backoff aggressivo, ma nemmeno un solo tentativo in più: misurato
-dal vivo (24/08/2026) contro l'API reale, un solo retry lasciava ancora
-~30% di fallimenti quando il backend di Google è in un momento
-particolarmente instabile (`reason: backendFailed`, richieste identiche a
-distanza di un istante che alternano 200 e 503); con due retry (tre
-tentativi totali) i fallimenti nello stesso scenario sono scesi a zero
-su 15 prove. Non copre il 429 (quota) né gli altri 4xx: quelli non sono un
-problema che il tempo risolve, e ritentarli sprecherebbe solo quota e
-tempo dell'Utente."""
+logger = logging.getLogger("app.cataloghi.google_books")
 
-_ATTESA_RETRY = 0.4
-"""Secondi di attesa prima del retry. Breve apposta: è un guasto
-transitorio del backend di Google, non un rallentamento da cui bisogna
-lasciarlo riprendere fiato."""
+_MASSIMO_ALTERNATIVI_DA_RIFETCHARE = 6
+"""Quanti alternativi vale la pena rileggere quando la cache è fredda.
+
+Gli alternativi servono a una cosa sola: aggiungere ISBN al riconoscimento
+di una scheda già esistente. Non decidono l'identità e non compongono la
+riga che l'Utente vede. Il collasso può però raccoglierne una quindicina
+sotto un titolo famoso, e rileggerli tutti significa sparare sedici
+richieste insieme a un'API che, misurata, cede proprio sotto raffica: si
+pagherebbe in probabilità di fallimento molto più di quanto si guadagni in
+identificativi. I primi sono quelli che il collasso ha giudicato migliori.
+"""
+
+_TENTATIVI_MASSIMI = 4
+"""Il `503 backendFailed` di Google non è un evento raro e isolato: è
+endemico e arriva a RAFFICHE. Misurato dal vivo contro l'API reale
+(27/08/2026, stessa chiave, stessa rete, nel giro di pochi minuti):
+
+- una finestra con 4 richieste fallite su 6 sequenziali, e 2 su 10 in
+  parallelo — un tasso attorno al 40-65% mantenuto per una decina di
+  secondi;
+- una finestra, poco dopo, con 0 fallimenti su 80 richieste.
+
+È questa la forma del guasto, e la misura precedente (tre tentativi a
+0,4s l'uno) era stata presa in una finestra buona: 0,8 secondi di attesa
+complessiva cadono tutti DENTRO la stessa raffica, quindi i tre tentativi
+fallivano insieme e l'Utente vedeva "i cataloghi non rispondono" su un
+disservizio che dura pochi secondi. Quattro tentativi con attesa
+crescente coprono ~2,3 secondi, che è l'ordine di grandezza della
+raffica.
+
+Non copre il 429 (quota) né gli altri 4xx: quelli non sono un problema
+che il tempo risolve, e ritentarli sprecherebbe solo quota e tempo
+dell'Utente."""
+
+_ATTESE_RETRY = (0.25, 0.6, 1.4)
+"""Attesa prima di ciascun tentativo successivo al primo. Crescente e non
+fissa: se il primo ritentativo immediato non basta, il guasto non è
+l'istante ma la raffica, e ripresentarsi allo stesso ritmo non fa che
+consumare tentativi dentro la stessa finestra."""
+
+_JITTER = 0.25
+"""Frazione di scarto casuale applicata a ogni attesa. Non è rifinitura:
+l'aggiunta di un libro spara più richieste in parallelo (rappresentante e
+alternativi), e senza jitter ritenterebbero tutte nello stesso istante —
+la raffica di Google le raccoglierebbe insieme esattamente come ha
+raccolto insieme i primi tentativi."""
+
+
+def _attesa(tentativo: int) -> float:
+    base = _ATTESE_RETRY[min(tentativo, len(_ATTESE_RETRY) - 1)]
+    return base * (1 + random.uniform(-_JITTER, _JITTER))
 
 
 async def _get(url: str, parametri: dict[str, str]) -> httpx.Response:
-    """GET con un retry sui soli 5xx di Google, gli unici misurati come
-    transitori (vedi `_TENTATIVI_MASSIMI`). Gli errori di rete (timeout,
-    connessione caduta) restano un tentativo solo: non abbiamo evidenza
-    che ritentarli aiuti, e rischierebbero di raddoppiare l'attesa
-    dell'Utente su un guasto che potrebbe non essere transitorio."""
+    """GET con retry sui 5xx di Google e sugli errori di trasporto.
+
+    I 5xx perché sono il guasto misurato (vedi `_TENTATIVI_MASSIMI`). Gli
+    errori di trasporto perché un `ConnectTimeout` verso lo stesso host
+    che un istante prima ha risposto è la stessa instabilità vista da un
+    altro strato, e trattarlo come definitivo significava negare la
+    ricerca per un pacchetto perso. Se persistono, l'ultimo errore emerge
+    comunque come `FonteNonRaggiungibileError`: il retry sposta la soglia,
+    non la toglie."""
     risposta: httpx.Response | None = None
     for tentativo in range(_TENTATIVI_MASSIMI):
+        ultimo = tentativo == _TENTATIVI_MASSIMI - 1
         try:
             async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
                 risposta = await client.get(url, params=parametri)
         except httpx.HTTPError as errore:
-            raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
-        if risposta.status_code < 500 or tentativo == _TENTATIVI_MASSIMI - 1:
+            if ultimo:
+                raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
+            await asyncio.sleep(_attesa(tentativo))
+            continue
+        if risposta.status_code < 500 or ultimo:
             return risposta
-        await asyncio.sleep(_ATTESA_RETRY)
+        await asyncio.sleep(_attesa(tentativo))
     return risposta  # type: ignore[return-value]  # il for esegue sempre almeno un giro
 
 
@@ -335,6 +383,13 @@ async def cerca(termine: str, massimo: int = 20) -> list[Volume]:
         # tutti, quindi congelerebbe nella libreria di tutti ciò che ha
         # risposto a quel particolare nodo).
         "country": "IT",
+        # Il default documentato di `printType` è `all`, che comprende le
+        # RIVISTE: su un termine generico ("Focus", "Panorama", "Wired")
+        # i primi risultati sono numeri di periodici, che non sono opere e
+        # non hanno nulla da fare in una libreria di letture. Non era una
+        # svista teorica — è il default dell'API, quindi era attivo.
+        # https://developers.google.com/books/docs/v1/using
+        "printType": "books",
     }
 
     risposta = await _get(_URL, parametri)
@@ -492,8 +547,27 @@ async def opera_per_identificativi(volume_id: str, alternativi: list[str]) -> Op
     if rappresentante is None:
         return None
 
-    altri = await asyncio.gather(*(per_identificativo(a) for a in alternativi))
-    return Opera(rappresentante=rappresentante, alternativi=[v for v in altri if v is not None])
+    altri = await asyncio.gather(
+        *(per_identificativo(a) for a in alternativi[:_MASSIMO_ALTERNATIVI_DA_RIFETCHARE]),
+        return_exceptions=True,
+    )
+    recuperati: list[Volume] = []
+    for esito in altri:
+        if isinstance(esito, Volume):
+            recuperati.append(esito)
+        elif isinstance(esito, FonteNonRaggiungibileError):
+            # Il docstring lo prometteva già ("un alternativo che sparisce
+            # viene semplicemente lasciato cadere") ma il codice non lo
+            # manteneva: `gather` senza `return_exceptions` propaga, e un
+            # solo 503 su un alternativo faceva fallire l'INTERA aggiunta
+            # con "i cataloghi non rispondono" — su un libro il cui volume
+            # principale era già stato letto senza problemi. Era il modo
+            # più frequente di vedere quel messaggio, perché il percorso
+            # di aggiunta è l'unico che spara più richieste insieme.
+            logger.info("Alternativo non recuperato, lo lascio cadere: %s", esito.motivo)
+        elif isinstance(esito, BaseException):
+            raise esito
+    return Opera(rappresentante=rappresentante, alternativi=recuperati)
 
 
 def svuota_cache() -> None:

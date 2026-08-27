@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     """Origini ammesse per il CORS, separate da virgola."""
 
     # --- Cataloghi bibliografici ---
+    contatto_operatore: str | None = None
+    """URL o indirizzo email di chi ospita questa istanza, messo nel
+    `User-Agent` di ogni richiesta verso una fonte esterna
+    (`app/cataloghi/agente.py`). Non è una cortesia: la policy Wikimedia
+    esige un contatto e blocca senza preavviso chi non lo dà, Open Library
+    triplica il limite di frequenza a chi si identifica. Vuoto ricade
+    sull'indirizzo pubblico del progetto, che resta un contatto valido ma
+    non raggiunge chi ospita QUESTA istanza."""
+
     google_books_api_key: str | None = None
     """Fonte primaria della ricerca (PRD). Senza chiave l'API non risponde
     affatto: restituisce 429 con `quota_limit_value: "0"`, non un limite

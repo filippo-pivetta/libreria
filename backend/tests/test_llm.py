@@ -363,3 +363,70 @@ def _run(coro: Any) -> Any:
     Stesso motivo di test_lavori_worker.py.
     """
     return asyncio.run(coro)
+
+
+def _prompt_inviato(inviate: list[httpx.Request]) -> str:
+    import json
+
+    corpo = json.loads(inviate[-1].content)
+    return "\n".join(m["content"] for m in corpo["messages"])
+
+
+def test_l_elenco_dei_generi_parte_solo_quando_il_genere_serve(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ventotto voci di elenco chiuso a ogni chiamata, anche su una scheda
+    a cui mancava solo l'anno: contesto che non serviva a decidere nulla, e
+    un invito a classificare un libro il cui genere era già deciso."""
+    _con_chiave(monkeypatch)
+    inviate = _con_risposta(
+        monkeypatch,
+        _risposta_openai(
+            {"generi": [], "anno_prima_pubblicazione": 1954, "lingua_originale": "en"}
+        ),
+    )
+
+    _run(
+        llm.classifica_e_deduci(
+            titolo="Il Signore degli Anelli",
+            autori=["J.R.R. Tolkien"],
+            soggetti=["fantasy fiction"],
+            generi_ammessi=[("fantasy", "Fantasy"), ("classics", "Classici")],
+            necessita_genere=False,
+            necessita_anno=True,
+            necessita_lingua=False,
+        )
+    )
+
+    prompt = _prompt_inviato(inviate)
+    assert "fantasy: Fantasy" not in prompt
+    assert "elenco vuoto" in prompt
+    assert "anno di prima pubblicazione" in prompt
+
+
+def test_l_elenco_dei_generi_parte_quando_il_genere_serve(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _con_chiave(monkeypatch)
+    inviate = _con_risposta(
+        monkeypatch,
+        _risposta_openai(
+            {"generi": ["fantasy"], "anno_prima_pubblicazione": None, "lingua_originale": None}
+        ),
+    )
+
+    _run(
+        llm.classifica_e_deduci(
+            titolo="Il Signore degli Anelli",
+            autori=["J.R.R. Tolkien"],
+            soggetti=["fantasy fiction"],
+            generi_ammessi=[("fantasy", "Fantasy"), ("classics", "Classici")],
+            necessita_genere=True,
+            necessita_anno=False,
+            necessita_lingua=False,
+        )
+    )
+
+    prompt = _prompt_inviato(inviate)
+    assert "fantasy: Fantasy" in prompt
+    assert "classics: Classici" in prompt
