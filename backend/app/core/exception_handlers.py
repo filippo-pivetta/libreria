@@ -30,9 +30,12 @@ from app.core.config import get_settings
 logger = logging.getLogger("app.errori_non_gestiti")
 
 MESSAGGIO_GENERICO = "Qualcosa è andato storto. Riprova più tardi."
-"""Testo in linea con `docs/montaigne-design-frontend.md` §17: cosa è
-successo, non "ops" né scuse — l'unico dettaglio che può dare senza
-rivelare l'interno del sistema."""
+"""Ripiego per chi consuma l'API senza interfaccia (Swagger, uno script):
+il frontend **non lo mostra**, perché un 500 lo classifica da sé come
+genere `server` e compone la frase dal proprio catalogo, nella lingua
+giusta (`frontend/src/lib/messaggi-errore.ts`). Resta comunque scritto
+secondo `docs/design-frontend.md` §19: cosa è successo, non "ops" né
+scuse, e nessun dettaglio dell'interno del sistema."""
 
 
 async def gestore_eccezioni_non_gestite(request: Request, exc: Exception) -> JSONResponse:

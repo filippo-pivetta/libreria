@@ -19,6 +19,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Messaggio } from "@/components/ui/messaggio";
 import { ParereEffimero } from "@/components/scheda-pubblica/parere-effimero";
 import { cn } from "@/lib/utils";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /**
  * La carta di un libro guardato PRIMA di averlo in libreria (§13).
@@ -61,6 +63,7 @@ export function SchedaPubblica({
 }) {
   const lingua = useLocale();
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const queryClient = useQueryClient();
   const [errore, setErrore] = useState<string | null>(null);
 
@@ -71,8 +74,8 @@ export function SchedaPubblica({
     queryFn: async () => {
       const result = await getScheda(await getAccessToken(), fonte, identificativo);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "error" ? result.message : "Questo libro non è più raggiungibile.",
+        throw new ErroreApp(
+          result.status === "error" ? result.errore : assenza("schedaSparita"),
         );
       }
       return result.data;
@@ -89,7 +92,7 @@ export function SchedaPubblica({
         precedente ? { ...precedente, libroId, voce } : precedente,
       );
     },
-    onError: (err) => setErrore(err.message),
+    onError: (err: unknown) => setErrore(spiega("libroNonAggiunto", erroreDi(err))),
   });
 
   const risultato = comeRisultato(scheda, volumiAlternativi);

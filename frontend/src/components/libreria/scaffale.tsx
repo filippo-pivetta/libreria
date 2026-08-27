@@ -22,6 +22,8 @@ import { CampoRicerca } from "@/components/ui/campo-ricerca";
 import { IconaPiu } from "@/components/ui/icone";
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { useTranslations } from "next-intl";
+import { ErroreApp, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 const IN_CORSO = new Set(["in_lettura", "in_pausa"]);
 
@@ -76,6 +78,7 @@ export function Scaffale({
   utenteCollegatoId?: string;
 }) {
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [filtroTesto, setFiltroTesto] = useState("");
   // Additivo: l'insieme vuoto vuole dire "tutti", non "nessuno".
   const [statiInclusi, setStatiInclusi] = useState<Set<StatoVoce>>(() => new Set());
@@ -99,13 +102,13 @@ export function Scaffale({
           throw new Error(t("assenze.libreriaChiusa"));
         }
         if (result.status === "error") {
-          throw new Error(result.message);
+          throw new ErroreApp(result.errore);
         }
         return result.voci;
       }
       const result = await getVoci(token);
       if (result.status === "error") {
-        throw new Error(result.message);
+        throw new ErroreApp(result.errore);
       }
       return result.data;
     },
@@ -156,7 +159,7 @@ export function Scaffale({
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : t("errori.libreriaNonCaricata")}
+        message={spiega("libreriaNonCaricata", erroreDi(error))}
         onRetry={() => void refetch()}
       />
     );

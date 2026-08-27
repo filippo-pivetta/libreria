@@ -35,7 +35,7 @@ router = APIRouter(tags=["schede"])
 
 _CONSENSO_REVOCATO = {
     "error_code": "consenso_revocato",
-    "message": ("L'elaborazione assistita è disattivata. Puoi riattivarla dal tuo profilo."),
+    "message": ("L’elaborazione assistita è spenta. Puoi riaccenderla dal tuo profilo."),
 }
 
 _NON_TROVATA = "Questo libro non è nei cataloghi. Rifai la ricerca."

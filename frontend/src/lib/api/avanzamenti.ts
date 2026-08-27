@@ -6,6 +6,9 @@
  * messaggio da fare il parsing.
  */
 
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta, regola } from "@/lib/api/errore";
+
 export type Avanzamento = {
   id: string;
   letturaId: string;
@@ -37,8 +40,8 @@ type ErrorBody = { detail?: string | { error_code?: string; message?: string } }
 export type AvanzamentoResult =
   | { status: "ok"; data: Avanzamento }
   | { status: "not_found" }
-  | { status: "non_valido"; errorCode: string; message: string }
-  | { status: "error"; message: string };
+  | { status: "non_valido"; errore: ErroreApi }
+  | { status: "error"; errore: ErroreApi };
 
 async function inviaAvanzamento(
   accessToken: string,
@@ -47,7 +50,7 @@ async function inviaAvanzamento(
 ): Promise<AvanzamentoResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   let response: Response;
@@ -62,7 +65,7 @@ async function inviaAvanzamento(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
@@ -71,14 +74,12 @@ async function inviaAvanzamento(
   if (response.status === 409) {
     const errorBody = (await response.json()) as ErrorBody;
     const detail = typeof errorBody.detail === "object" ? errorBody.detail : undefined;
-    return {
-      status: "non_valido",
-      errorCode: detail?.error_code ?? "sconosciuto",
-      message: detail?.message ?? "Avanzamento non valido.",
-    };
+    // `detail.message` resta nella risposta ma non si legge: la frase la
+    // compone il chiamante dal codice, in italiano o in inglese.
+    return { status: "non_valido", errore: regola(detail?.error_code) };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok", data: toAvanzamento((await response.json()) as AvanzamentoBody) };

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { PaginaAnnali } from "@/components/annali/pagina-annali";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Annali (design-frontend.md §14, issue #7): le proprie metriche di
@@ -29,11 +30,10 @@ export default async function AnnalsPage() {
   if (result.status !== "ok") {
     return (
       <ErrorState
-        message={
-          result.status === "error"
-            ? result.message
-            : t("errori.metricheNonCaricate")
-        }
+        message={await messaggioErrore(
+          "metricheNonCaricate",
+          result.status === "error" ? result.errore : undefined,
+        )}
       />
     );
   }

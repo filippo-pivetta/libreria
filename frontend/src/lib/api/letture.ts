@@ -4,10 +4,13 @@
  * Apertura e chiusura passano da `cambiaStato` (`lib/api/voci.ts`).
  */
 
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
+
 export type CancellaLetturaResult =
   | { status: "ok" }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 export async function cancellaLettura(
   accessToken: string,
@@ -15,7 +18,7 @@ export async function cancellaLettura(
 ): Promise<CancellaLetturaResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   let response: Response;
@@ -26,14 +29,14 @@ export async function cancellaLettura(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
   return { status: "ok" };
 }

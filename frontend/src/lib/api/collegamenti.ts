@@ -5,6 +5,9 @@
  * snake_case -> camelCase a carico di questo modulo.
  */
 
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
+
 export type StatoCollegamento = "in_attesa" | "attiva";
 
 export type Collegamento = {
@@ -36,17 +39,17 @@ function toCollegamento(body: CollegamentoBody): Collegamento {
   };
 }
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
 
 export type CollegamentiResult =
   | { status: "ok"; data: Collegamento[] }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** GET /collegamenti: richieste ricevute/inviate e collegamenti attivi
  * di chi chiama (design doc §16, sezione Lettori). */
@@ -61,11 +64,11 @@ export async function getCollegamenti(accessToken: string): Promise<Collegamenti
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as CollegamentoBody[];
@@ -76,7 +79,7 @@ export type InviaRichiestaResult =
   | { status: "ok"; data: Collegamento; alreadyExisted: boolean }
   | { status: "not_found" }
   | { status: "richiesta_a_se_stessi" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** POST /collegamenti: invia una richiesta di collegamento a `utenteId`.
  * Idempotente lato backend: una richiesta doppia o simultanea torna la
@@ -100,7 +103,7 @@ export async function inviaRichiesta(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
@@ -110,7 +113,7 @@ export async function inviaRichiesta(
     return { status: "richiesta_a_se_stessi" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as { collegamento: CollegamentoBody; already_existed: boolean };
@@ -120,7 +123,7 @@ export async function inviaRichiesta(
 export type ScritturaCollegamentoResult =
   | { status: "ok"; data: Collegamento }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** PATCH /collegamenti/{id}: accetta una richiesta ricevuta. */
 export async function accettaCollegamento(
@@ -138,14 +141,14 @@ export async function accettaCollegamento(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok", data: toCollegamento((await response.json()) as CollegamentoBody) };
@@ -154,7 +157,7 @@ export async function accettaCollegamento(
 export type TerminaCollegamentoResult =
   | { status: "ok" }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** DELETE /collegamenti/{id}: rifiuta una richiesta ricevuta, ritira una
  * richiesta inviata, o interrompe un collegamento attivo — stessa
@@ -174,14 +177,14 @@ export async function terminaCollegamento(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok" };

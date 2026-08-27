@@ -13,6 +13,8 @@
  */
 
 import type { StatoVoce } from "./voci";
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_LIMITE, ERRORE_RETE, erroreDaRisposta, regola } from "@/lib/api/errore";
 
 export type VoceDelRisultato = {
   id: string;
@@ -179,23 +181,20 @@ function toPopolare(body: PopolareBody): TitoloPopolare {
  * che protegge la quota dei cataloghi (`LIMITE_CATALOGHI_ESTERNI`), e
  * l'unica cosa da fare è aspettare. Detto con le parole di un guasto,
  * mandava a cercare un problema che non c'è. */
-const TROPPE_RICHIESTE = "Troppe ricerche di fila. Aspetta qualche secondo e riprova.";
-const RISPOSTA_STORTA = "Il server ha risposto male. Riprova fra poco.";
-const SERVER_MUTO = "Il server non risponde. Controlla la connessione e riprova.";
 
 type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
 
 export type RicercaLocaleResult =
   | { status: "ok"; data: RisultatoLocale[] }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** GET /ricerca/catalogo: le schede già nel sistema. Nessuna rete
  * esterna, nessuna quota: è la parte che risponde subito. */
@@ -213,10 +212,10 @@ export async function cercaNelCatalogo(
       { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
     );
   } catch {
-    return { status: "error", message: SERVER_MUTO };
+    return { status: "error", errore: ERRORE_RETE };
   }
   if (!response.ok) {
-    return { status: "error", message: RISPOSTA_STORTA };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as LocaleBody[];
@@ -229,7 +228,7 @@ export type RicercaEsternaResult =
    * senza questa distinzione chi cerca conclude che il libro non esista
    * mentre è solo il catalogo che non risponde (design doc §13). */
   | { status: "fonte_irraggiungibile" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 function attesa(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -288,17 +287,17 @@ export async function cercaNeiCataloghi(
         { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
       );
     } catch {
-      return { riprova: false, esito: { status: "error", message: SERVER_MUTO } };
+      return { riprova: false, esito: { status: "error", errore: ERRORE_RETE } };
     }
 
     if (response.status === 503) {
       return { riprova: true, esito: { status: "fonte_irraggiungibile" } };
     }
     if (response.status === 429) {
-      return { riprova: false, esito: { status: "error", message: TROPPE_RICHIESTE } };
+      return { riprova: false, esito: { status: "error", errore: ERRORE_LIMITE } };
     }
     if (!response.ok) {
-      return { riprova: false, esito: { status: "error", message: RISPOSTA_STORTA } };
+      return { riprova: false, esito: { status: "error", errore: erroreDaRisposta(response) } };
     }
 
     const body = (await response.json()) as EsternoBody[];
@@ -308,7 +307,7 @@ export async function cercaNeiCataloghi(
 
 export type RicercaPopolariResult =
   | { status: "ok"; data: TitoloPopolare[] }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** GET /ricerca/popolari: «I titoli che tornano». Nessun termine, nessuna
  * quota esterna — una sola query aggregata sul nostro database. */
@@ -326,10 +325,10 @@ export async function cercaPopolari(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: SERVER_MUTO };
+    return { status: "error", errore: ERRORE_RETE };
   }
   if (!response.ok) {
-    return { status: "error", message: RISPOSTA_STORTA };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as PopolareBody[];
@@ -340,9 +339,9 @@ export type AggiungiDaCatalogoResult =
   | { status: "ok"; libroId: string; voceId: string; giaInLibreria: boolean }
   /** La ricerca è rimasta aperta oltre la durata della cache del back
    * end: quel risultato non è più raggiungibile e va rifatta. */
-  | { status: "risultato_scaduto"; message: string }
+  | { status: "risultato_scaduto"; errore: ErroreApi }
   | { status: "fonte_irraggiungibile" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** POST /libri: fa nascere la scheda (se non esiste) e la Voce.
  *
@@ -370,7 +369,7 @@ export async function aggiungiDaCatalogo(
         cache: "no-store",
       });
     } catch {
-      return { riprova: false, esito: { status: "error", message: SERVER_MUTO } };
+      return { riprova: false, esito: { status: "error", errore: ERRORE_RETE } };
     }
 
     if (response.status === 503) {
@@ -381,17 +380,14 @@ export async function aggiungiDaCatalogo(
       const detail = typeof errorBody.detail === "object" ? errorBody.detail : undefined;
       return {
         riprova: false,
-        esito: {
-          status: "risultato_scaduto",
-          message: detail?.message ?? "Questo risultato non è più valido. Rifai la ricerca.",
-        },
+        esito: { status: "risultato_scaduto", errore: regola(detail?.error_code ?? "risultato_scaduto") },
       };
     }
     if (response.status === 429) {
-      return { riprova: false, esito: { status: "error", message: TROPPE_RICHIESTE } };
+      return { riprova: false, esito: { status: "error", errore: ERRORE_LIMITE } };
     }
     if (!response.ok) {
-      return { riprova: false, esito: { status: "error", message: RISPOSTA_STORTA } };
+      return { riprova: false, esito: { status: "error", errore: erroreDaRisposta(response) } };
     }
 
     const body = (await response.json()) as {

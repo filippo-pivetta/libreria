@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { Scaffale } from "@/components/libreria/scaffale";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Libreria (design doc §7): scaffale di dorsi, vista predefinita di
@@ -29,7 +30,7 @@ export default async function ProtectedHomePage() {
   const result = await getVoci(session.access_token, await accettaLinguaInoltrata());
 
   if (result.status === "error") {
-    return <ErrorState message={result.message} />;
+    return <ErrorState message={await messaggioErrore("libreriaNonCaricata", result.errore)} />;
   }
 
   return <Scaffale vociIniziali={result.data} />;

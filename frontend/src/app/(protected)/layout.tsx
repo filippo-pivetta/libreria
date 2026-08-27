@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Chrome } from "@/components/layout/chrome";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ErrorState } from "@/components/states/error-state";
+import { getTranslations } from "next-intl/server";
+import { ERRORE_SESSIONE } from "@/lib/api/errore";
 
 /**
  * Guardia di autenticazione dell'area protetta più i dati che la
@@ -49,8 +51,12 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const [me, collegamenti] = session
     ? await Promise.all([getMe(session.access_token), getCollegamenti(session.access_token)])
     : [
-        { status: "error" as const, message: "Sessione assente." },
-        { status: "error" as const, message: "Sessione assente." },
+        // Nessuna sessione: non si finge una chiamata fallita. `sessione`
+        // è il genere giusto, e il suo rimedio — ricaricare — è l'unico
+        // che funziona davvero. "Sessione assente." era, oltre che solo
+        // italiano, il nome interno di uno stato messo davanti a chi legge.
+        { status: "error" as const, errore: ERRORE_SESSIONE },
+        { status: "error" as const, errore: ERRORE_SESSIONE },
       ];
 
   if (me.status === "not_provisioned") {
@@ -61,11 +67,13 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect("/completa-account");
   }
 
+  const t = await getTranslations();
+
   if (me.status !== "ok") {
     return (
       <div className="plane-0-lit flex min-h-screen flex-col items-center justify-center gap-4 p-6">
         <div className="w-full max-w-sm">
-          <ErrorState message={me.message} />
+          <ErrorState message={t("sessione.scaduta")} />
         </div>
         <SignOutButton />
       </div>

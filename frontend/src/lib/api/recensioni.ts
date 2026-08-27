@@ -4,6 +4,9 @@
  * esito, mapping snake_case -> camelCase a carico di questo modulo.
  */
 
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
+
 export type Visibilita = "condiviso" | "privato";
 
 export type Recensione = {
@@ -35,10 +38,10 @@ export function toRecensione(body: RecensioneBody): Recensione {
   };
 }
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
@@ -46,7 +49,7 @@ function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: str
 export type ScriviRecensioneResult =
   | { status: "ok"; data: Recensione }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** PUT /voci/{id}/recensione: crea se assente, sostituisce se già presente
  * (una recensione per Voce — PRD: "una rilettura non la cancella... la
@@ -72,14 +75,14 @@ export async function scriviRecensione(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok", data: toRecensione((await response.json()) as RecensioneBody) };
@@ -88,7 +91,7 @@ export async function scriviRecensione(
 export type CancellaRecensioneResult =
   | { status: "ok" }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** DELETE /voci/{id}/recensione. */
 export async function cancellaRecensione(
@@ -106,14 +109,14 @@ export async function cancellaRecensione(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok" };

@@ -11,6 +11,8 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { useTranslations } from "next-intl";
 import { IconaMatita } from "@/components/ui/icone";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /**
  * Correzione delle pagine adottate (design doc §12): si clicca sul
@@ -34,6 +36,7 @@ export function CorreggiPagine({
   const queryClient = useQueryClient();
   const { showError } = useToast();
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [valore, setValore] = useState(pagineAdottate !== null ? String(pagineAdottate) : "");
   // Ultimo valore confermato — dalla prop in arrivo o da una scrittura
   // riuscita: usato per non salvare quando si esce dal campo senza
@@ -54,13 +57,13 @@ export function CorreggiPagine({
       const token = await getAccessToken();
       const result = await correggiPagine(token, voceId, nuovoValore);
       if (result.status !== "ok") {
-        const messaggio =
-          result.status === "conflitto"
-            ? "Il nuovo totale è inferiore a un avanzamento già registrato."
-            : result.status === "not_found"
-              ? t("assenze.voceSparita")
-              : result.message;
-        throw new Error(messaggio);
+        // La frase del conflitto non è più scritta qui: arriva
+        // dall'`error_code` del 409 (`regole.*` nel catalogo), quindi
+        // esiste anche in inglese e non va tenuta allineata a mano con
+        // quella del backend.
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
+        );
       }
       return result.data;
     },
@@ -72,7 +75,7 @@ export function CorreggiPagine({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : t("errori.pagineNonCorrette"),
+        spiega("pagineNonCorrette", erroreDi(error)),
       );
       setValore(salvato !== null ? String(salvato) : "");
     },
@@ -85,7 +88,7 @@ export function CorreggiPagine({
     }
     const numero = Number(valore);
     if (!Number.isFinite(numero) || numero <= 0) {
-      showError(t("errori.pagineNonValide"));
+      showError(t("regole.pagine_non_valide"));
       setValore(salvato !== null ? String(salvato) : "");
       return;
     }
@@ -122,7 +125,7 @@ export function CorreggiPagine({
         className="w-[4ch] border-0 bg-transparent p-0 font-ui text-sm tabular-nums text-ink outline-none placeholder:text-ink-soft"
       />
       <IconaMatita aria-hidden className="size-3.5 shrink-0 text-ink-soft" />
-      <Messaggio tono="conferma">{conferma.visibile ? "Salvato." : ""}</Messaggio>
+      <Messaggio tono="conferma">{conferma.visibile ? t("conferme.salvato") : ""}</Messaggio>
     </span>
   );
 }

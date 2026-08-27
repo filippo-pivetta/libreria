@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
 import { useTranslations } from "next-intl";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
+import { traduciErroreAuth } from "@/lib/errori-auth";
 
 type Phase = "checking" | "no_session" | "form" | "submitting";
 
@@ -26,6 +28,7 @@ type Phase = "checking" | "no_session" | "form" | "submitting";
 export default function CompletaAccountPage() {
   const router = useRouter();
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [phase, setPhase] = useState<Phase>("checking");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -109,12 +112,12 @@ export default function CompletaAccountPage() {
         !/[0-9]/.test(password)
       ) {
         setError(
-          "La password deve avere almeno 10 caratteri, con almeno una lettera minuscola, una maiuscola e una cifra.",
+          t("regole.password_debole"),
         );
         return;
       }
       if (password !== confirmPassword) {
-        setError("Le due password non coincidono.");
+        setError(t("regole.password_non_coincidono"));
         return;
       }
     }
@@ -124,7 +127,7 @@ export default function CompletaAccountPage() {
       // innescato dal browser stesso — es. un autofill password che
       // sottomette il form prima che l'Utente tocchi questo campo — non
       // deve arrivare a una chiamata di rete per un errore rilevabile qui.
-      setNomeUtenteError("Il nome utente non può essere vuoto.");
+      setNomeUtenteError(t("regole.nome_utente_vuoto"));
       return;
     }
 
@@ -134,7 +137,10 @@ export default function CompletaAccountPage() {
     if (!passwordGiaImpostata) {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) {
-        setError(updateError.message);
+        // La stringa del fornitore non arriva più grezza: era l'unica
+        // frase inglese in mezzo all'italiano, e restava inglese anche
+        // dove tutto il resto era già tradotto (design doc §6).
+        setError(t(traduciErroreAuth(updateError)));
         setPhase("form");
         return;
       }
@@ -160,15 +166,15 @@ export default function CompletaAccountPage() {
         router.refresh();
         return;
       case "nome_utente_in_uso":
-        setNomeUtenteError("Questo nome utente è già in uso.");
+        setNomeUtenteError(t("regole.nome_utente_in_uso"));
         setPhase("form");
         return;
       case "validation_error":
-        setNomeUtenteError(result.message);
+        setNomeUtenteError(spiega("nomeUtenteNonSalvato", result.errore));
         setPhase("form");
         return;
       case "error":
-        setError(result.message);
+        setError(spiega("accountNonCompletato", result.errore));
         setPhase("form");
         return;
     }
@@ -183,8 +189,8 @@ export default function CompletaAccountPage() {
   } else if (phase === "no_session") {
     content = (
       <ErrorState
-        title="Link non valido"
-        message="Questo link di invito non è più valido o è scaduto. Chiedi al Manutentore di inviartene uno nuovo."
+        title={t("titoli.linkNonValido")}
+        message={t("accesso.invitoScaduto")}
       />
     );
   } else {

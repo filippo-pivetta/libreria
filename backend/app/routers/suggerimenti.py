@@ -24,11 +24,12 @@ router = APIRouter(tags=["suggerimenti"])
 
 _CONSENSO_REVOCATO = {
     "error_code": "consenso_revocato",
-    "message": ("L'elaborazione assistita è disattivata. Puoi riattivarla dal tuo profilo."),
+    "message": ("L’elaborazione assistita è spenta. Puoi riaccenderla dal tuo profilo."),
 }
 
 _CONTENUTO_INSUFFICIENTE = {
-    "error_code": "contenuto_insufficiente",
+    # Vedi la nota in `sintesi.py`: due casi distinti, due codici.
+    "error_code": "letture_insufficienti",
     "message": "Aggiungi qualche libro letto o scrivi un insight prima di chiedere suggerimenti.",
 }
 

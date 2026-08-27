@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { CampoData } from "@/components/ui/campo-data";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { IconaFreccia } from "@/components/ui/icone";
-import { useTranslations } from "next-intl";
+import { ErroreApp, assenza } from "@/lib/api/errore";
+import { useAvvisa } from "@/lib/messaggi-errore";
 
 type Transizione = { stato: StatoVoce; etichetta: string; chiedeData?: boolean };
 
@@ -71,7 +72,7 @@ function oggiISO(): string {
 export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
-  const t = useTranslations();
+  const avvisa = useAvvisa();
   const [pendente, setPendente] = useState<Transizione | null>(null);
   const [data, setData] = useState<string>(oggiISO);
   const mutazione = useMutation({
@@ -79,13 +80,13 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
       const token = await getAccessToken();
       const result = await cambiaStato(token, voce.id, stato, conData);
       if (result.status !== "ok") {
-        const messaggio =
-          result.status === "conflitto"
-            ? result.message
-            : result.status === "not_found"
-              ? t("assenze.voceSparita")
-              : result.message;
-        throw new Error(messaggio);
+        // Il 409 porta il proprio `error_code`
+        // (`transizione_stato_non_ammessa`): la sua frase nomina la regola,
+        // ed è più utile di "Lo stato non è cambiato. Riprova fra poco.",
+        // che manderebbe a ritentare all'infinito una cosa vietata.
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
+        );
       }
       return result.data;
     },
@@ -94,8 +95,8 @@ export function TransizioniStato({ voce }: { voce: VoceDettaglio }) {
       void queryClient.invalidateQueries({ queryKey: ["voce", voce.id] });
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
-    onError: (error: unknown) => {
-      showError(error instanceof Error ? error.message : t("errori.statoNonCambiato"));
+    onError: (error: unknown, valori: { stato: StatoVoce; conData?: string }) => {
+      avvisa(showError, "statoNonCambiato", error, () => mutazione.mutate(valori));
     },
   });
 

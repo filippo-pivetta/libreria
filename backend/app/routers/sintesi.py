@@ -25,11 +25,16 @@ router = APIRouter(tags=["sintesi"])
 
 _CONSENSO_REVOCATO = {
     "error_code": "consenso_revocato",
-    "message": ("L'elaborazione assistita è disattivata. Puoi riattivarla dal tuo profilo."),
+    "message": ("L’elaborazione assistita è spenta. Puoi riaccenderla dal tuo profilo."),
 }
 
 _CONTENUTO_INSUFFICIENTE = {
-    "error_code": "contenuto_insufficiente",
+    # `insight_insufficienti`, non `contenuto_insufficiente`: lo stesso
+    # codice stava anche su /suggerimenti, con un messaggio diverso ("aggiungi
+    # qualche libro letto"). Un `error_code` che copre due casi costringe chi
+    # lo riceve a leggere `message` per capire quale sia, ed è il motivo per
+    # cui il frontend mostrava la frase del server invece della propria.
+    "error_code": "insight_insufficienti",
     "message": "Scrivi qualche insight o recensione prima di chiedere una sintesi.",
 }
 

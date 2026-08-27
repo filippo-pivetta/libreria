@@ -43,6 +43,12 @@ sullo stato del prodotto, e una motivazione sbagliata è peggio di una lacuna di
   (23 agosto 2026): `next-intl`, cataloghi `frontend/messages/{it,en}.json`, backend allineato
   sulla stessa `Accept-Language` (`backend/app/core/lingua.py`). Il resto (estrazione completa,
   numeri non ancora sensibili alla lingua, contenuto assistito) è tracciato in #40.
+  **Tutti i messaggi d'errore sono rientrati nel catalogo** in una sessione successiva: erano
+  la parte più esposta di #40, perché 93 occorrenze di tre frasi vivevano dentro `lib/api` e
+  restavano in italiano anche con `Accept-Language: en` — e nascondevano le frasi tradotte, che
+  non si raggiungevano mai. Ora `lib/api` classifica (`ErroreApi`) e la frase si compone dal
+  catalogo; il backend manda `error_code`, non prosa da mostrare. Resta a #40 il perimetro che
+  §19 dichiara deliberato: comandi, etichette e intestazioni, ancora inline in italiano.
 - Il comando sulla luce, la barra di navigazione in fondo su mobile, i tre canali di
   messaggi e la riscrittura degli errori: vedi `docs/design-frontend.md` §3, §5, §8, §19.
 

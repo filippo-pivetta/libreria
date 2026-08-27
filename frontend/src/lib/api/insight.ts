@@ -6,6 +6,8 @@
  */
 
 import type { Visibilita } from "@/lib/api/recensioni";
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
 
 export type { Visibilita };
 
@@ -83,10 +85,10 @@ function toInsight(body: InsightBody): Insight {
   };
 }
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
@@ -94,7 +96,7 @@ function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: str
 export type InsightResult =
   | { status: "ok"; data: Insight }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** POST /voci/{id}/insight: nessun `letturaId` da passare, il server lo
  * deduce dalla Lettura aperta corrente. */
@@ -120,14 +122,14 @@ export async function creaInsight(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok", data: toInsight((await response.json()) as InsightBody) };
@@ -155,14 +157,14 @@ export async function correggiInsight(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok", data: toInsight((await response.json()) as InsightBody) };
@@ -171,7 +173,7 @@ export async function correggiInsight(
 export type CancellaInsightResult =
   | { status: "ok" }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** DELETE /insight/{id}. */
 export async function cancellaInsight(
@@ -189,14 +191,14 @@ export async function cancellaInsight(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok" };
@@ -205,7 +207,7 @@ export async function cancellaInsight(
 export type RivelaInsightTestoResult =
   | { status: "ok"; testo: string }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** GET /insight/{id}/testo: il gesto esplicito di scoprire un insight
  * contrassegnato spoiler (design doc §11, "Taglia per leggere"). */
@@ -223,14 +225,14 @@ export async function rivelaInsightTesto(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as { testo: string };

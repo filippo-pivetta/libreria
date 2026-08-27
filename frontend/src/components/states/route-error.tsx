@@ -35,7 +35,7 @@ export function RouteError({
 
   return (
     <ErrorState
-      message={t("errori.imprevisto")}
+      message={t("generici.imprevisto")}
       onRetry={retry}
     />
   );

@@ -224,7 +224,7 @@ async def get_ricerca_semantica(
             {
                 "error_code": "consenso_revocato",
                 "message": (
-                    "L'elaborazione assistita è disattivata. Puoi riattivarla dalle tuo profilo."
+                    "L’elaborazione assistita è spenta. Puoi riaccenderla dal tuo profilo."
                 ),
             },
         ) from errore
@@ -237,8 +237,11 @@ async def get_ricerca_semantica(
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             {
-                "error_code": "fonte_irraggiungibile",
-                "message": "La ricerca semantica non è disponibile in questo momento.",
+                # Distinto da `fonte_irraggiungibile` dei cataloghi, che è
+                # lo stesso codice ma un'altra cosa: là non risponde Google,
+                # qui non è pronto un indice nostro.
+                "error_code": "indice_semantico_non_pronto",
+                "message": "La ricerca per temi non è disponibile in questo momento.",
                 "fonte": errore.fonte,
             },
         ) from errore

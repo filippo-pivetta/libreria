@@ -488,7 +488,7 @@ def test_post_suggerimenti_422_senza_contenuto(
     response = authenticated.post("/suggerimenti", json={})
 
     assert response.status_code == 422
-    assert response.json()["detail"]["error_code"] == "contenuto_insufficiente"
+    assert response.json()["detail"]["error_code"] == "letture_insufficienti"
 
 
 def test_suggerimenti_richiede_autenticazione(client: TestClient) -> None:

@@ -35,6 +35,9 @@ jobs:
       - name: Contrast check (AA across a full year of the light cycle)
         run: npm run check:contrast
 
+      - name: Messaggi (catalogo e codice allineati, IT/EN in parità)
+        run: npm run check:messaggi
+
   backend:
     name: Backend (lint, type check, test)
     runs-on: ubuntu-latest

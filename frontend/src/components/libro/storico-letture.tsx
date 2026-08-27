@@ -8,10 +8,12 @@ import { getAccessToken } from "@/lib/api/access-token";
 import type { Lettura } from "@/lib/api/voci";
 import { formattaData } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { IconaAltro } from "@/components/ui/icone";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 const ETICHETTA_ESITO: Record<string, string> = {
   conclusa: "conclusa",
@@ -52,7 +54,7 @@ export function StoricoLetture({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const lingua = useLocale();
   const [inConfermaId, setInConfermaId] = useState<string | null>(null);
   const mutazione = useMutation({
@@ -60,8 +62,8 @@ export function StoricoLetture({
       const token = await getAccessToken();
       const result = await cancellaLettura(token, letturaId);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.letturaSparita") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("letturaSparita") : result.errore,
         );
       }
     },
@@ -72,7 +74,7 @@ export function StoricoLetture({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : t("errori.letturaNonCancellata"),
+        spiega("letturaNonCancellata", erroreDi(error)),
       );
     },
   });

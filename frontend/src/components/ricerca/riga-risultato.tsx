@@ -76,55 +76,64 @@ export function RigaRisultato({
   const voce = risultato.voce;
 
   return (
-    <div className="flex items-start gap-3 p-4">
-      <Copertina risultato={risultato} />
+    /* Due righe, non tre colonne. Il messaggio d'errore stava nella stessa
+       colonna `shrink-0` del comando, con `max-w-56`: una colonna che non
+       cede e porta 224px di testo schiaccia la colonna `min-w-0 flex-1`
+       accanto, e il titolo si troncava a una lettera — "Un indovino mi
+       disse / Tiziano Terzani" diventava "U / T.". Ora la riga vera resta
+       intatta e il messaggio le sta sotto, a tutta larghezza. */
+    <div className="flex flex-col gap-1 p-4">
+      <div className="flex items-start gap-3">
+        <Copertina risultato={risultato} />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        {/* Il titolo è un link alla scheda del libro, il verbo resta il
-            verbo: sono due gesti diversi — guardare e prendere — e §13
-            vuole che l'aggiunta non porti via dalla ricerca. Fondere i due
-            in un unico bersaglio significherebbe scegliere quale dei due
-            perdere. */}
-        <Link
-          href={percorsoScheda(risultato)}
-          className="truncate font-display text-base text-ink underline-offset-4 hover:underline"
-        >
-          {risultato.titolo}
-        </Link>
-        <span className="truncate font-ui text-sm text-ink-soft">
-          {autori || "Autore non indicato"}
-          {anno ? ` · ${anno}` : ""}
-        </span>
-        {riga && <span className="t-meta">{riga}</span>}
-      </div>
-
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        {voce ? (
-          /* `render` e non `buttonVariants` su un `<Link>` nudo: il
-             primitivo `Button` di Base UI espone `render`, e il commento
-             che diceva il contrario era vecchio di una versione — lo
-             stesso file `libro/nella-tua-libreria.tsx` lo usava già così.
-             La differenza non è di stile: passando dal primitivo, il link
-             prende il cedimento alla pressione, `data-slot="button"` (e
-             quindi la regola del tocco) e il fuoco dell'app, che con le
-             sole classi restavano fuori. */
-          <Button
-            render={<Link href={`/libro/${voce.id}`} />}
-            nativeButton={false}
-            variant="outline"
-            size="sm"
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          {/* Il titolo è un link alla scheda del libro, il verbo resta il
+              verbo: sono due gesti diversi — guardare e prendere — e §13
+              vuole che l'aggiunta non porti via dalla ricerca. Fondere i due
+              in un unico bersaglio significherebbe scegliere quale dei due
+              perdere. */}
+          <Link
+            href={percorsoScheda(risultato)}
+            className="truncate font-display text-base text-ink underline-offset-4 hover:underline"
           >
-            {voce.stato === "letto" || voce.stato === "abbandonato" ? "Rileggi" : "Vai al libro"}
-          </Button>
-        ) : (
-          <Button variant="outline" size="sm" disabled={inCorso} onClick={onAggiungi}>
-            {inCorso ? t("attesa.aggiungo") : "Aggiungi"}
-          </Button>
-        )}
-        {/* Errore per riga e non un avviso in cima: in una lista un
-            messaggio staccato non dice a quale riga si riferisce. */}
-        <Messaggio className="max-w-56 text-right">{errore}</Messaggio>
+            {risultato.titolo}
+          </Link>
+          <span className="truncate font-ui text-sm text-ink-soft">
+            {autori || "Autore non indicato"}
+            {anno ? ` · ${anno}` : ""}
+          </span>
+          {riga && <span className="t-meta">{riga}</span>}
+        </div>
+
+        <div className="shrink-0">
+          {voce ? (
+            /* `render` e non `buttonVariants` su un `<Link>` nudo: il
+               primitivo `Button` di Base UI espone `render`, e il commento
+               che diceva il contrario era vecchio di una versione — lo
+               stesso file `libro/nella-tua-libreria.tsx` lo usava già così.
+               La differenza non è di stile: passando dal primitivo, il link
+               prende il cedimento alla pressione, `data-slot="button"` (e
+               quindi la regola del tocco) e il fuoco dell'app, che con le
+               sole classi restavano fuori. */
+            <Button
+              render={<Link href={`/libro/${voce.id}`} />}
+              nativeButton={false}
+              variant="outline"
+              size="sm"
+            >
+              {voce.stato === "letto" || voce.stato === "abbandonato" ? "Rileggi" : "Vai al libro"}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" disabled={inCorso} onClick={onAggiungi}>
+              {inCorso ? t("attesa.aggiungo") : "Aggiungi"}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Errore per riga e non un avviso in cima: in una lista un messaggio
+          staccato non dice a quale riga si riferisce. */}
+      <Messaggio className="text-right">{errore}</Messaggio>
     </div>
   );
 }

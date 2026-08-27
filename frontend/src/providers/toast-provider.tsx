@@ -10,7 +10,13 @@ import {
   type ReactNode,
 } from "react";
 
-type Toast = { id: number; message: string; inUscita?: boolean };
+type Toast = {
+  id: number;
+  message: string;
+  /** Il rimedio, quando esiste ed è davvero eseguibile. */
+  onRiprova?: () => void;
+  inUscita?: boolean;
+};
 
 type ToastContextValue = {
   /** Un errore di scrittura (avanzamento, cambio di stato, correzione
@@ -27,8 +33,18 @@ type ToastContextValue = {
    * già mossa. Se il comando è ancora sotto gli occhi — un pulsante "Genera",
    * una riga di elenco, un campo — l'errore va accanto a quello, con
    * `<Messaggio>`: un toast in fondo alla pagina non dice a quale riga si
-   * riferisce. */
-  showError: (message: string) => void;
+   * riferisce.
+   *
+   * **`onRiprova`, quando c'è, è metà del senso del toast.** Se il
+   * bersaglio è già scorso via, dire "Riprova" senza offrire dove
+   * significa mandare l'utente a ritrovare da solo la riga, il campo o la
+   * stella che aveva toccato. Il comando va dove sta il messaggio — è il
+   * modello dell'"Annulla" di Gmail, e Linear lo usa per la stessa
+   * ragione. Va passato **solo** dove riprovare può funzionare
+   * (`riprovabile()` in `lib/messaggi-errore.ts`): offrirlo su un 409 o
+   * su una sessione scaduta è invitare a ripetere una cosa che la regola
+   * vieta. */
+  showError: (message: string, onRiprova?: () => void) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -84,10 +100,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 
   const showError = useCallback(
-    (message: string) => {
+    (message: string, onRiprova?: () => void) => {
       const id = contatore.current++;
       setToasts((precedenti) => {
-        const successivi = [...precedenti, { id, message }];
+        const successivi = [...precedenti, { id, message, onRiprova }];
         // Scarta i più vecchi oltre il tetto, senza animazione d'uscita:
         // stanno già lasciando il posto, e animarne l'uscita mentre un altro
         // entra darebbe due movimenti contemporanei in direzioni opposte.
@@ -164,13 +180,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className="plane-2 grain toast-in pointer-events-auto flex w-full max-w-sm items-start gap-3 px-4 py-3 text-sm text-ink"
           >
             <p className="flex-1 text-pretty">{toast.message}</p>
-            <button
-              type="button"
-              onClick={() => scarta(toast.id)}
-              className="t-label tocco-esteso shrink-0 self-center text-ink-soft hover:text-ink"
-            >
-              Chiudi
-            </button>
+            <div className="flex shrink-0 items-center gap-3 self-center">
+              {toast.onRiprova && (
+                /* Prima del "Chiudi" e in inchiostro pieno: dei due è
+                   quello che l'utente vuole, e "Chiudi" resta il gesto
+                   secondario che era. */
+                <button
+                  type="button"
+                  onClick={() => {
+                    scarta(toast.id);
+                    toast.onRiprova?.();
+                  }}
+                  className="t-label tocco-esteso text-ink underline underline-offset-4"
+                >
+                  Riprova
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => scarta(toast.id)}
+                className="t-label tocco-esteso text-ink-soft hover:text-ink"
+              >
+                Chiudi
+              </button>
+            </div>
           </div>
         ))}
       </div>

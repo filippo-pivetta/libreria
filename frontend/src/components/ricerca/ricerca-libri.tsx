@@ -18,6 +18,10 @@ import {
 } from "@/lib/api/ricerca";
 import { useAggiungiRisultato } from "@/lib/hooks/use-aggiungi-risultato";
 import { useDebounced } from "@/lib/use-debounce";
+import { ErroreApp } from "@/lib/api/errore";
+import { erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
+import { useTranslations } from "next-intl";
 
 const LUNGHEZZA_MINIMA = 2;
 const CHIAVE_LOCALE = "ricerca-catalogo";
@@ -29,6 +33,8 @@ export function RicercaLibri() {
     null,
   );
   const queryClient = useQueryClient();
+  const t = useTranslations();
+  const spiega = useMessaggioErrore();
 
   const cercato = useDebounced(termine.trim(), 350).trim();
   const attivo = cercato.length >= LUNGHEZZA_MINIMA;
@@ -46,7 +52,7 @@ export function RicercaLibri() {
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const risultato = await cercaNelCatalogo(await getAccessToken(), cercato);
-      if (risultato.status !== "ok") throw new Error(risultato.message);
+      if (risultato.status !== "ok") throw new ErroreApp(risultato.errore);
       return risultato.data;
     },
   });
@@ -57,7 +63,7 @@ export function RicercaLibri() {
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const risultato = await cercaNeiCataloghi(await getAccessToken(), cercato);
-      if (risultato.status === "error") throw new Error(risultato.message);
+      if (risultato.status === "error") throw new ErroreApp(risultato.errore);
       // "Non ha risposto" non è un errore da rilanciare: è uno stato che
       // l'interfaccia deve saper dichiarare, mostrando comunque i locali.
       return risultato;
@@ -123,7 +129,14 @@ export function RicercaLibri() {
     onError: (errore, risultato) => {
       // Errore per riga e non un toast: in una lista un toast non dice a
       // quale riga si riferisce (stesso presidio di `elenco-lettori.tsx`).
-      setErrorePerRiga({ chiave: risultato.chiave, messaggio: errore.message });
+      //
+      // Mai `errore.message`: su un `ErroreApp` quello è "server:HTTP 500",
+      // cioè il genere e il codice, che esistono per i log. La frase si
+      // compone dal catalogo.
+      setErrorePerRiga({
+        chiave: risultato.chiave,
+        messaggio: spiega("libroNonAggiunto", erroreDi(errore)),
+      });
     },
   });
 
@@ -155,7 +168,7 @@ export function RicercaLibri() {
 
       {locali.isError && (
         <ErrorState
-          message={locali.error instanceof Error ? locali.error.message : "Ricerca non riuscita."}
+          message={spiega("ricercaNonRiuscita", erroreDi(locali.error))}
           onRetry={() => void locali.refetch()}
         />
       )}
@@ -164,9 +177,7 @@ export function RicercaLibri() {
         /* Testo e non un riquadro d'allarme (regole di scrittura,
            AGENTS.md). I risultati locali restano visibili sotto: sono
            quelli che non dipendono dalla fonte caduta. */
-        <p className="max-w-prose text-sm text-ink-soft">
-          I cataloghi esterni non rispondono. Qui sotto ci sono solo le schede già nel sistema.
-        </p>
+        <p className="max-w-prose text-sm text-ink-soft">{t("avvisi.cataloghiMuti")}</p>
       )}
 
       {risultati.length > 0 && (
@@ -183,7 +194,7 @@ export function RicercaLibri() {
         </div>
       )}
 
-      {caricando && <p className="t-meta">cerco nei cataloghi…</p>}
+      {caricando && <p className="t-meta">{t("attesa.cercoCataloghi")}</p>}
 
       {vicoloCieco && <VicoloCieco termine={cercato} />}
 

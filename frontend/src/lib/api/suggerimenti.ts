@@ -15,6 +15,9 @@
  * "amor di narrazione".
  */
 
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_MODELLO, ERRORE_RETE, erroreDaRisposta, regola } from "@/lib/api/errore";
+
 export const NOTA_LUNGHEZZA_MASSIMA = 200;
 
 export type TipoSuggerimento = "affine" | "scoperta";
@@ -28,13 +31,12 @@ export type Suggerimento = {
 
 type Body = { suggerimenti: Suggerimento[] };
 
-type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
 
 export type SuggerimentiResult =
   | { status: "ok"; data: Suggerimento[] }
   | { status: "consenso_revocato" }
-  | { status: "contenuto_insufficiente"; message: string }
-  | { status: "error"; message: string };
+  | { status: "letture_insufficienti"; errore: ErroreApi }
+  | { status: "error"; errore: ErroreApi };
 
 export async function generaSuggerimenti(
   accessToken: string,
@@ -42,7 +44,7 @@ export async function generaSuggerimenti(
 ): Promise<SuggerimentiResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   const notaPulita = nota?.trim() || null;
@@ -56,24 +58,18 @@ export async function generaSuggerimenti(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 409) return { status: "consenso_revocato" };
   if (response.status === 422) {
-    const body = (await response.json()) as ErrorBody;
-    const detail = typeof body.detail === "object" ? body.detail : undefined;
-    return {
-      status: "contenuto_insufficiente",
-      message:
-        detail?.message ?? "Aggiungi qualche libro letto o scrivi un insight prima di chiedere suggerimenti.",
-    };
+    return { status: "letture_insufficienti", errore: regola("letture_insufficienti") };
   }
   if (response.status === 503) {
-    return { status: "error", message: "I suggerimenti non sono arrivati. Riprova fra poco." };
+    return { status: "error", errore: ERRORE_MODELLO };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as Body;

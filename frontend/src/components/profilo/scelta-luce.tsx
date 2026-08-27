@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { type PreferenzaLuce } from "@/lib/light";
 import { impostaLuce } from "@/components/profilo/azione-luce";
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
+import { Messaggio } from "@/components/ui/messaggio";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 const OPZIONI: { valore: PreferenzaLuce; etichetta: string }[] = [
   { valore: "ora", etichetta: "Segui l’ora" },
@@ -37,6 +39,7 @@ const OPZIONI: { valore: PreferenzaLuce; etichetta: string }[] = [
  * di una stessa proprietà, e le frecce della tastiera devono scorrerli.
  */
 export function SceltaLuce({ iniziale }: { iniziale: PreferenzaLuce }) {
+  const spiega = useMessaggioErrore();
   const router = useRouter();
   const [scelta, setScelta] = useState<PreferenzaLuce>(iniziale);
   const [errore, setErrore] = useState<string | null>(null);
@@ -52,7 +55,7 @@ export function SceltaLuce({ iniziale }: { iniziale: PreferenzaLuce }) {
         router.refresh();
       } catch {
         setScelta(precedente);
-        setErrore("La preferenza non è stata salvata. Riprova.");
+        setErrore(spiega("luceNonCambiata"));
       }
     });
   }
@@ -82,7 +85,11 @@ export function SceltaLuce({ iniziale }: { iniziale: PreferenzaLuce }) {
           );
         })}
       </div>
-      {errore && <p className="t-meta">{errore}</p>}
+      {/* Dal primitivo, non da un `<p>` scritto a mano: era l'ultimo
+          superstite degli otto componenti che `ui/messaggio.tsx` doveva
+          assorbire, e l'unico messaggio dell'app senza regione
+          `aria-live` — invisibile a chi non guarda lo schermo. */}
+      <Messaggio>{errore}</Messaggio>
     </div>
   );
 }

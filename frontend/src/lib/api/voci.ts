@@ -11,6 +11,8 @@ import { toRecensione } from "@/lib/api/recensioni";
 import type { InsightEssenziale, InsightEssenzialeBody } from "@/lib/api/insight";
 import { toInsightEssenziale } from "@/lib/api/insight";
 import { intestazioniConLingua } from "@/lib/lingua";
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta, regola } from "@/lib/api/errore";
 
 export type StatoVoce = "da_leggere" | "in_lettura" | "in_pausa" | "abbandonato" | "letto";
 
@@ -293,17 +295,17 @@ function toVoceDettaglio(body: VoceDettaglioBody): VoceDettaglio {
 
 type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
 
 export type VociResult =
   | { status: "ok"; data: VoceConLibro[] }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /**
  * GET /voci: lo scaffale, la propria libreria.
@@ -328,11 +330,11 @@ export async function getVoci(accessToken: string, acceptLanguage?: string): Pro
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as VoceConLibroBody[];
@@ -342,7 +344,7 @@ export async function getVoci(accessToken: string, acceptLanguage?: string): Pro
 export type AggiungiVoceResult =
   | { status: "ok"; data: Voce; alreadyExisted: boolean }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** POST /voci: aggiunge un Libro già presente nel catalogo alla propria
  * libreria. Usata dalla fascia "Nella tua libreria" sul libro di un
@@ -363,14 +365,14 @@ export async function aggiungiVoce(accessToken: string, libroId: string): Promis
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as { voce: VoceBody; already_existed: boolean };
@@ -380,7 +382,7 @@ export async function aggiungiVoce(accessToken: string, libroId: string): Promis
 export type VoceDettaglioResult =
   | { status: "ok"; data: VoceDettaglio }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** GET /voci/{id}: la scheda del libro, con Libro e storico delle Letture.
  * `acceptLanguage`, opzionale: vedi il docstring di `getVoci` sopra. */
@@ -399,14 +401,14 @@ export async function getVoceDettaglio(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as VoceDettaglioBody;
@@ -419,8 +421,8 @@ export type ScritturaVoceResult =
   // "conflitto" copre sia la transizione non ammessa sia il tetto delle
   // pagine adottate: `errorCode` distingue il caso esatto (vedi
   // docs/adr/0015), il chiamante decide come mostrarlo.
-  | { status: "conflitto"; errorCode: string; message: string }
-  | { status: "error"; message: string };
+  | { status: "conflitto"; errore: ErroreApi }
+  | { status: "error"; errore: ErroreApi };
 
 async function patchVoce(
   accessToken: string,
@@ -442,7 +444,7 @@ async function patchVoce(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
@@ -451,14 +453,10 @@ async function patchVoce(
   if (response.status === 409) {
     const errorBody = (await response.json()) as ErrorBody;
     const detail = typeof errorBody.detail === "object" ? errorBody.detail : undefined;
-    return {
-      status: "conflitto",
-      errorCode: detail?.error_code ?? "sconosciuto",
-      message: detail?.message ?? "La scrittura non è ammessa.",
-    };
+    return { status: "conflitto", errore: regola(detail?.error_code) };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok", data: toVoce((await response.json()) as VoceBody) };
@@ -511,7 +509,7 @@ export function correggiNotaIntenzione(
 export type CancellaVoceResult =
   | { status: "ok" }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** DELETE /voci/{id}: cancella l'intera Voce — letture, avanzamenti,
  * voto, recensione, insight, nota di intenzione, preview personalizzata e
@@ -532,14 +530,14 @@ export async function cancellaVoce(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
     return { status: "not_found" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
   return { status: "ok" };
 }

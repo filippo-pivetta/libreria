@@ -16,6 +16,8 @@ import {
 import { useAggiungiRisultato } from "@/lib/hooks/use-aggiungi-risultato";
 import { Messaggio } from "@/components/ui/messaggio";
 import { useTranslations } from "next-intl";
+import { erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 const MINIMA_LUNGHEZZA_TOKEN_AUTORE = 4;
 
@@ -65,6 +67,7 @@ function condividonoAutore(dichiarati: string[], verificati: string[]): boolean 
  */
 function SuggerimentoRiga({ suggerimento }: { suggerimento: Suggerimento }) {
   const queryClient = useQueryClient();
+  const spiega = useMessaggioErrore();
   // Chiave stabile per la coppia titolo/autori; i due termini di ricerca
   // sotto sono diversi apposta, non la stessa stringa incollata due volte.
   const chiave = ["suggerimento-risoluzione", suggerimento.titolo, ...suggerimento.autori];
@@ -128,7 +131,7 @@ function SuggerimentoRiga({ suggerimento }: { suggerimento: Suggerimento }) {
         );
       }
     },
-    onError: (err) => setErrore(err.message),
+    onError: (err: unknown) => setErrore(spiega("libroNonAggiunto", erroreDi(err))),
   });
 
   return (
@@ -197,6 +200,7 @@ function SuggerimentoRiga({ suggerimento }: { suggerimento: Suggerimento }) {
  */
 export function Suggerimenti() {
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [suggerimenti, setSuggerimenti] = useState<Suggerimento[] | null>(null);
   const [spenta, setSpenta] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
@@ -218,12 +222,12 @@ export function Suggerimenti() {
         return;
       }
       if (result.status !== "ok") {
-        setErrore(result.message);
+        setErrore(spiega("suggerimentiNonArrivati", result.errore));
         return;
       }
       setSuggerimenti(result.data);
     },
-    onError: () => setErrore("I suggerimenti non sono arrivati. Riprova."),
+    onError: (err: unknown) => setErrore(spiega("suggerimentiNonArrivati", erroreDi(err))),
   });
 
   return (

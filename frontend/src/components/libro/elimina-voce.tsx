@@ -8,7 +8,8 @@ import { cancellaVoce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { Button } from "@/components/ui/button";
 import { Messaggio } from "@/components/ui/messaggio";
-import { useTranslations } from "next-intl";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 type Passo = "chiuso" | "conferma";
 
@@ -56,7 +57,7 @@ export function EliminaVoce({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [passo, setPasso] = useState<Passo>("chiuso");
   const [errore, setErrore] = useState<string | null>(null);
 
@@ -65,8 +66,8 @@ export function EliminaVoce({
       const token = await getAccessToken();
       const result = await cancellaVoce(token, voceId);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
         );
       }
     },
@@ -77,7 +78,7 @@ export function EliminaVoce({
     },
     onError: (error: unknown) => {
       setErrore(
-        error instanceof Error ? error.message : t("errori.voceNonCancellata"),
+        spiega("voceNonCancellata", erroreDi(error)),
       );
     },
   });

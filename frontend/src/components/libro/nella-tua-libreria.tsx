@@ -8,7 +8,8 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { PastigliaStato } from "@/components/ui/pastiglia-stato";
-import { useTranslations } from "next-intl";
+import { ErroreApp, assenza } from "@/lib/api/errore";
+import { useAvvisa } from "@/lib/messaggi-errore";
 
 /** "una recensione, tre insight" — un conteggio, non un'anteprima:
  * nessun gating spoiler in gioco qui. */
@@ -38,15 +39,15 @@ export function NellaTuaLibreria({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
-  const t = useTranslations();
+  const avvisa = useAvvisa();
 
   const mutazione = useMutation({
     mutationFn: async () => {
       const token = await getAccessToken();
       const result = await aggiungiVoce(token, libroId);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.libroSparito") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("libroSparito") : result.errore,
         );
       }
     },
@@ -54,7 +55,7 @@ export function NellaTuaLibreria({
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
     onError: (error: unknown) =>
-      showError(error instanceof Error ? error.message : t("errori.libroNonAggiunto")),
+      avvisa(showError, "libroNonAggiunto", error, () => mutazione.mutate()),
   });
 
   return (

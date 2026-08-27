@@ -14,6 +14,8 @@ import { Messaggio } from "@/components/ui/messaggio";
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { ERRORE_SERVER, ErroreApp, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /** I filtri che un tema impone al corpus.
  *
@@ -82,6 +84,7 @@ export function Temi({
 }) {
   const queryClient = useQueryClient();
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [messaggioVuoto, setMessaggioVuoto] = useState<string | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
   // Cancellare una sintesi butta un artefatto che non torna indietro:
@@ -97,7 +100,7 @@ export function Temi({
       const result = await getSintesi(token);
       if (result.status === "ok") return result.data;
       if (result.status === "not_found") return null;
-      throw new Error(t("errori.sintesiNonLetta"));
+      throw new ErroreApp(ERRORE_SERVER);
     },
   });
 
@@ -124,25 +127,25 @@ export function Temi({
         setErrore(null);
         return;
       }
-      if (result.status === "contenuto_insufficiente" || result.status === "nessun_tema_rilevante") {
-        setMessaggioVuoto(result.message);
+      if (result.status === "insight_insufficienti" || result.status === "nessun_tema_rilevante") {
+        setMessaggioVuoto(spiega("sintesiNonArrivata", result.errore));
         return;
       }
       if (result.status !== "ok") {
-        setErrore(result.status === "not_found" ? "La sintesi non è arrivata." : result.message);
+        setErrore(spiega("sintesiNonArrivata", result.status === "not_found" ? undefined : result.errore));
         return;
       }
       onApriTema(null);
       void queryClient.invalidateQueries({ queryKey: chiave });
     },
-    onError: () => setErrore("La sintesi non è arrivata. Riprova."),
+    onError: (err: unknown) => setErrore(spiega("sintesiNonArrivata", erroreDi(err))),
   });
 
   const cancella = useMutation({
     mutationFn: async (artefattoId: string) => {
       const token = await getAccessToken();
       const result = await cancellaArtefatto(token, artefattoId);
-      if (result.status === "error") throw new Error(result.message);
+      if (result.status === "error") throw new ErroreApp(result.errore);
     },
     onSuccess: () => {
       setConfermaCancella(false);

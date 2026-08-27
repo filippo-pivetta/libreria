@@ -24,6 +24,9 @@
  * indici non c'è niente da confrontare.
  */
 
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, ERRORE_SERVER, erroreDaRisposta } from "@/lib/api/errore";
+
 export type TipoContenuto = "insight" | "recensione";
 export type Visibilita = "condiviso" | "privato";
 
@@ -134,12 +137,8 @@ export type PensieroCheTorna = { scritto: Scritto | null; giorniFa: number | nul
 
 export type Vicini = { vicini: Scritto[]; indiciIncompleti: boolean };
 
-type Esito<T> = { status: "ok"; data: T } | { status: "error"; message: string };
+type Esito<T> = { status: "ok"; data: T } | { status: "error"; errore: ErroreApi };
 
-const NON_CONFIGURATA =
-  "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza.";
-const NON_RISPONDE = "Il server non risponde. Controlla la connessione e riprova.";
-const RISPOSTA_MALE = "Il server ha risposto male. Riprova fra poco.";
 
 /** Il giro comune ai quattro fetcher: la stessa costruzione dell'indirizzo,
  * gli stessi tre messaggi d'errore, la stessa forma di ritorno. Estratto
@@ -151,7 +150,7 @@ async function leggi<B, T>(
   trasforma: (body: B) => T,
 ): Promise<Esito<T> | { status: "consenso_revocato" }> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!baseUrl) return { status: "error", message: NON_CONFIGURATA };
+  if (!baseUrl) return { status: "error", errore: ERRORE_CONFIGURAZIONE };
 
   let response: Response;
   try {
@@ -160,11 +159,11 @@ async function leggi<B, T>(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: NON_RISPONDE };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 409) return { status: "consenso_revocato" };
-  if (!response.ok) return { status: "error", message: RISPOSTA_MALE };
+  if (!response.ok) return { status: "error", errore: erroreDaRisposta(response) };
 
   return { status: "ok", data: trasforma((await response.json()) as B) };
 }
@@ -201,7 +200,7 @@ export async function getScritti(
   // La rotta non risponde mai 409; il ramo esiste solo nel tipo di
   // `leggi`, che è condiviso con `getVicini`.
   return esito.status === "consenso_revocato"
-    ? { status: "error", message: RISPOSTA_MALE }
+    ? { status: "error", errore: ERRORE_SERVER }
     : esito;
 }
 
@@ -212,7 +211,7 @@ export async function getSfaccettature(accessToken: string): Promise<Esito<Sfacc
     (body) => body,
   );
   return esito.status === "consenso_revocato"
-    ? { status: "error", message: RISPOSTA_MALE }
+    ? { status: "error", errore: ERRORE_SERVER }
     : esito;
 }
 
@@ -231,7 +230,7 @@ export async function getPensieroCheTorna(
     }),
   );
   return esito.status === "consenso_revocato"
-    ? { status: "error", message: RISPOSTA_MALE }
+    ? { status: "error", errore: ERRORE_SERVER }
     : esito;
 }
 

@@ -96,7 +96,7 @@ async def patch_voce_stato(
             status.HTTP_409_CONFLICT,
             {
                 "error_code": "lettura_chiusura_precede_ultimo_avanzamento",
-                "message": "La data di fine non può precedere l'ultimo avanzamento registrato.",
+                "message": "La data di fine non può precedere l’ultimo avanzamento registrato.",
             },
         ) from error
 

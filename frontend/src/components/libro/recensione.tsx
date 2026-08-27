@@ -14,10 +14,12 @@ import {
 } from "@/lib/api/recensioni";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-import { useTranslations } from "next-intl";
 import { Invito } from "@/components/ui/invito";
 import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";
 import { IconaCollegati, IconaLucchetto } from "@/components/ui/icone";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
+import { useTranslations } from "next-intl";
 
 /**
  * Recensione (design doc §9): un paragrafo Literata sulla pagina destra,
@@ -45,8 +47,9 @@ export function Recensione({
   isOwner: boolean;
 }) {
   const queryClient = useQueryClient();
-  const { showError } = useToast();
   const t = useTranslations();
+  const { showError } = useToast();
+  const spiega = useMessaggioErrore();
   const [aperta, setAperta] = useState(recensione !== null);
   const [testo, setTesto] = useState(recensione?.testo ?? "");
   const [visibilita, setVisibilita] = useState<Visibilita>(recensione?.visibilita ?? "condiviso");
@@ -61,8 +64,8 @@ export function Recensione({
       const token = await getAccessToken();
       const result = await scriviRecensione(token, voceId, valori.testo, valori.visibilita);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
         );
       }
     },
@@ -72,7 +75,7 @@ export function Recensione({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : t("errori.recensioneNonSalvata"),
+        spiega("recensioneNonSalvata", erroreDi(error)),
       );
       setTesto(recensione?.testo ?? "");
     },
@@ -83,7 +86,7 @@ export function Recensione({
       const token = await getAccessToken();
       const result = await cancellaRecensione(token, voceId);
       if (result.status !== "ok" && result.status !== "not_found") {
-        throw new Error(result.message);
+        throw new ErroreApp(result.errore);
       }
     },
     onSuccess: () => {
@@ -99,7 +102,7 @@ export function Recensione({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : t("errori.recensioneNonCancellata"),
+        spiega("recensioneNonCancellata", erroreDi(error)),
       );
       setTesto(recensione?.testo ?? "");
     },
@@ -179,7 +182,7 @@ export function Recensione({
           placeholder="Cosa ne pensi?"
           className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
         />
-        <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? "Salvato." : ""}</Messaggio>
+        <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? t("conferme.salvato") : ""}</Messaggio>
       </div>
     </div>
   );

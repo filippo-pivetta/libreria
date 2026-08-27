@@ -31,6 +31,8 @@ import {
   type ScrittoBody,
   type TipoContenuto,
 } from "@/lib/api/scritti";
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta, regola } from "@/lib/api/errore";
 
 export type { TipoContenuto };
 
@@ -48,7 +50,7 @@ export type RicercaSemantica = {
 export type RicercaSemanticaResult =
   | { status: "ok"; data: RicercaSemantica }
   | { status: "consenso_revocato" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 type RisultatoBody = ScrittoBody & { copertina_miniatura_url: string | null };
 
@@ -61,10 +63,7 @@ export async function cercaSemantica(
 ): Promise<RicercaSemanticaResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return {
-      status: "error",
-      message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza.",
-    };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   const params = parametriFiltri(filtri);
@@ -77,7 +76,7 @@ export async function cercaSemantica(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 409) {
@@ -85,14 +84,11 @@ export async function cercaSemantica(
   }
 
   if (response.status === 503) {
-    return {
-      status: "error",
-      message: "La ricerca semantica non è disponibile in questo momento.",
-    };
+    return { status: "error", errore: regola("indice_semantico_non_pronto") };
   }
 
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as Body;

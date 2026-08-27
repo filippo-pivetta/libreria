@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { aggiungiDaCatalogo, type Risultato, type VoceDelRisultato } from "@/lib/api/ricerca";
 import { aggiungiVoce } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
-import { useTranslations } from "next-intl";
+import { ERRORE_SERVER, ErroreApp, assenza, regola } from "@/lib/api/errore";
 
 export type EsitoAggiunta = { chiave: string; libroId: string; voce: VoceDelRisultato };
 
@@ -30,7 +30,6 @@ export function useAggiungiRisultato(opzioni?: {
   onError?: (errore: Error, risultato: Risultato) => void;
 }) {
   const queryClient = useQueryClient();
-  const t = useTranslations();
 
   return useMutation({
     mutationFn: async (risultato: Risultato): Promise<EsitoAggiunta> => {
@@ -39,8 +38,8 @@ export function useAggiungiRisultato(opzioni?: {
       if (risultato.origine === "locale" || risultato.libroId !== null) {
         const libroId = risultato.origine === "locale" ? risultato.libroId : risultato.libroId!;
         const esito = await aggiungiVoce(token, libroId);
-        if (esito.status === "not_found") throw new Error(t("assenze.libroSparito"));
-        if (esito.status !== "ok") throw new Error(esito.message);
+        if (esito.status === "not_found") throw new ErroreApp(assenza("libroSparito"));
+        if (esito.status !== "ok") throw new ErroreApp(esito.errore);
         return {
           chiave: risultato.chiave,
           libroId,
@@ -56,9 +55,13 @@ export function useAggiungiRisultato(opzioni?: {
 
       const esito = await aggiungiDaCatalogo(token, risultato.volumeId, risultato.volumiAlternativi);
       if (esito.status === "fonte_irraggiungibile") {
-        throw new Error("I cataloghi non rispondono. Riprova tra poco.");
+        // Una frase propria e non la composizione: comporre darebbe "Il
+        // libro non è stato aggiunto alla tua libreria. Riprova fra poco.",
+        // che è vero ma nasconde la sola cosa utile — che a non rispondere
+        // sono i cataloghi, non noi, e quindi riprovare subito non serve.
+        throw new ErroreApp(regola("cataloghi_muti"));
       }
-      if (esito.status !== "ok") throw new Error(esito.message);
+      if (esito.status !== "ok") throw new ErroreApp(esito.errore);
       return {
         chiave: risultato.chiave,
         libroId: esito.libroId,
@@ -77,7 +80,7 @@ export function useAggiungiRisultato(opzioni?: {
     },
     onError: (errore: unknown, risultato) => {
       opzioni?.onError?.(
-        errore instanceof Error ? errore : new Error("Il libro non è stato aggiunto. Riprova."),
+        errore instanceof Error ? errore : new ErroreApp(ERRORE_SERVER),
         risultato,
       );
     },
