@@ -41,10 +41,25 @@ kill_timeout = 35
   # lasciati 'in_corso' rientrano in coda col recupero degli orfani.
   auto_stop_machines = "suspend"
   auto_start_machines = true
-  # Zero macchine accese a riposo: è la voce che decide il conto. Il prezzo
-  # da pagare è che i lavori in coda avanzano solo mentre qualcuno usa
-  # l'app — accettabile, perché è mentre la si usa che vengono accodati.
-  min_machines_running = 0
+  # Una macchina sempre accesa (27 agosto 2026, sessione sulle
+  # prestazioni). Prima era zero, e il commento diceva che era "la voce
+  # che decide il conto": vero, ma il conto non era l'unica voce.
+  #
+  # Con zero, il proxy sospende la macchina a ogni finestra di inattività
+  # e la prima richiesta che arriva dopo paga il risveglio. Non è un
+  # costo che si paga una volta all'avvio: si ripresenta a OGNI sessione
+  # d'uso che segua una pausa, cioè quasi sempre, su un'app che si apre
+  # due o tre volte al giorno. E "suspend" è un'ipotesi ottimistica, non
+  # una garanzia — come già diceva il commento qui sopra: dopo un
+  # deploy, una migrazione di host o una manutenzione si riparte
+  # dall'immagine Python, che sono secondi, non centesimi.
+  #
+  # Il costo aggiuntivo è quello di una shared-cpu-1x accesa di continuo.
+  # In cambio sparisce il picco di latenza più visibile che l'app avesse,
+  # e i lavori in coda (copertine, indici) avanzano anche mentre nessuno
+  # sta usando l'app — cosa che con zero non accadeva, come il vecchio
+  # commento ammetteva.
+  min_machines_running = 1
   processes = ["app"]
 
   [http_service.concurrency]

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -99,6 +100,21 @@ def create_app() -> FastAPI:
         # (issue #8).
         expose_headers=["Content-Disposition"],
     )
+
+    # Nessuno comprimeva le risposte: né questo processo né il proxy di
+    # Fly, che inoltra il corpo così com'è. Lo scaffale di una libreria
+    # popolata è JSON con molte ripetizioni (nomi di stato, chiavi,
+    # etichette di genere) — il materiale su cui gzip rende di più.
+    #
+    # `minimum_size`: sotto il chilobyte comprimere costa più CPU di
+    # quanta banda risparmi, e le risposte piccole qui sono la
+    # maggioranza (un cambio di stato, un avanzamento).
+    #
+    # `compresslevel=6` e non il 9 di default: su una shared-cpu-1x
+    # (fly.toml) il livello 9 costa parecchia CPU per una manciata di
+    # punti percentuali di rapporto in più. Il 6 è il ginocchio della
+    # curva.
+    app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 
     # Rete di sicurezza per tutto ciò che sfugge alle HTTPException
     # esplicite delle route (issue #11) — va registrato su Exception,

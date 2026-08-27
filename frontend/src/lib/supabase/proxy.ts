@@ -44,9 +44,21 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
+  // `getClaims` e non `getUser`: la seconda interroga il server di
+  // autenticazione a ogni richiesta — una andata e ritorno di rete
+  // prima ancora che il rendering cominci, su OGNI navigazione. La
+  // prima verifica la firma del token in locale con WebCrypto, perché
+  // il progetto firma con chiavi asimmetriche (docs/adr/0012,
+  // emendamento del 27 agosto 2026): l'unica chiamata di rete è quella
+  // che scarica il JWKS, e resta in cache tra le richieste.
+  //
+  // Il refresh della sessione non si perde: `getClaims` rinnova da sé
+  // il token quando sta per scadere, prima di verificarlo — che è
+  // l'altra ragione per cui questa funzione esiste.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: claims,
+  } = await supabase.auth.getClaims();
+  const user = claims?.claims ?? null;
 
   // Redirect di rotta, non un confine di sicurezza: quale dato ciascuno
   // vede resta deciso dalla RLS nel database (docs/adr/0001), non da
