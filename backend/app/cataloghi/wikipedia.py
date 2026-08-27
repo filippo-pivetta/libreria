@@ -19,11 +19,11 @@ from dataclasses import dataclass
 
 import httpx
 
+from app.cataloghi import agente
 from app.cataloghi.errori import FonteNonRaggiungibileError
 
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "wikipedia"
-_INTESTAZIONI = {"User-Agent": "Montaigne/0.1 (applicazione privata di tracciamento letture)"}
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ async def sommario(lingua: str, titolo_pagina: str) -> Sommario | None:
     url = f"https://{lingua}.wikipedia.org/api/rest_v1/page/summary/{percorso}"
     try:
         async with httpx.AsyncClient(
-            timeout=_TIMEOUT, headers=_INTESTAZIONI, follow_redirects=True
+            timeout=_TIMEOUT, headers=agente.intestazioni(), follow_redirects=True
         ) as client:
             risposta = await client.get(url)
     except httpx.HTTPError as errore:

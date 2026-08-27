@@ -229,7 +229,7 @@ def test_503_transitorio_si_ripete_e_va_a_segno(monkeypatch: pytest.MonkeyPatch)
     vedere il guasto a chi cerca."""
     gb.svuota_cache()
     monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
-    monkeypatch.setattr(gb, "_ATTESA_RETRY", 0)
+    monkeypatch.setattr(gb, "_ATTESE_RETRY", (0.0,))
     _con_sequenza_risposte(
         monkeypatch,
         [httpx.Response(503), httpx.Response(200, json={"items": []})],
@@ -247,7 +247,7 @@ def test_503_due_volte_di_fila_si_riprende_al_terzo_tentativo(
     tentativi totali) non bastava; con tre tentativi il caso è coperto."""
     gb.svuota_cache()
     monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
-    monkeypatch.setattr(gb, "_ATTESA_RETRY", 0)
+    monkeypatch.setattr(gb, "_ATTESE_RETRY", (0.0,))
     _con_sequenza_risposte(
         monkeypatch,
         [httpx.Response(503), httpx.Response(503), httpx.Response(200, json={"items": []})],
@@ -263,7 +263,7 @@ def test_503_persistente_resta_fonte_non_raggiungibile(monkeypatch: pytest.Monke
     ritentare all'infinito."""
     gb.svuota_cache()
     monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
-    monkeypatch.setattr(gb, "_ATTESA_RETRY", 0)
+    monkeypatch.setattr(gb, "_ATTESE_RETRY", (0.0,))
     _con_risposta(monkeypatch, httpx.Response(503))
 
     with pytest.raises(FonteNonRaggiungibileError) as errore:
@@ -396,3 +396,103 @@ def test_con_la_cache_calda_non_si_tocca_la_rete(monkeypatch: pytest.MonkeyPatch
 
     assert opera is not None
     assert opera.rappresentante.volume_id == "v1"
+
+
+def _per_url(
+    monkeypatch: pytest.MonkeyPatch, risposte: dict[str, httpx.Response]
+) -> list[httpx.Request]:
+    """Una risposta diversa per ogni percorso richiesto, e la traccia delle
+    richieste partite. Serve ai casi in cui l'aggiunta interroga più volumi
+    e l'esito dell'uno non deve dipendere dall'esito dell'altro."""
+    originale = httpx.AsyncClient
+    viste: list[httpx.Request] = []
+
+    def _rispondi(richiesta: httpx.Request) -> httpx.Response:
+        viste.append(richiesta)
+        for frammento, risposta in risposte.items():
+            if frammento in str(richiesta.url):
+                return risposta
+        return httpx.Response(404)
+
+    def _client(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
+        kwargs["transport"] = httpx.MockTransport(_rispondi)
+        return originale(*args, **kwargs)
+
+    monkeypatch.setattr(gb.httpx, "AsyncClient", _client)
+    return viste
+
+
+def test_un_alternativo_irraggiungibile_non_fa_fallire_l_aggiunta(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il percorso di aggiunta è l'unico che spara più richieste insieme, ed
+    era l'unico che faceva fallire tutto per una sola di esse: `gather`
+    senza `return_exceptions` propagava il 503 di un ALTERNATIVO, e
+    l'Utente vedeva "i cataloghi non rispondono" su un libro il cui volume
+    principale era già stato letto senza problemi.
+
+    Gli alternativi aggiungono identificativi al riconoscimento, non lo
+    decidono: uno che non risponde si lascia cadere, esattamente come si
+    lascia cadere uno già scaduto in cache."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    monkeypatch.setattr(gb, "_ATTESE_RETRY", (0.0,))
+    _per_url(
+        monkeypatch,
+        {
+            "volumes/buono": httpx.Response(
+                200, json=_elemento("buono", "Il nome della rosa", ["Umberto Eco"])
+            ),
+            "volumes/rotto": httpx.Response(503),
+        },
+    )
+
+    opera = __import__("asyncio").run(gb.opera_per_identificativi("buono", ["rotto"]))
+
+    assert opera is not None
+    assert opera.rappresentante.volume_id == "buono"
+    assert opera.alternativi == []
+
+
+def test_il_rappresentante_irraggiungibile_resta_un_errore(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """La tolleranza vale per gli alternativi, non per il volume che decide
+    la riga: senza quello non c'è nulla da aggiungere, e dichiararlo è
+    l'unico esito onesto."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    monkeypatch.setattr(gb, "_ATTESE_RETRY", (0.0,))
+    _per_url(monkeypatch, {"volumes/": httpx.Response(503)})
+
+    with pytest.raises(FonteNonRaggiungibileError):
+        __import__("asyncio").run(gb.opera_per_identificativi("rotto", []))
+
+
+def test_la_ricerca_esclude_le_riviste(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`printType` ha per default documentato `all`, che comprende i
+    periodici: su un termine come "Focus" o "Wired" i primi risultati erano
+    numeri di rivista, che non sono opere e non hanno nulla da fare in una
+    libreria di letture."""
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    viste = _per_url(monkeypatch, {"volumes": httpx.Response(200, json={"items": []})})
+
+    __import__("asyncio").run(gb.cerca("focus"))
+
+    assert viste, "nessuna richiesta partita"
+    assert viste[0].url.params.get("printType") == "books"
+
+
+def test_l_agente_dichiara_un_contatto() -> None:
+    """Policy Wikimedia: il `User-Agent` deve portare un contatto (URL o
+    email) dentro le parentesi, e chi non lo fa "may be blocked without
+    notice". Open Library dà 3 richieste al secondo a chi si identifica e 1
+    a chi non lo fa. La stringa precedente aveva la forma giusta e nessun
+    contatto dentro."""
+    from app.cataloghi import agente
+
+    ua = agente.user_agent()
+    assert ua.startswith("Montaigne/")
+    fra_parentesi = ua[ua.index("(") + 1 : ua.index(")")]
+    assert "://" in fra_parentesi or "@" in fra_parentesi

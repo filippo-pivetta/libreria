@@ -175,6 +175,14 @@ function toPopolare(body: PopolareBody): TitoloPopolare {
   };
 }
 
+/** 429 non è "il server ha risposto male": è il limitatore di frequenza
+ * che protegge la quota dei cataloghi (`LIMITE_CATALOGHI_ESTERNI`), e
+ * l'unica cosa da fare è aspettare. Detto con le parole di un guasto,
+ * mandava a cercare un problema che non c'è. */
+const TROPPE_RICHIESTE = "Troppe ricerche di fila. Aspetta qualche secondo e riprova.";
+const RISPOSTA_STORTA = "Il server ha risposto male. Riprova fra poco.";
+const SERVER_MUTO = "Il server non risponde. Controlla la connessione e riprova.";
+
 type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
 
 function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
@@ -205,10 +213,10 @@ export async function cercaNelCatalogo(
       { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
     );
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", message: SERVER_MUTO };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", message: RISPOSTA_STORTA };
   }
 
   const body = (await response.json()) as LocaleBody[];
@@ -228,16 +236,41 @@ function attesa(ms: number): Promise<void> {
 }
 
 const ATTESE_RETRY_ESTERNI_MS = [1000, 2000, 4000];
-/** Il backend ritenta già i 5xx transitori di Google (tre tentativi, meno
- * di un secondo in tutto — vedi `app/cataloghi/google_books.py`): se
- * nonostante quello `/ricerca/cataloghi` torna ancora 503, il disservizio
- * è più serio del solito momento di instabilità. Si ritenta ancora qui,
- * con un'attesa che cresce, prima di dichiarare la fonte irraggiungibile
- * — chi cerca nel frattempo vede "cerco nei cataloghi…" (resta invariato,
- * `isFetching` di React Query copre l'intera funzione) e non un errore
- * su un intoppo che il giro successivo avrebbe risolto. In tutto pochi
- * secondi, non un tentativo infinito: un vero down di Google resta un
- * down, e va dichiarato.*/
+/** Il backend ritenta già i 5xx transitori di Google (quattro tentativi
+ * con attesa crescente, ~2,3 secondi in tutto — vedi
+ * `app/cataloghi/google_books.py`): se nonostante quello la rotta torna
+ * ancora 503, il disservizio è più serio del solito momento di
+ * instabilità. Si ritenta ancora qui, con un'attesa che cresce, prima di
+ * dichiarare la fonte irraggiungibile — chi cerca nel frattempo vede
+ * "cerco nei cataloghi…" (resta invariato, `isFetching` di React Query
+ * copre l'intera funzione) e non un errore su un intoppo che il giro
+ * successivo avrebbe risolto. In tutto pochi secondi, non un tentativo
+ * infinito: un vero down di Google resta un down, e va dichiarato.*/
+
+/** Ripete `tentativo` finché dichiara di voler riprovare, con le attese
+ * di `ATTESE_RETRY_ESTERNI_MS`.
+ *
+ * Estratta da `cercaNeiCataloghi` per darla anche all'aggiunta, che ne
+ * era priva: la ricerca ritentava un 503 quattro volte e l'aggiunta si
+ * arrendeva alla prima: la stessa raffica di Google, sulla stessa
+ * schermata, a un secondo di distanza, produceva "cerco…" nel primo caso
+ * e "i cataloghi non rispondono" nel secondo. Ed è l'aggiunta ad avere
+ * più bisogno del retry, non meno: la ricerca fa una chiamata a Google,
+ * l'aggiunta ne fa una per volume quando la cache del back end è fredda,
+ * quindi ha più occasioni di incontrare la raffica.
+ *
+ * Ripetere `POST /libri` è sicuro: un 503 nasce dalla lettura dei volumi,
+ * prima di qualunque scrittura, e la rotta è comunque idempotente — la
+ * scheda si riconosce dai suoi identificativi e la Voce già esistente
+ * torna come `gia_in_libreria`, non come una seconda Voce.
+ */
+async function conRetry<T>(tentativo: () => Promise<{ riprova: boolean; esito: T }>): Promise<T> {
+  for (let numero = 0; ; numero++) {
+    const { riprova, esito } = await tentativo();
+    if (!riprova || numero >= ATTESE_RETRY_ESTERNI_MS.length) return esito;
+    await attesa(ATTESE_RETRY_ESTERNI_MS[numero]);
+  }
+}
 
 /** GET /ricerca/cataloghi: i cataloghi esterni, una riga per opera. */
 export async function cercaNeiCataloghi(
@@ -247,7 +280,7 @@ export async function cercaNeiCataloghi(
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
-  for (let tentativo = 0; ; tentativo++) {
+  return conRetry<RicercaEsternaResult>(async () => {
     let response: Response;
     try {
       response = await fetch(
@@ -255,23 +288,22 @@ export async function cercaNeiCataloghi(
         { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
       );
     } catch {
-      return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+      return { riprova: false, esito: { status: "error", message: SERVER_MUTO } };
     }
 
     if (response.status === 503) {
-      if (tentativo < ATTESE_RETRY_ESTERNI_MS.length) {
-        await attesa(ATTESE_RETRY_ESTERNI_MS[tentativo]);
-        continue;
-      }
-      return { status: "fonte_irraggiungibile" };
+      return { riprova: true, esito: { status: "fonte_irraggiungibile" } };
+    }
+    if (response.status === 429) {
+      return { riprova: false, esito: { status: "error", message: TROPPE_RICHIESTE } };
     }
     if (!response.ok) {
-      return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+      return { riprova: false, esito: { status: "error", message: RISPOSTA_STORTA } };
     }
 
     const body = (await response.json()) as EsternoBody[];
-    return { status: "ok", data: body.map(toEsterno) };
-  }
+    return { riprova: false, esito: { status: "ok", data: body.map(toEsterno) } };
+  });
 }
 
 export type RicercaPopolariResult =
@@ -294,10 +326,10 @@ export async function cercaPopolari(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", message: SERVER_MUTO };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", message: RISPOSTA_STORTA };
   }
 
   const body = (await response.json()) as PopolareBody[];
@@ -325,45 +357,56 @@ export async function aggiungiDaCatalogo(
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
-  let response: Response;
-  try {
-    response = await fetch(`${config.baseUrl}/libri`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ volume_id: volumeId, volumi_alternativi: volumiAlternativi }),
-      cache: "no-store",
-    });
-  } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
-  }
+  return conRetry<AggiungiDaCatalogoResult>(async () => {
+    let response: Response;
+    try {
+      response = await fetch(`${config.baseUrl}/libri`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ volume_id: volumeId, volumi_alternativi: volumiAlternativi }),
+        cache: "no-store",
+      });
+    } catch {
+      return { riprova: false, esito: { status: "error", message: SERVER_MUTO } };
+    }
 
-  if (response.status === 503) {
-    return { status: "fonte_irraggiungibile" };
-  }
-  if (response.status === 409) {
-    const errorBody = (await response.json()) as ErrorBody;
-    const detail = typeof errorBody.detail === "object" ? errorBody.detail : undefined;
-    return {
-      status: "risultato_scaduto",
-      message: detail?.message ?? "Questo risultato non è più valido. Rifai la ricerca.",
+    if (response.status === 503) {
+      return { riprova: true, esito: { status: "fonte_irraggiungibile" } };
+    }
+    if (response.status === 409) {
+      const errorBody = (await response.json()) as ErrorBody;
+      const detail = typeof errorBody.detail === "object" ? errorBody.detail : undefined;
+      return {
+        riprova: false,
+        esito: {
+          status: "risultato_scaduto",
+          message: detail?.message ?? "Questo risultato non è più valido. Rifai la ricerca.",
+        },
+      };
+    }
+    if (response.status === 429) {
+      return { riprova: false, esito: { status: "error", message: TROPPE_RICHIESTE } };
+    }
+    if (!response.ok) {
+      return { riprova: false, esito: { status: "error", message: RISPOSTA_STORTA } };
+    }
+
+    const body = (await response.json()) as {
+      libro_id: string;
+      voce_id: string;
+      gia_in_libreria: boolean;
     };
-  }
-  if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
-  }
-
-  const body = (await response.json()) as {
-    libro_id: string;
-    voce_id: string;
-    gia_in_libreria: boolean;
-  };
-  return {
-    status: "ok",
-    libroId: body.libro_id,
-    voceId: body.voce_id,
-    giaInLibreria: body.gia_in_libreria,
-  };
+    return {
+      riprova: false,
+      esito: {
+        status: "ok",
+        libroId: body.libro_id,
+        voceId: body.voce_id,
+        giaInLibreria: body.gia_in_libreria,
+      },
+    };
+  });
 }

@@ -298,6 +298,48 @@ begin
   end if;
   raise notice 'OK 12: cerca_libri ignora gli accenti, trova per autore e non espone Voci altrui';
 
+  -- 12b. La ricerca per PAROLE (migrazione 20260827100000). Il caso che
+  --      la versione a sottostringa unica sbagliava: nessun titolo
+  --      contiene "calvino" e nessun autore contiene "invisibili", ma il
+  --      libro contiene entrambe le parole — ed è ciò che un lettore
+  --      scrive. Prima dava zero risultati locali e riproponeva la stessa
+  --      opera fra i risultati esterni, cioè invitava ad aggiungere una
+  --      scheda che c'era già.
+  select count(*) into v_n from public.cerca_libri('calvino invisibili');
+  if v_n <> 1 then
+    raise exception
+      'FALLITO: cerca_libri deve trovare per parole sparse fra titolo e autore (trovati %)', v_n;
+  end if;
+
+  select count(*) into v_n from public.cerca_libri('invisibili calvino');
+  if v_n <> 1 then
+    raise exception 'FALLITO: l''ordine delle parole non deve contare (trovati %)', v_n;
+  end if;
+
+  --      Le parole si sommano, non si alternano: una parola che nessun
+  --      libro ha deve azzerare il risultato, altrimenti la ricerca
+  --      allargherebbe invece di restringere a ogni parola digitata.
+  select count(*) into v_n from public.cerca_libri('calvino sottomarino');
+  if v_n <> 0 then
+    raise exception
+      'FALLITO: tutte le parole devono corrispondere, non una qualsiasi (trovati %)', v_n;
+  end if;
+
+  -- 12c. Il refuso si perdona, ma non scavalca mai una corrispondenza
+  --      vera: chi arriva solo per somiglianza porta il rango più alto.
+  select count(*) into v_n from public.cerca_libri('invisibli');
+  if v_n < 1 then
+    raise exception 'FALLITO: cerca_libri deve perdonare un refuso (trovati %)', v_n;
+  end if;
+
+  select coalesce(max(rango), -1) into v_n from public.cerca_libri('invisibli');
+  if v_n <> 4 then
+    raise exception
+      'FALLITO: un risultato trovato solo per somiglianza deve portare rango 4 (trovato %)', v_n;
+  end if;
+
+  raise notice 'OK 12b: cerca_libri corrisponde per parole e perdona i refusi';
+
   -- 13. Le pagine della Voce nascono precompilate alla mediana di
   --     catalogo (PRD comportamento #3), senza che chi inserisce debba
   --     saperlo: è la regola che prima non esisteva in nessuna via
@@ -331,6 +373,52 @@ begin
 end $$;
 
 reset role;
+
+-- ---------------------------------------------------------------------------
+-- Parte 2b — il testo cercabile resta fresco (migrazione 20260827100000).
+--
+-- Fuori dalla parte "come utente autenticato" perché serve SCRIVERE una
+-- variante di titolo, e il catalogo per `authenticated` è in sola lettura
+-- (verifica 10, poco sopra): a scriverlo è il back end su connessione
+-- diretta (ADR 0016), che è il ruolo con cui gira questa sezione.
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  v_n integer;
+begin
+  -- 13b. Il testo cercabile è denormalizzato: senza i trigger che lo
+  --      tengono fresco, una variante di titolo arrivata DOPO l'aggiunta
+  --      (Wikidata, in secondo piano) non renderebbe il libro trovabile
+  --      con quel titolo — e il guasto è invisibile, perché somiglia a
+  --      "non ce l'ho".
+  --
+  --      Si misura sul RANGO e non sulla presenza: "invisible cities"
+  --      assomiglia già abbastanza a "le citta invisibili italo calvino"
+  --      perché il ripiego per somiglianza lo peschi da sé (0,55 misurato,
+  --      sopra la soglia di 0,5). È esattamente la trappola che rende
+  --      inutile un test scritto sul conteggio: passerebbe anche con i
+  --      trigger spenti. Con la variante scritta la corrispondenza diventa
+  --      letterale, e il rango scende da 4 a 2.
+  select coalesce(max(rango), -1) into v_n from public.cerca_libri('invisible cities');
+  if v_n <> 4 then
+    raise exception
+      'FALLITO: presupposto non valido, atteso rango 4 (solo somiglianza), trovato %', v_n;
+  end if;
+
+  insert into public.variante_titolo (libro_id, lingua, titolo, fonte)
+  select id, 'en', 'Invisible Cities', 'wikidata'
+    from public.libro where titolo_canonico = 'Le città invisibili';
+
+  select coalesce(max(rango), -1) into v_n from public.cerca_libri('invisible cities');
+  if v_n <> 2 then
+    raise exception
+      'FALLITO: la variante appena scritta deve dare una corrispondenza letterale '
+      '(atteso rango 2, trovato %) — se resta 4, il trigger sul testo cercabile non ha girato',
+      v_n;
+  end if;
+  raise notice 'OK 13b: una variante di titolo scritta dopo l''aggiunta diventa subito cercabile';
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Parte 3 — lo spazio file delle copertine.

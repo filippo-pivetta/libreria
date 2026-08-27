@@ -25,6 +25,7 @@ from typing import Any
 
 import httpx
 
+from app.cataloghi import agente
 from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.core.config import get_settings
 
@@ -50,7 +51,6 @@ in blocco di tutti gli indici, non una riga di configurazione."""
 # strutturata prende sistematicamente più tempo di un lookup. Nessun retry
 # qui dentro: vive già nel worker (30s/120s/600s, MAX_TENTATIVI=3).
 _TIMEOUT = httpx.Timeout(20.0)
-_INTESTAZIONI = {"User-Agent": "Montaigne/0.1 (applicazione privata di tracciamento letture)"}
 
 
 async def _posta(url: str, corpo: dict[str, Any]) -> Any:
@@ -59,7 +59,7 @@ async def _posta(url: str, corpo: dict[str, Any]) -> Any:
         raise FonteNonRaggiungibileError(FONTE, "OPENAI_API_KEY non configurata.")
 
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_INTESTAZIONI) as client:
+        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=agente.intestazioni()) as client:
             risposta = await client.post(
                 url,
                 headers={"Authorization": f"Bearer {settings.openai_api_key}"},

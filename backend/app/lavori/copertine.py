@@ -21,6 +21,7 @@ import httpx
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image, ImageStat, UnidentifiedImageError
 
+from app.cataloghi import agente
 from app.core import storage
 from app.lavori.errori import ErroreDefinitivo, ErroreTransitorio
 from app.repositories import catalogo_repository, database
@@ -31,7 +32,7 @@ LATO_MINIATURA = 400
 LATO_GRANDE = 600
 
 _TIMEOUT = httpx.Timeout(15.0)
-_INTESTAZIONI = {"User-Agent": "Montaigne/0.1 (applicazione privata di tracciamento letture)"}
+
 
 # Google risponde 200 anche quando la copertina non esiste, servendo un PNG
 # grigio uniforme 575x750. `onError` di un tag immagine non scatterebbe mai
@@ -282,7 +283,7 @@ async def esegui(payload: dict[str, Any]) -> None:
 
     dati: bytes | None = None
     async with httpx.AsyncClient(
-        timeout=_TIMEOUT, follow_redirects=True, headers=_INTESTAZIONI
+        timeout=_TIMEOUT, follow_redirects=True, headers=agente.intestazioni()
     ) as client:
         if volume_id:
             dati = await _scarica(client, _url_google(str(volume_id)))

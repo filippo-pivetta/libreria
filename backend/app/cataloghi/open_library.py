@@ -34,6 +34,7 @@ from typing import Any
 
 import httpx
 
+from app.cataloghi import agente
 from app.cataloghi.errori import FonteNonRaggiungibileError
 
 _URL = "https://openlibrary.org/search.json"
@@ -96,8 +97,15 @@ def _stringhe(valore: Any) -> tuple[str, ...]:
 
 
 async def _interroga(query: str, limite: int) -> list[OperaOL]:
+    # `headers` non era passato: le richieste uscivano con il
+    # `python-httpx/0.28.1` di libreria, cioè come client anonimo. La
+    # documentazione di Open Library (openlibrary.org/developers/api) dà
+    # 1 richiesta al secondo agli anonimi e 3 a chi si identifica, e
+    # avverte che la violazione porta a "aggressive rate limiting or
+    # blocking" — mentre una sola aggiunta interroga Open Library più
+    # volte di fila (un ISBN dopo l'altro, poi la ricerca per testo).
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=agente.intestazioni()) as client:
             risposta = await client.get(
                 _URL, params={"q": query, "fields": _CAMPI, "limit": str(limite)}
             )
