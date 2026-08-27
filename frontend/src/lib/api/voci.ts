@@ -41,17 +41,6 @@ export type Libro = {
    * modifica" è il messaggio, non solo l'assenza di un comando (design
    * doc §9). */
   generi: Genere[];
-  /** Solo nella lingua dell'interfaccia, mai un ripiego su un'altra
-   * (design doc §9). */
-  descrizione: string | null;
-  /** Vero quando il testo è stato riformulato dal modello (espanso se
-   * troppo corto, accorciato se troppo lungo) a partire dalla
-   * descrizione sorgente (design doc §24, emendamento 21 agosto 2026).
-   * L'etichetta di trasparenza in scheda è stata costruita e poi tolta
-   * dall'interfaccia (emendamento 22 agosto 2026): il campo resta
-   * esposto, non più distinto in scheda dalla citazione letterale della
-   * fonte. */
-  descrizioneRiformulata: boolean;
   /** URL firmato, non il percorso interno: il bucket delle copertine è
    * privato (PRD regola 6) e un percorso da solo non apre nulla. La firma
    * dura sette giorni ed è stabile tra le richieste, così il browser può
@@ -98,6 +87,29 @@ export type Voce = {
   numeroInsight: number;
 };
 
+/** Il Libro come arriva alla SCHEDA (`GET /voci/{id}`): quello dello
+ * scaffale più la descrizione dell'opera.
+ *
+ * La separazione rispecchia quella del backend
+ * (`app/schemas/voci.py`, `LibroDaScaffale` / `LibroEssenziale`): lo
+ * scaffale non disegna la descrizione in nessun punto, e riceverne una
+ * per ogni volume della libreria era il pezzo più pesante della
+ * risposta della home. Il tipo lo rende un errore di compilazione
+ * invece di un campo vuoto scoperto a schermo. */
+export type LibroConDescrizione = Libro & {
+  /** Solo nella lingua dell'interfaccia, mai un ripiego su un'altra
+   * (design doc §9). */
+  descrizione: string | null;
+  /** Vero quando il testo è stato riformulato dal modello (espanso se
+   * troppo corto, accorciato se troppo lungo) a partire dalla
+   * descrizione sorgente (design doc §24, emendamento 21 agosto 2026).
+   * L'etichetta di trasparenza in scheda è stata costruita e poi tolta
+   * dall'interfaccia (emendamento 22 agosto 2026): il campo resta
+   * esposto, non più distinto in scheda dalla citazione letterale della
+   * fonte. */
+  descrizioneRiformulata: boolean;
+};
+
 export type VoceConLibro = Voce & { libro: Libro };
 
 export type Avanzamento = {
@@ -118,7 +130,10 @@ export type Lettura = {
   insight: InsightEssenziale[];
 };
 
-export type VoceDettaglio = VoceConLibro & {
+export type VoceDettaglio = Omit<VoceConLibro, "libro"> & {
+  /** Con la descrizione, a differenza della voce di scaffale: è questa
+   * pagina a disegnarla (`components/libro/scheda.tsx`). */
+  libro: LibroConDescrizione;
   letture: Lettura[];
   /** `null` se non scritta, o se privata e chi guarda non è il
    * proprietario (RLS, non un campo booleano applicativo) — issue #5. */
@@ -146,8 +161,6 @@ type LibroBody = {
   lingua_originale: string | null;
   lingua_dedotta: boolean;
   generi: GenereBody[];
-  descrizione: string | null;
-  descrizione_riformulata: boolean;
   copertina_miniatura_url: string | null;
   copertina_grande_url: string | null;
   copertina_colore_dominante: string | null;
@@ -171,6 +184,11 @@ type VoceBody = {
   numero_insight: number;
 };
 
+type LibroConDescrizioneBody = LibroBody & {
+  descrizione: string | null;
+  descrizione_riformulata: boolean;
+};
+
 export type VoceConLibroBody = VoceBody & { libro: LibroBody };
 
 type AvanzamentoBody = {
@@ -189,7 +207,8 @@ type LetturaBody = {
   insight: InsightEssenzialeBody[];
 };
 
-type VoceDettaglioBody = VoceConLibroBody & {
+type VoceDettaglioBody = VoceBody & {
+  libro: LibroConDescrizioneBody;
   letture: LetturaBody[];
   recensione: RecensioneBody | null;
   insight_senza_lettura: InsightEssenzialeBody[];
@@ -204,14 +223,20 @@ function toLibro(body: LibroBody): Libro {
     linguaOriginale: body.lingua_originale,
     linguaDedotta: body.lingua_dedotta,
     generi: body.generi.map((genere) => ({ id: genere.id, etichetta: genere.etichetta })),
-    descrizione: body.descrizione,
-    descrizioneRiformulata: body.descrizione_riformulata,
     copertinaMiniaturaUrl: body.copertina_miniatura_url,
     copertinaGrandeUrl: body.copertina_grande_url,
     copertinaColoreDominante: body.copertina_colore_dominante,
     copertinaColoreDominanteScuro: body.copertina_colore_dominante_scuro,
     copertinaStato: body.copertina_stato,
     autori: body.autori.map((autore) => ({ id: autore.id, nomeCanonico: autore.nome_canonico })),
+  };
+}
+
+function toLibroConDescrizione(body: LibroConDescrizioneBody): LibroConDescrizione {
+  return {
+    ...toLibro(body),
+    descrizione: body.descrizione,
+    descrizioneRiformulata: body.descrizione_riformulata,
   };
 }
 
@@ -258,7 +283,8 @@ function toLettura(body: LetturaBody): Lettura {
 
 function toVoceDettaglio(body: VoceDettaglioBody): VoceDettaglio {
   return {
-    ...toVoceConLibro(body),
+    ...toVoce(body),
+    libro: toLibroConDescrizione(body.libro),
     letture: body.letture.map(toLettura),
     recensione: body.recensione ? toRecensione(body.recensione) : null,
     insightSenzaLettura: body.insight_senza_lettura.map(toInsightEssenziale),

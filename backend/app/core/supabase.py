@@ -23,7 +23,9 @@ questo backend ha due soli usi ammessi:
 
 from functools import lru_cache
 
+import httpx
 from supabase import Client, create_client
+from supabase.lib.client_options import SyncClientOptions
 
 from app.core.config import get_settings
 
@@ -46,10 +48,95 @@ riga esiste. Vedi `recensioni_service.scrivi` e
 con RLS."""
 
 
+class _PoolCondiviso(httpx.Client):
+    """Lo stesso `httpx.Client`, con `close()`/`aclose()` disattivate.
+
+    Trovato in review (27 agosto 2026): niente nel codice di oggi chiude
+    mai questo pool, ma non c'era nulla a impedirlo domani. `postgrest`
+    espone `SyncPostgrestClient.aclose()` — che chiama esattamente
+    `self.session.close()` — anche come `__exit__` di un `with`: un
+    `with get_user_client(token).postgrest as pg:` scritto altrove,
+    magari per abitudine presa su un client non condiviso, chiuderebbe
+    per sempre QUESTO oggetto. `httpx.Client` non si riapre: da quel
+    momento ogni richiesta di ogni utente fallirebbe con "client is
+    closed" finché la macchina non riparte — un'interruzione totale,
+    silenziosa all'origine (l'errore comparirebbe lontano dalla riga che
+    l'ha causata), che nessun test avrebbe intercettato.
+
+    Chi vuole davvero terminare le connessioni del processo chiama
+    `chiudi_pool_http()` sotto, esplicito e cercabile."""
+
+    def close(self) -> None:
+        # `httpx.Client` (sincrono) non ha `aclose`: solo `AsyncClient` ce
+        # l'ha. `SyncPostgrestClient.aclose()` (postgrest, vedi sopra)
+        # chiama comunque `session.close()`, quindi questa sola
+        # sovrascrittura basta a coprire la via che preoccupa.
+        pass
+
+
+@lru_cache
+def _pool_http() -> _PoolCondiviso:
+    """Il pool di connessioni verso PostgREST, condiviso da tutte le
+    richieste.
+
+    Senza, `get_user_client` sotto costruiva un `httpx.Client` nuovo a
+    ogni richiesta HTTP servita, e con esso una connessione TCP e un
+    handshake TLS nuovi verso Supabase — pagati *dentro* il tempo di
+    risposta di ogni pagina. Riusare il pool li paga una volta sola,
+    all'avvio della macchina.
+
+    **Perché è sicuro condividerlo, benché ogni richiesta porti il token
+    di un utente diverso.** Il token NON vive qui. `postgrest.auth()`
+    scrive l'header su `self.headers` del client postgrest — che resta
+    uno per richiesta — e `from_()` lo passa alla singola richiesta
+    accanto alla sessione, invece di appoggiarsi agli header di
+    default della sessione (postgrest `from_`: `SyncRequestBuilder(
+    self.session, ..., self.headers, ...)`). Questo pool viene
+    costruito senza alcun header di autorizzazione proprio, quindi non
+    c'è nulla che possa trapelare da una richiesta all'altra.
+    Verificato da `tests/test_supabase_client.py`, che incrocia
+    deliberatamente due token sullo stesso pool.
+
+    `http2=True` per non discostarsi dal client che postgrest si
+    costruirebbe da sé (postgrest `SyncPostgrestClient.__init__`).
+    """
+    return _PoolCondiviso(
+        http2=True,
+        follow_redirects=True,
+        # Il tetto alle connessioni tenute aperte è basso di proposito:
+        # la macchina è una shared-cpu-1x da 512MB (fly.toml) e serve
+        # un'istanza sola di Supabase, non un ventaglio di host.
+        limits=httpx.Limits(max_keepalive_connections=20, max_connections=100),
+        # `connect` corto perché una connessione che non si apre in
+        # cinque secondi non si aprirà; `read` più lungo perché alcune
+        # query di elenco sono legittimamente lente.
+        timeout=httpx.Timeout(15.0, connect=5.0),
+    )
+
+
+def chiudi_pool_http() -> None:
+    """Chiude davvero il pool — l'unica via, ora che `close()` sull'oggetto
+    stesso non fa nulla. Da chiamare nello shutdown del processo, se mai
+    servirà liberare le connessioni esplicitamente invece di lasciarle
+    al sistema operativo alla terminazione."""
+    if _pool_http.cache_info().currsize:
+        httpx.Client.close(_pool_http())
+        _pool_http.cache_clear()
+
+
 def get_user_client(access_token: str) -> Client:
-    """Client che opera con l'identità dell'utente autenticato."""
+    """Client che opera con l'identità dell'utente autenticato.
+
+    L'oggetto è nuovo a ogni chiamata — deve esserlo, perché è dove vive
+    il token — ma le connessioni sottostanti sono quelle già aperte del
+    pool condiviso (`_pool_http`).
+    """
     settings = get_settings()
-    client = create_client(settings.supabase_url, settings.supabase_anon_key)
+    client = create_client(
+        settings.supabase_url,
+        settings.supabase_anon_key,
+        options=SyncClientOptions(httpx_client=_pool_http()),
+    )
     client.postgrest.auth(access_token)
     return client
 

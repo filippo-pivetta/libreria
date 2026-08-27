@@ -26,12 +26,23 @@ export const fraunces = localFont({
 
 /* Literata, assi opsz 7..72, wght 200..900.
    L'asse ottico è ciò che permette a sentenza (19px) e appunto (15px) di essere
-   lo stesso carattere con due voci diverse: non sostituire con il file solo-wght. */
+   lo stesso carattere con due voci diverse: non sostituire con il file solo-wght.
+
+   IL CORSIVO NON È PIÙ CARICATO (27 agosto 2026, sessione sulle prestazioni).
+   Il file c'è ancora in `src/fonts`, ma non è più dichiarato qui: erano 111 KB
+   — il 29% del peso dei caratteri — messi in `preload` su ogni pagina e non
+   usati da nessuna parte. Verificato prima di toglierlo: nessuna regola
+   `font-style: italic` in `tokens.css`, nessuna classe `italic` in
+   `src/components` o `src/app`, e `docs/design-frontend.md` non nomina il
+   corsivo in nessun punto.
+   Il giorno che il design lo vorrà, si rimette la riga `style: "italic"` qui
+   sotto e torna: è una riga, e il binario è già versionato. Finché quel
+   giorno non arriva, un eventuale corsivo scritto per distrazione uscirà
+   obliquo per sintesi del browser invece che nel disegno vero — differenza
+   visibile a chi la cerca, e comunque preferibile a spedirlo a tutti per
+   nessuno. */
 export const literata = localFont({
-  src: [
-    { path: "../fonts/Literata-Variable-latin.woff2", style: "normal", weight: "200 900" },
-    { path: "../fonts/Literata-Variable-Italic-latin.woff2", style: "italic", weight: "200 900" },
-  ],
+  src: [{ path: "../fonts/Literata-Variable-latin.woff2", style: "normal", weight: "200 900" }],
   variable: "--font-literata",
   display: "swap",
   preload: true,

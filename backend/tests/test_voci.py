@@ -87,6 +87,74 @@ def test_get_voci_returns_list(authenticated: TestClient, monkeypatch: pytest.Mo
     assert body[0]["libro"]["titolo_canonico"] == "Prova"
 
 
+def test_get_voci_non_porta_la_descrizione_dellopera(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lo scaffale non disegna la descrizione, quindi non la riceve.
+
+    Il contratto vale anche quando il service *fornisce* il campo, come
+    fa qui `_LIBRO_CON_DESCRIZIONE`: a tagliarlo è lo schema di risposta
+    (`LibroDaScaffale`, app/schemas/voci.py), non il caso fortunato di
+    un dato assente a monte. Su una libreria di qualche centinaio di
+    titoli era il pezzo più pesante della risposta della home, scaricato
+    a ogni apertura e mai letto da nessun componente.
+    """
+    libro_con_descrizione = {
+        **_LIBRO,
+        "descrizione": "Un paragrafo lungo che lo scaffale non disegna mai.",
+        "descrizione_riformulata": True,
+    }
+
+    async def _fake_elenco(access_token: str, utente_id: UUID, lingua: str) -> list[dict[str, Any]]:
+        return [{**_VOCE, "libro": libro_con_descrizione}]
+
+    monkeypatch.setattr(voci_service, "elenco_libreria", _fake_elenco)
+
+    response = authenticated.get("/voci")
+
+    assert response.status_code == 200
+    libro = response.json()[0]["libro"]
+    assert "descrizione" not in libro
+    assert "descrizione_riformulata" not in libro
+    # Il resto del dorso c'è ancora: la potatura riguarda la sola
+    # descrizione, non i campi che lo scaffale disegna davvero.
+    assert libro["titolo_canonico"] == "Prova"
+    assert libro["copertina_stato"] == "assente"
+
+
+def test_get_voce_porta_la_descrizione_dellopera(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """La scheda invece la riceve: è la pagina che la disegna
+    (`components/libro/scheda.tsx`). L'altra metà del contratto diviso
+    con il test qui sopra — senza questo, togliere la descrizione anche
+    dalla scheda passerebbe inosservato."""
+
+    async def _fake_dettaglio(
+        access_token: str, voce_id: UUID, richiedente_id: UUID, lingua: str
+    ) -> dict[str, Any] | None:
+        return {
+            **_VOCE,
+            "libro": {
+                **_LIBRO,
+                "descrizione": "Il testo dell'opera.",
+                "descrizione_riformulata": True,
+            },
+            "letture": [],
+            "recensione": None,
+            "insight_senza_lettura": [],
+        }
+
+    monkeypatch.setattr(voci_service, "dettaglio", _fake_dettaglio)
+
+    response = authenticated.get(f"/voci/{_VOCE_ID}")
+
+    assert response.status_code == 200
+    libro = response.json()["libro"]
+    assert libro["descrizione"] == "Il testo dell'opera."
+    assert libro["descrizione_riformulata"] is True
+
+
 def test_get_voci_requires_authentication(client: TestClient) -> None:
     response = client.get("/voci")
 

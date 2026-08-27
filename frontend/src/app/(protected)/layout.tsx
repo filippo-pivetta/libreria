@@ -21,17 +21,23 @@ import { ErrorState } from "@/components/states/error-state";
  */
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // `getClaims` e non `getUser`, per la stessa ragione del Proxy
+  // (src/lib/supabase/proxy.ts, docs/adr/0012 emendato il 27 agosto
+  // 2026): la firma del token si verifica in locale con WebCrypto,
+  // senza interrogare il server di autenticazione. Prima questa riga
+  // costava una seconda andata e ritorno di rete DOPO quella già pagata
+  // dal Proxy, in serie, su ogni navigazione dell'area protetta.
+  const { data: claims } = await supabase.auth.getClaims();
 
-  if (!user) {
+  if (!claims) {
     redirect("/login");
   }
 
-  // Sicuro solo perché getUser() sopra ha già validato la sessione con
-  // Supabase: qui si legge il token già verificato, non ci si fida di un
-  // cookie non controllato.
+  // Sicuro solo perché getClaims() sopra ha già verificato la firma del
+  // token: qui si legge il token già validato, non ci si fida di un
+  // cookie non controllato. `getSession` è una lettura locale dei
+  // cookie, nessuna chiamata di rete — e legge il token già rinnovato,
+  // perché è getClaims a rinnovarlo quando sta per scadere.
   const {
     data: { session },
   } = await supabase.auth.getSession();

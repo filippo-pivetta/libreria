@@ -18,10 +18,22 @@ extra_search_path = ["public", "extensions"]
 max_rows = 1000
 # Controls whether new tables, views, sequences and functions created in the `public` schema by
 # `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
-# without explicit GRANTs. When unset, new entities are NOT auto-exposed, matching the new cloud
-# default. Set to `true` to keep the legacy behaviour of auto-exposing new entities; this is
-# deprecated and the field is removed on 2026-10-30 once the always-revoked behaviour is permanent.
-# auto_expose_new_tables = true
+# without explicit GRANTs. Set to `true` to keep the legacy behaviour of auto-exposing new
+# entities; this is deprecated and the field is removed on 2026-10-30 once the always-revoked
+# behaviour is permanent.
+#
+# Dichiarato esplicitamente, e non lasciato al default, perché il default è cambiato sotto di noi:
+# fino alla CLI 2.115 valeva `false`, la 2.116 l'ha portato a `true` per allinearsi alla
+# piattaforma (supabase/cli#6337). Il portatile con la 2.114 e la CI con `version: latest` hanno
+# così costruito due database diversi dalle stesse migrazioni — le sei verifiche passavano in
+# locale e fallivano in CI, ed era la CI ad avere ragione (vedi la migrazione
+# 20260827090000_privilegi_espliciti_su_public.sql). Con il valore scritto qui i due ambienti
+# tornano a coincidere qualunque CLI abbiano, e la riga diventa un no-op il 30/10/2026, quando
+# `false` sarà l'unico comportamento possibile.
+#
+# `false` e non `true` perché è ciò che lo schema dice già di volere: i privilegi su `public` sono
+# concessi uno per uno dalle migrazioni, `anon` e `service_role` non arrivano a niente.
+auto_expose_new_tables = false
 
 [api.tls]
 # Enable HTTPS endpoints locally using a self-signed certificate.

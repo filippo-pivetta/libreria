@@ -42,8 +42,8 @@ class GenereEssenziale(BaseModel):
     etichetta: str
 
 
-class LibroEssenziale(BaseModel):
-    """Il sottoinsieme del Libro che serve allo scaffale/alla scheda:
+class LibroDaScaffale(BaseModel):
+    """Il sottoinsieme del Libro che serve allo SCAFFALE:
     dato condiviso, sola lettura in questa issue. `autori` arriva già
     ordinato per `ordine` (PRD regola 18, peso ripartito tra più autori)
     — vedi `app/repositories/voce_repository.py::_appiattisci_autori`."""
@@ -63,17 +63,6 @@ class LibroEssenziale(BaseModel):
     """Fino a tre (PRD), mai correggibili da app (regola 21/22): "nessun
     affordance di modifica" è il messaggio, non solo l'assenza di un
     comando (design §9)."""
-    descrizione: str | None
-    """Solo nella lingua dell'interfaccia, mai un ripiego su un'altra
-    (design §9): assente se quella lingua non ha una descrizione, anche
-    se un'altra ce l'ha."""
-    descrizione_riformulata: bool
-    """Vero quando il testo è stato riformulato dal modello (espanso se
-    troppo corto, accorciato se troppo lungo) a partire dalla descrizione
-    sorgente (design §24, emendamento 21 agosto 2026). L'etichetta di
-    trasparenza in scheda è stata costruita e poi tolta dall'interfaccia
-    (emendamento 22 agosto 2026): il campo resta esposto, non più
-    distinto in scheda dalla citazione letterale della fonte."""
     copertina_miniatura_url: str | None
     """URL firmato, non il percorso interno: il bucket è privato (PRD
     regola 6) e il percorso da solo non apre nulla. La firma dura sette
@@ -92,6 +81,32 @@ class LibroEssenziale(BaseModel):
     invece di aspettare per sempre un'immagine che forse non arriverà
     (PRD, "lavori in secondo piano con uno stato osservabile")."""
     autori: list[AutoreEssenziale]
+
+
+class LibroEssenziale(LibroDaScaffale):
+    """Il Libro come lo vuole la SCHEDA (`GET /voci/{id}`): tutto quanto
+    sopra, più la descrizione dell'opera.
+
+    La descrizione sta qui e non in `LibroDaScaffale` perché lo scaffale
+    non la disegna in nessun punto — `components/libreria/` non la
+    nomina — mentre `GET /voci` la spediva per ogni volume della
+    libreria. Su una libreria di qualche centinaio di titoli era la voce
+    più pesante di tutta la risposta, scaricata a ogni apertura della
+    home e mai letta. Non è una restrizione dell\'API: è la stessa
+    distinzione che l\'interfaccia fa già da sé fra la fila dei dorsi e
+    la carta aperta di un libro."""
+
+    descrizione: str | None
+    """Solo nella lingua dell'interfaccia, mai un ripiego su un'altra
+    (design §9): assente se quella lingua non ha una descrizione, anche
+    se un'altra ce l'ha."""
+    descrizione_riformulata: bool
+    """Vero quando il testo è stato riformulato dal modello (espanso se
+    troppo corto, accorciato se troppo lungo) a partire dalla descrizione
+    sorgente (design §24, emendamento 21 agosto 2026). L'etichetta di
+    trasparenza in scheda è stata costruita e poi tolta dall'interfaccia
+    (emendamento 22 agosto 2026): il campo resta esposto, non più
+    distinto in scheda dalla citazione letterale della fonte."""
 
 
 class VoceResponse(BaseModel):
@@ -128,7 +143,7 @@ class VoceConLibroResponse(VoceResponse):
     """Per lo scaffale e la scheda: la Voce con il Libro incorporato,
     così il frontend non deve fare una seconda chiamata per ogni dorso."""
 
-    libro: LibroEssenziale
+    libro: LibroDaScaffale
 
 
 class AvanzamentoEssenziale(BaseModel):

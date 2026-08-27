@@ -20,16 +20,28 @@ _SELECT_BASE = (
     "recensione(id), insight(id)"
 )
 
-_SELECT_CON_LIBRO = (
-    f"{_SELECT_BASE}, "
-    "libro:libro_id (id, titolo_canonico, "
+# I campi del Libro che servono a disegnare un dorso sullo scaffale.
+# NON comprendono la descrizione dell'opera: lo scaffale non la disegna
+# in nessun punto (`components/libreria/` non la nomina), e chiederla
+# significava trascinare un paragrafo per ogni volume della libreria
+# dentro la risposta della home, a ogni apertura. Sta in
+# `_CAMPI_LIBRO_CON_DESCRIZIONE` sotto, che la scheda del libro usa.
+_CAMPI_LIBRO_SCAFFALE = (
+    "id, titolo_canonico, "
     "anno_prima_pubblicazione, anno_dedotto, lingua_originale, lingua_dedotta, "
     "copertina_miniatura_path, copertina_grande_path, copertina_colore_dominante, "
     "copertina_colore_dominante_scuro, "
     "copertina_stato, libro_autore(ordine, autore:autore_id(id, nome_canonico)), "
-    "libro_genere(genere:genere_id(id, genere_etichetta(lingua, etichetta))), "
-    "libro_descrizione(lingua, testo, riformulata))"
+    "libro_genere(genere:genere_id(id, genere_etichetta(lingua, etichetta)))"
 )
+
+_CAMPI_LIBRO_CON_DESCRIZIONE = (
+    f"{_CAMPI_LIBRO_SCAFFALE}, libro_descrizione(lingua, testo, riformulata)"
+)
+
+_SELECT_CON_LIBRO = f"{_SELECT_BASE}, libro:libro_id ({_CAMPI_LIBRO_SCAFFALE})"
+
+_SELECT_CON_LIBRO_E_DESCRIZIONE = f"{_SELECT_BASE}, libro:libro_id ({_CAMPI_LIBRO_CON_DESCRIZIONE})"
 
 # GET /voci: come sopra, più la pagina raggiunta nella Lettura aperta (se
 # c'è), per il filo di avanzamento della fascia "in corso" dello scaffale
@@ -45,7 +57,7 @@ _SELECT_LISTA = f"{_SELECT_CON_LIBRO}, lettura_aperta:lettura(avanzamento(pagina
 # esistente, 20260818115830). PostgREST le risolve senza bisogno di una
 # seconda chiamata (verificato manualmente contro PostgREST locale).
 _SELECT_DETTAGLIO = (
-    f"{_SELECT_CON_LIBRO}, "
+    f"{_SELECT_CON_LIBRO_E_DESCRIZIONE}, "
     "letture:lettura (id, data_inizio, data_fine, esito, creato_at, "
     "avanzamenti:avanzamento (id, pagina, data, generato_automaticamente, creato_at))"
 )
@@ -208,13 +220,12 @@ def list_con_libro(client: Client, utente_id: UUID, lingua: str) -> list[dict[st
     )
     righe = cast("list[dict[str, Any]]", response.data)
     return [
+        # Nessun `_appiattisci_descrizione` qui, a differenza di
+        # `get_dettaglio`: la query dello scaffale non chiede
+        # `libro_descrizione`, quindi non c'è nulla da appiattire.
         _con_pagina_corrente(
             _appiattisci_conteggi(
-                _appiattisci_nota_intenzione(
-                    _appiattisci_descrizione(
-                        _appiattisci_generi(_appiattisci_autori(riga), lingua), lingua
-                    )
-                )
+                _appiattisci_nota_intenzione(_appiattisci_generi(_appiattisci_autori(riga), lingua))
             )
         )
         for riga in righe
