@@ -15,6 +15,12 @@ import "./globals.css";
  * anchor of tokens.anchors.css. Only Inter Tight, not all three families:
  * in this edge case, fewer dependencies means fewer things that could
  * have caused — or could repeat — the crash.
+ *
+ * Per la stessa ragione le due frasi sono **scritte qui e solo in
+ * italiano**, invece di venire da `generici.imprevisto`: se a rompersi è
+ * stato il provider di next-intl, chiamare `t()` qui non produce una
+ * traduzione, produce un secondo crash sopra il primo. È l'unica deroga
+ * al catalogo in tutta l'app, e va lasciata dov'è.
  */
 export default function GlobalError({
   error,

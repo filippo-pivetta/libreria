@@ -23,6 +23,9 @@ import { FiltriScrittiBarra } from "@/components/quaderni/filtri-scritti";
 import { PensieroCheTorna } from "@/components/quaderni/pensiero-che-torna";
 import { ScriviPensiero } from "@/components/quaderni/scrivi-pensiero";
 import { Temi, filtriDelTema } from "@/components/quaderni/temi";
+import { ErroreApp } from "@/lib/api/errore";
+import { erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /** Quanti scritti per volta. Trenta riempiono quindici righe a due
  * colonne: abbastanza da poter scorrere, non tanto da dover aspettare. */
@@ -81,6 +84,7 @@ const PAGINA = 30;
  * che una domanda ferma costi due volte.
  */
 export function Quaderni() {
+  const spiega = useMessaggioErrore();
   const [domanda, setDomanda] = useState("");
   const [chiesto, setChiesto] = useState<string | null>(null);
   const [filtri, setFiltri] = useState<FiltriScritti>({});
@@ -109,7 +113,7 @@ export function Quaderni() {
       // e in cambio non c'è uno stato di pagine da tenere allineato coi
       // filtri quando cambiano.
       const esito = await getScritti(token, filtriEffettivi, { limite: mostrati });
-      if (esito.status !== "ok") throw new Error(esito.message);
+      if (esito.status !== "ok") throw new ErroreApp(esito.errore);
       return esito.data;
     },
   });
@@ -128,7 +132,7 @@ export function Quaderni() {
         setSpenta(true);
         return { risultati: [] as Scritto[], indiciIncompleti: false };
       }
-      if (esito.status !== "ok") throw new Error(esito.message);
+      if (esito.status !== "ok") throw new ErroreApp(esito.errore);
       setSpenta(false);
       return esito.data;
     },
@@ -304,7 +308,9 @@ export function Quaderni() {
         )}
       </section>
 
-      <Messaggio>{errore ?? (elenco.error ? "Gli scritti non sono arrivati." : null)}</Messaggio>
+      <Messaggio>
+        {errore ?? (elenco.error ? spiega("scrittiNonArrivati", erroreDi(elenco.error)) : null)}
+      </Messaggio>
 
       <section className="flex flex-col gap-5 border-t border-line pt-6">
         <Temi temaAperto={tema} onApriTema={apriTema} onCercaTema={cercaIlTema} />

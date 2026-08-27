@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/states/error-state";
 import { TestataPagina } from "@/components/layout/testata-pagina";
 import { SezioneImpostazioni } from "@/components/profilo/sezione-impostazioni";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Profilo (design doc §17): il proprio account e nient'altro — chi sei,
@@ -46,7 +47,9 @@ export default async function ProfiloPage() {
     return (
       <ErrorState
         message={
-          me.status === "not_provisioned" ? t("sessione.accountIncompleto") : me.message
+          me.status === "not_provisioned"
+            ? t("assenze.accountIncompleto")
+            : await messaggioErrore("libreriaNonCaricata", me.errore)
         }
       />
     );

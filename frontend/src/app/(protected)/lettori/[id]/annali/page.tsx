@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collegato";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Scheda "Annali" del contesto di un collegato (design doc §15, issue
@@ -50,11 +51,10 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
   if (metricheCollegato.status !== "ok") {
     return (
       <ErrorState
-        message={
-          metricheCollegato.status === "error"
-            ? metricheCollegato.message
-            : t("errori.metricheSueNonCaricate")
-        }
+        message={await messaggioErrore(
+          "metricheSueNonCaricate",
+          metricheCollegato.status === "error" ? metricheCollegato.errore : undefined,
+        )}
       />
     );
   }

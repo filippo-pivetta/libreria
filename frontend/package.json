@@ -10,7 +10,8 @@
     "type-check": "next typegen && tsc --noEmit",
     "tokens": "tsx scripts/build-tokens.mts",
     "check:contrast": "tsx scripts/check-contrast.mts",
-    "prebuild": "npm run tokens"
+    "prebuild": "npm run tokens",
+    "check:messaggi": "tsx scripts/check-messaggi.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

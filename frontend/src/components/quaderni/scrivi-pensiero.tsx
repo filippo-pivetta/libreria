@@ -12,6 +12,8 @@ import { InterruttoriScritto } from "@/components/ui/interruttori-scritto";
 import { Messaggio } from "@/components/ui/messaggio";
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { cn } from "@/lib/utils";
+import { assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /** Quanti libri proporre prima di chiedere di scrivere il titolo. Sei
  * riempiono una riga su desktop e due su un telefono: oltre, il selettore
@@ -55,6 +57,7 @@ const PROPOSTI = 6;
  */
 export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
   const queryClient = useQueryClient();
+  const spiega = useMessaggioErrore();
 
   const [voceId, setVoceId] = useState<string | null>(null);
   const [cerca, setCerca] = useState("");
@@ -104,7 +107,9 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
     onMutate: () => setErrore(null),
     onSuccess: (esito) => {
       if (esito.status !== "ok") {
-        setErrore("L’insight non è stato salvato. Il testo è ancora qui.");
+        setErrore(
+          spiega("insightNonSalvato", esito.status === "error" ? esito.errore : assenza("voceSparita")),
+        );
         return;
       }
       // Il corpus, i conteggi e i menù dei filtri cambiano tutti insieme:
@@ -120,7 +125,7 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
       // l'opposto: il bersaglio arriva sotto gli occhi.
       onChiudi();
     },
-    onError: () => setErrore("L’insight non è stato salvato. Il testo è ancora qui."),
+    onError: (err: unknown) => setErrore(spiega("insightNonSalvato", erroreDi(err))),
   });
 
   return (

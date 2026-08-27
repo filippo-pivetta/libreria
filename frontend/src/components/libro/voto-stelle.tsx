@@ -6,8 +6,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { correggiVoto } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-import { useTranslations } from "next-intl";
 import { IconaStella } from "@/components/ui/icone";
+import { ErroreApp, assenza } from "@/lib/api/errore";
+import { useAvvisa } from "@/lib/messaggi-errore";
 
 const STELLE = [1, 2, 3, 4, 5] as const;
 
@@ -59,7 +60,7 @@ export function VotoStelle({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
-  const t = useTranslations();
+  const avvisa = useAvvisa();
   const [anteprima, setAnteprima] = useState<number | null>(null);
 
   const mutazione = useMutation({
@@ -67,8 +68,8 @@ export function VotoStelle({
       const token = await getAccessToken();
       const result = await correggiVoto(token, voceId, nuovoVoto === voto ? null : nuovoVoto);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
         );
       }
     },
@@ -76,8 +77,8 @@ export function VotoStelle({
       void queryClient.invalidateQueries({ queryKey: ["voce", voceId] });
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
     },
-    onError: (error: unknown) =>
-      showError(error instanceof Error ? error.message : t("errori.votoNonSalvato")),
+    onError: (error: unknown, nuovoVoto: number) =>
+      avvisa(showError, "votoNonSalvato", error, () => mutazione.mutate(nuovoVoto)),
   });
 
   if (!isOwner) {

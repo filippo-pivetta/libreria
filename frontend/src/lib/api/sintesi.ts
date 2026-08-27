@@ -10,12 +10,15 @@
  * modello prima o poi manca.
  *
  * Due esiti "non c'è niente da mostrare", distinti perché dicono cose
- * diverse: `contenuto_insufficiente` (non hai ancora scritto nulla) e
+ * diverse: `insight_insufficienti` (non hai ancora scritto nulla) e
  * `nessun_tema_rilevante` (hai scritto, ma nessun tema attraversa libri
  * diversi — o perché il materiale è di un solo libro, o perché il
  * modello non ne ha trovati). Appiattirli su un errore generico
  * toglierebbe alla pagina la possibilità di dirlo per bene.
  */
+
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_MODELLO, ERRORE_RETE, erroreDaRisposta, regola } from "@/lib/api/errore";
 
 export type TipoRiferimento = "insight" | "recensione";
 
@@ -76,14 +79,14 @@ export type SintesiResult =
   | { status: "ok"; data: Sintesi }
   | { status: "not_found" }
   | { status: "consenso_revocato" }
-  | { status: "contenuto_insufficiente"; message: string }
-  | { status: "nessun_tema_rilevante"; message: string }
-  | { status: "error"; message: string };
+  | { status: "insight_insufficienti"; errore: ErroreApi }
+  | { status: "nessun_tema_rilevante"; errore: ErroreApi }
+  | { status: "error"; errore: ErroreApi };
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
@@ -117,23 +120,15 @@ async function esito(response: Response): Promise<SintesiResult> {
     const body = (await response.json()) as ErrorBody;
     const detail = typeof body.detail === "object" ? body.detail : undefined;
     if (detail?.error_code === "nessun_tema_rilevante") {
-      return {
-        status: "nessun_tema_rilevante",
-        message:
-          detail.message ??
-          "Non emerge ancora un tema che attraversi libri diversi. Continua a scrivere e a leggere, poi riprova.",
-      };
+      return { status: "nessun_tema_rilevante", errore: regola("nessun_tema_rilevante") };
     }
-    return {
-      status: "contenuto_insufficiente",
-      message: detail?.message ?? "Scrivi qualche insight o recensione prima di chiedere una sintesi.",
-    };
+    return { status: "insight_insufficienti", errore: regola("insight_insufficienti") };
   }
   if (response.status === 503) {
-    return { status: "error", message: "La sintesi non è arrivata. Riprova fra poco." };
+    return { status: "error", errore: ERRORE_MODELLO };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
   return { status: "ok", data: toSintesi((await response.json()) as Body) };
 }
@@ -150,7 +145,7 @@ export async function getSintesi(accessToken: string): Promise<SintesiResult> {
       }),
     );
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 }
 
@@ -167,6 +162,6 @@ export async function generaSintesi(accessToken: string): Promise<SintesiResult>
       }),
     );
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 }

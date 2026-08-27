@@ -5,6 +5,7 @@ import { ErrorState } from "@/components/states/error-state";
 import { Scheda } from "@/components/libro/scheda";
 import { NellaTuaLibreria } from "@/components/libro/nella-tua-libreria";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Scheda del libro (design doc §9). `params` è una Promise in Next 16
@@ -37,10 +38,10 @@ export default async function LibroPage(props: PageProps<"/libro/[id]">) {
     // Nessuna corsa verso un componente not-found dedicato: un rifiuto
     // indistinguibile da un contenuto inesistente resta testo semplice
     // (PRD, casi limite), non un vicolo cieco di framework.
-    return <ErrorState title="Non trovata" message={t("assenze.voceNonTua")} />;
+    return <ErrorState title={t("titoli.nonTrovata")} message={t("assenze.voceNonTua")} />;
   }
   if (result.status === "error") {
-    return <ErrorState message={result.message} />;
+    return <ErrorState message={await messaggioErrore("libroNonCaricato", result.errore)} />;
   }
 
   const isOwner = result.data.utenteId === session.user.id;

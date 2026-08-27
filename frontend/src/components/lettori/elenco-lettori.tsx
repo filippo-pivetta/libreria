@@ -19,7 +19,8 @@ import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroElenco } from "@/components/states/scheletri";
 import { Messaggio } from "@/components/ui/messaggio";
-import { useTranslations } from "next-intl";
+import { ErroreApp, assenza, erroreDi, regola } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 // Stessa costante di providers/toast-provider.tsx (DURATA_MS), per
 // coerenza fra le finestre di "annulla" dell'app.
@@ -67,7 +68,7 @@ const ATTESA_DIGITAZIONE_MS = 250;
  */
 export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri }) {
   const queryClient = useQueryClient();
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
 
   const [ricerca, setRicerca] = useState("");
   const [ricercaAttiva, setRicercaAttiva] = useState("");
@@ -106,7 +107,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
       const token = await getAccessToken();
       const result = await getUtenti(token, ricercaAttiva || undefined);
       if (result.status === "error") {
-        throw new Error(result.message);
+        throw new ErroreApp(result.errore);
       }
       return result.data;
     },
@@ -126,8 +127,8 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
       const token = await getAccessToken();
       const result = await accettaCollegamento(token, collegamentoId);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.richiestaSparita") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("richiestaSparita") : result.errore,
         );
       }
     },
@@ -136,7 +137,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
     onError: (err: unknown, id: string) =>
       setErrore({
         id,
-        messaggio: err instanceof Error ? err.message : t("errori.richiestaNonAccettata"),
+        messaggio: spiega("richiestaNonAccettata", erroreDi(err)),
       }),
   });
 
@@ -148,8 +149,8 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
       const token = await getAccessToken();
       const result = await terminaCollegamento(token, collegamentoId);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.collegamentoSparito") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("collegamentoSparito") : result.errore,
         );
       }
     },
@@ -158,7 +159,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
     onError: (err: unknown, id: string) =>
       setErrore({
         id,
-        messaggio: err instanceof Error ? err.message : t("errori.collegamentoNonAggiornato"),
+        messaggio: spiega("collegamentoNonAggiornato", erroreDi(err)),
       }),
   });
 
@@ -167,12 +168,12 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
       const token = await getAccessToken();
       const result = await inviaRichiesta(token, utenteId);
       if (result.status !== "ok") {
-        throw new Error(
+        throw new ErroreApp(
           result.status === "not_found"
-            ? t("assenze.utenteSparito")
+            ? assenza("utenteSparito")
             : result.status === "richiesta_a_se_stessi"
-              ? "Non puoi collegarti a te stesso."
-              : result.message,
+              ? regola("richiesta_a_se_stessi")
+              : result.errore,
         );
       }
     },
@@ -181,7 +182,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
     onError: (err: unknown, id: string) =>
       setErrore({
         id,
-        messaggio: err instanceof Error ? err.message : t("errori.richiestaNonInviata"),
+        messaggio: spiega("richiestaNonInviata", erroreDi(err)),
       }),
   });
 
@@ -224,7 +225,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : t("errori.lettoriNonCaricati")}
+        message={spiega("lettoriNonCaricati", erroreDi(error))}
         onRetry={() => void refetch()}
       />
     );
@@ -491,22 +492,33 @@ function Riga({
 }) {
   const idErrore = membro.collegamentoId ?? membro.id;
   return (
-    <li className="flex items-center gap-3 p-4">
-      <Iniziali nome={membro.nomeUtente} />
-      {/* `min-w-0` più `truncate`: senza il primo il secondo non fa nulla
-          — un figlio flex non scende sotto la larghezza del proprio
-          contenuto se non glielo si concede. Era il motivo per cui su un
-          telefono un nome lungo spingeva il comando fuori dalla riga
-          invece di troncarsi. */}
-      <span className="min-w-0 flex-1 truncate font-ui text-sm font-medium text-ink">
-        {membro.nomeUtente}
-      </span>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <div className="flex items-center gap-2">{children}</div>
-        {errore?.id === idErrore && (
-          <Messaggio className="text-right">{errore.messaggio}</Messaggio>
-        )}
+    /* Due righe, non tre colonne: il messaggio stava nella colonna
+       `shrink-0` del comando, che non cede, e il suo testo schiacciava il
+       nome utente accanto fino a troncarlo a una lettera (stesso difetto
+       corretto in `ricerca/riga-risultato.tsx`). Ora la riga resta intatta
+       e il messaggio le sta sotto, a tutta larghezza.
+
+       E il `Messaggio` non sta più dentro un `&&`: il suo contenitore deve
+       restare montato anche quando non ha nulla da dire, altrimenti la
+       regione `aria-live` nasce insieme al proprio contenuto e diverse
+       tecnologie assistive non la annunciano (vedi `ui/messaggio.tsx`).
+       Vuoto, esce dal flusso da sé. */
+    <li className="flex flex-col gap-1 p-4">
+      <div className="flex items-center gap-3">
+        <Iniziali nome={membro.nomeUtente} />
+        {/* `min-w-0` più `truncate`: senza il primo il secondo non fa nulla
+            — un figlio flex non scende sotto la larghezza del proprio
+            contenuto se non glielo si concede. Era il motivo per cui su un
+            telefono un nome lungo spingeva il comando fuori dalla riga
+            invece di troncarsi. */}
+        <span className="min-w-0 flex-1 truncate font-ui text-sm font-medium text-ink">
+          {membro.nomeUtente}
+        </span>
+        <div className="flex shrink-0 items-center gap-2">{children}</div>
       </div>
+      <Messaggio className="text-right">
+        {errore?.id === idErrore ? errore.messaggio : null}
+      </Messaggio>
     </li>
   );
 }

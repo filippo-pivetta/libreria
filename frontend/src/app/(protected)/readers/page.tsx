@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/states/error-state";
 import { TestataPagina } from "@/components/layout/testata-pagina";
 import { ElencoLettori } from "@/components/lettori/elenco-lettori";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Lettori (design doc §16): le persone e l'intero ciclo di vita del
@@ -38,7 +39,7 @@ export default async function ReadersPage() {
   const result = await getUtenti(session.access_token);
 
   if (result.status === "error") {
-    return <ErrorState message={result.message} />;
+    return <ErrorState message={await messaggioErrore("lettoriNonCaricati", result.errore)} />;
   }
 
   return (

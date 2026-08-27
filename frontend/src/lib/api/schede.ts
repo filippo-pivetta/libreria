@@ -13,6 +13,8 @@
  */
 
 import type { VoceDelRisultato } from "./ricerca";
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_MODELLO, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
 
 export type FonteScheda = "catalogo" | "google";
 
@@ -101,13 +103,10 @@ function toScheda(body: Body): SchedaPubblica {
   };
 }
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return {
-      status: "error",
-      message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza.",
-    };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
@@ -119,7 +118,7 @@ export type SchedaResult =
    * nella ricerca: senza la distinzione chi guarda conclude che il libro
    * non ci sia mentre è solo il catalogo che non risponde (§13). */
   | { status: "fonte_irraggiungibile" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 export async function getScheda(
   accessToken: string,
@@ -143,16 +142,13 @@ export async function getScheda(
       },
     );
   } catch {
-    return {
-      status: "error",
-      message: "Il server non risponde. Controlla la connessione e riprova.",
-    };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) return { status: "not_found" };
   if (response.status === 503) return { status: "fonte_irraggiungibile" };
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
   return { status: "ok", data: toScheda((await response.json()) as Body) };
 }
@@ -161,7 +157,7 @@ export type ParereResult =
   | { status: "ok"; testo: string }
   | { status: "not_found" }
   | { status: "consenso_revocato" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /**
  * POST /schede/{fonte}/{id}/parere: "me lo consigli?" su un libro che non
@@ -187,19 +183,16 @@ export async function chiediParere(
       { method: "POST", headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
     );
   } catch {
-    return {
-      status: "error",
-      message: "Il server non risponde. Controlla la connessione e riprova.",
-    };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) return { status: "not_found" };
   if (response.status === 409) return { status: "consenso_revocato" };
   if (response.status === 503) {
-    return { status: "error", message: "Il parere non è arrivato. Riprova fra poco." };
+    return { status: "error", errore: ERRORE_MODELLO };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as { testo: string };

@@ -9,15 +9,25 @@ import { CarteMetriche } from "@/components/annali/carte-metriche";
 import { IntestazioneAnnali } from "@/components/annali/intestazione-annali";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroAnnali } from "@/components/states/scheletri";
-import { useTranslations } from "next-intl";
+import { ERRORE_SERVER, ErroreApp, erroreDi, regola } from "@/lib/api/errore";
+import type { ErroreApi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
-function messaggioErrore(
-  result: { status: string; message?: string },
-  t: (chiave: string) => string,
-): string {
-  if (result.status === "anno_futuro") return "Gli anni futuri non sono selezionabili.";
-  if (result.status === "error" && result.message) return result.message;
-  return t("errori.metricheNonCaricate");
+/**
+ * Gli esiti non-ok delle metriche, tradotti in `ErroreApi`.
+ *
+ * Prima era una `messaggioErrore(result, t)` per file, che scriveva le
+ * frasi a mano — "Gli anni futuri non sono selezionabili." era italiano
+ * fisso in due copie, e il caso `error` ricadeva su `result.message`,
+ * cioè sulla stringa di trasporto. Qui si classifica soltanto: la frase
+ * la compone `spiega()` più in basso, dal catalogo.
+ */
+function erroreDelRisultato(result: {
+  status: string;
+  errore?: ErroreApi;
+}): ErroreApi {
+  if (result.status === "anno_futuro") return regola("anno_futuro");
+  return result.errore ?? ERRORE_SERVER;
 }
 
 /**
@@ -29,7 +39,7 @@ function messaggioErrore(
  * successivi rifanno la richiesta con l'anno scelto.
  */
 export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche }) {
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [anno, setAnno] = useState(metricheIniziali.anno);
 
   const { data, isPending, isError, error, refetch } = useQuery({
@@ -37,7 +47,7 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
     queryFn: async () => {
       const token = await getAccessToken();
       const result = await getMetriche(token, anno);
-      if (result.status !== "ok") throw new Error(messaggioErrore(result, t));
+      if (result.status !== "ok") throw new ErroreApp(erroreDelRisultato(result));
       return result.data;
     },
     initialData: anno === metricheIniziali.anno ? metricheIniziali : undefined,
@@ -58,7 +68,7 @@ export function PaginaAnnali({ metricheIniziali }: { metricheIniziali: Metriche 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : t("errori.metricheNonCaricate")}
+        message={spiega("metricheNonCaricate", erroreDi(error))}
         onRetry={() => void refetch()}
       />
     );

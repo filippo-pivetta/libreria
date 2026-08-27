@@ -9,6 +9,8 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { getMe } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
 import { Messaggio } from "@/components/ui/messaggio";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /**
  * "Me lo consigli?" su un libro che non si ha in libreria (§13).
@@ -48,6 +50,7 @@ export function ParereEffimero({
   inLibreria: boolean;
 }) {
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [parere, setParere] = useState<string | null>(null);
   const [spenta, setSpenta] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
@@ -71,10 +74,8 @@ export function ParereEffimero({
         return null;
       }
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found"
-            ? "Questo libro non è più raggiungibile. Rifai la ricerca."
-            : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("schedaSparita") : result.errore,
         );
       }
       return result.testo;
@@ -84,8 +85,7 @@ export function ParereEffimero({
       setSpenta(false);
     },
     onSuccess: (testo) => setParere(testo),
-    onError: (err: unknown) =>
-      setErrore(err instanceof Error ? err.message : "Il parere non è arrivato."),
+    onError: (err: unknown) => setErrore(spiega("parereNonArrivato", erroreDi(err))),
   });
 
   const spentaDavvero = spenta || consenso === false;

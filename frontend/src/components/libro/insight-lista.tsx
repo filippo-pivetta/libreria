@@ -20,7 +20,9 @@ import { Invito } from "@/components/ui/invito";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { InterruttoriScritto } from "@/components/ui/interruttori-scritto";
 import { IconaAltro, IconaCoperto, IconaLucchetto, IconaMatita } from "@/components/ui/icone";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 // Soglia tra i due trattamenti tipografici (design doc §10): sotto,
 // "Sentenza" (opsz 32, senza troncamento); sopra, "Appunto" (opsz 12,
@@ -156,7 +158,7 @@ function UnSoloInsight({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const lingua = useLocale();
   const [testoRivelato, setTestoRivelato] = useState<string | null>(null);
   const [espansa, setEspansa] = useState(false);
@@ -168,8 +170,8 @@ function UnSoloInsight({
       const token = await getAccessToken();
       const result = await rivelaInsightTesto(token, insight.id);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.insightSparito") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("insightSparito") : result.errore,
         );
       }
       return result.testo;
@@ -177,7 +179,7 @@ function UnSoloInsight({
     onSuccess: (testo) => setTestoRivelato(testo),
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : t("errori.insightNonScoperto"),
+        spiega("insightNonScoperto", erroreDi(error)),
       );
     },
   });
@@ -187,8 +189,8 @@ function UnSoloInsight({
       const token = await getAccessToken();
       const result = await correggiInsight(token, insight.id, campi);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.insightSparito") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("insightSparito") : result.errore,
         );
       }
     },
@@ -202,7 +204,7 @@ function UnSoloInsight({
     },
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : t("errori.insightNonSalvato"),
+        spiega("insightNonSalvato", erroreDi(error)),
       );
     },
   });
@@ -212,13 +214,13 @@ function UnSoloInsight({
       const token = await getAccessToken();
       const result = await cancellaInsight(token, insight.id);
       if (result.status !== "ok" && result.status !== "not_found") {
-        throw new Error(result.message);
+        throw new ErroreApp(result.errore);
       }
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["voce", voceId] }),
     onError: (error: unknown) => {
       showError(
-        error instanceof Error ? error.message : t("errori.insightNonCancellato"),
+        spiega("insightNonCancellato", erroreDi(error)),
       );
     },
   });
@@ -415,7 +417,7 @@ function GruppoInsight({
 function InsightForm({ voceId }: { voceId: string }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [aperto, setAperto] = useState(false);
 
   const mutazione = useMutation({
@@ -423,8 +425,8 @@ function InsightForm({ voceId }: { voceId: string }) {
       const token = await getAccessToken();
       const result = await creaInsight(token, voceId, campi.testo, campi.spoiler, campi.visibilita);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
         );
       }
     },
@@ -433,7 +435,7 @@ function InsightForm({ voceId }: { voceId: string }) {
       setAperto(false);
     },
     onError: (error: unknown) => {
-      showError(error instanceof Error ? error.message : t("errori.insightNonSalvato"));
+      showError(spiega("insightNonSalvato", erroreDi(error)));
     },
   });
 

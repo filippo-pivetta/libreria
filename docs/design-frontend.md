@@ -1465,23 +1465,70 @@ serve a chi ha appena scritto trecento parole. Nessun termine tecnico interno ar
 schermo, e nessun titolo generico ("Qualcosa è andato storto") compare sopra un errore senza
 aggiungere nulla.
 
+**Due frasi, e ciascuna la sa un posto diverso.** Questa forma non è una raccomandazione di
+stile: è la struttura con cui i messaggi sono costruiti. La prima frase dice cosa non è
+successo, e la sa soltanto il chiamante — `lib/api` non sa se stava salvando una recensione o
+correggendo un totale di pagine. La seconda dice cosa fare, e la sa soltanto il trasporto —
+il componente non sa se è caduta la rete, se il server ha risposto 500 o se è scattato il
+limitatore. Per questo `lib/api` **classifica e non scrive**: restituisce un `ErroreApi` con un
+genere, e la frase si compone da due voci del catalogo.
+
+| genere | seconda frase |
+|---|---|
+| `rete` | "Controlla la connessione e riprova." |
+| `server` | "Riprova fra poco." |
+| `configurazione` | "Parla con chi mantiene l'istanza." |
+| `sessione` | "La sessione è scaduta: ricarica la pagina." |
+| `limite` | "Aspetta qualche secondo e riprova." |
+| `assenza`, `regola` | nessuna: la frase è intera e viene da `assenze.*`/`regole.*` |
+
+Dove esiste una **rassicurazione** ("Il testo è ancora qui."), quella prende il posto del
+rimedio invece di aggiungersi: tre frasi in un toast sono un paragrafo, e a chi ha appena
+scritto importa più sapere che nulla è andato perso che sentirsi dire di riprovare. La scelta
+sta nel catalogo (`rassicurazioni.*`) e non in un elenco nel codice, perché è una decisione di
+scrittura.
+
+Un'assenza e una regola saltano la composizione: nominano una causa precisa che il dominio non
+conosce ("Questo libro non è più nella tua libreria", "Il nuovo totale è inferiore a un
+avanzamento già registrato"). Comporre lì darebbe "Lo stato non è cambiato. Riprova fra poco."
+su un 409, cioè un invito a ripetere all'infinito una cosa che la regola vieta.
+
+Il difetto che questa struttura chiude, e che vale la pena non rifare: le frasi stavano dentro
+i fetcher, tre stringhe per novantatré punti, tutte con il server per soggetto e nessuna nel
+catalogo bilingue. Con `Accept-Language: en` un errore di rete durante un voto si leggeva in
+italiano.
+
 **Una voce sola per l'attesa.** La prima persona vale solo dove l'app sta davvero lavorando per
 te, quasi sempre con il modello ("Ci penso…", "Cerco temi…"); altrove nessuna etichetta, perché
 uno scheletro con la forma del contenuto dice già cosa sta arrivando.
 
-**L'apostrofo è quello tipografico (`’`), mai quello dritto.** Le stringhe vivono in
-`frontend/messages/it.json`/`en.json`, il catalogo `next-intl` dell'interfaccia bilingue.
+**L'apostrofo è quello tipografico (`’`), mai quello dritto** — anche nelle frasi che scrive il
+backend, che sono testi d'interfaccia come gli altri. Le stringhe vivono in
+`frontend/messages/it.json`/`en.json`, il catalogo `next-intl` dell'interfaccia bilingue, e
+`npm run check:messaggi` verifica in CI che catalogo e codice non divergano: nessuna chiave usata
+e assente, nessuna presente e mai usata, nessun `error_code` del backend senza una frase, le due
+lingue in parità.
 
 **Tre canali.**
 
 | Canale | Quando | Dove |
 |---|---|---|
 | **In linea** (`ui/messaggio.tsx`) | il caso normale: il comando è ancora sotto gli occhi | accanto al comando, `aria-live="polite"` |
-| **Toast** (`providers/toast-provider.tsx`) | il bersaglio può essere già scorso via, o la scrittura è ottimistica e l'errore arriva dopo che l'interfaccia si è mossa | in fondo alla pagina, `role="alert"` |
+| **Toast** (`providers/toast-provider.tsx`) | il bersaglio può essere già scorso via, o la scrittura è ottimistica e l'errore arriva dopo che l'interfaccia si è mossa | in fondo alla pagina, `role="alert"`, con "Riprova" dove riprovare può funzionare |
 | **`ErrorState` / `EmptyState`** | fallisce o è vuota una regione intera | al posto della regione |
 
 Un toast in fondo alla pagina non dice a quale riga di un elenco si riferisce: è la ragione per
-cui il primo canale è il predefinito e il secondo l'eccezione. Nessun modale, nessun avviso che
+cui il primo canale è il predefinito e il secondo l'eccezione. Vale anche il rovescio: quando il
+toast è il canale giusto, il bersaglio non è più sotto gli occhi, e allora il rimedio deve stare
+nel toast — "Riprova" accanto al messaggio, non un invito a ritrovare da soli la riga che si era
+toccata. Si offre solo dove può riuscire (`riprovabile()`): mai su una regola, un'assenza o una
+sessione scaduta, che hanno rimedi propri e diversi.
+
+**In una riga di elenco il messaggio sta sotto la riga, non accanto al comando.** Messo nella
+colonna del comando — che non cede, `shrink-0` — il suo testo schiaccia la colonna del titolo
+finché questa non si tronca: in `ricerca/riga-risultato.tsx` "Un indovino mi disse / Tiziano
+Terzani" si riduceva a "U / T.". La riga resta intatta e il messaggio le sta sotto, a tutta
+larghezza. Nessun modale, nessun avviso che
 si sovrappone: solo pannelli in pagina. Il rosso (`alert`) non compare mai su un errore, nemmeno
 nel toast, che è testo su una carta di piano 2 come ogni altro pannello. Vedi §12 per il dettaglio
 sull'avanzamento.

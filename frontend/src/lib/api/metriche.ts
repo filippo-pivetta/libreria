@@ -7,6 +7,8 @@
  */
 
 import { intestazioniConLingua } from "@/lib/lingua";
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
 
 export type VoceClassifica = {
   id: string;
@@ -135,10 +137,10 @@ function toMetriche(body: MetricheBody): Metriche {
   };
 }
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
@@ -148,7 +150,7 @@ export type MetricheResult =
   // L'anno richiesto è oltre l'anno corrente (PRD: "gli anni futuri non
   // sono selezionabili").
   | { status: "anno_futuro" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /**
  * GET /metriche: le proprie metriche di lettura. `anno` omesso ->
@@ -176,14 +178,14 @@ export async function getMetriche(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 422) {
     return { status: "anno_futuro" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as MetricheBody;
@@ -198,7 +200,7 @@ export type MetricheCollegatoResult =
   // Nessun collegamento attivo: le sue metriche non sono (più)
   // accessibili — stesso trattamento di `getLibreriaCollegato`.
   | { status: "non_collegato" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** GET /utenti/{id}/metriche: le metriche di un collegato, stesso
  * payload delle proprie. `acceptLanguage`, opzionale: vedi `getMetriche`. */
@@ -220,7 +222,7 @@ export async function getMetricheCollegato(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
@@ -233,7 +235,7 @@ export async function getMetricheCollegato(
     return { status: "anno_futuro" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as MetricheBody;

@@ -19,7 +19,9 @@ import { Recensione } from "@/components/libro/recensione";
 import { PreviewPersonalizzata } from "@/components/libro/preview-personalizzata";
 import { InsightLista } from "@/components/libro/insight-lista";
 import { EliminaVoce } from "@/components/libro/elimina-voce";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /**
  * La scheda del libro, in cinque zone su due colonne.
@@ -98,7 +100,7 @@ export function Scheda({
    * scheda non fa e non deve fare. */
   nellaTuaLibreria?: React.ReactNode;
 }) {
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const lingua = useLocale();
   const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ["voce", voceIniziale.id],
@@ -106,7 +108,9 @@ export function Scheda({
       const token = await getAccessToken();
       const result = await getVoceDettaglio(token, voceIniziale.id);
       if (result.status !== "ok") {
-        throw new Error(result.status === "not_found" ? t("assenze.voceSparita") : result.message);
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
+        );
       }
       return result.data;
     },
@@ -125,7 +129,7 @@ export function Scheda({
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : t("errori.libroNonCaricato")}
+        message={spiega("libroNonCaricato", erroreDi(error))}
         onRetry={() => void refetch()}
       />
     );

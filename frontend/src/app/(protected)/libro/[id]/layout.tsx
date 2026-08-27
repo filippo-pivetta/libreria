@@ -9,6 +9,7 @@ import { ProtectedNav } from "@/components/layout/protected-nav";
 import { BarraContestoLibro } from "@/components/libro/barra-contesto-libro";
 import { BarraRitorno } from "@/components/libro/barra-ritorno";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 function Pagina({ children }: { children: React.ReactNode }) {
   return <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">{children}</main>;
@@ -46,14 +47,14 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
   if (voce.status === "not_found") {
     return (
       <Pagina>
-        <ErrorState title="Non trovata" message={t("assenze.voceNonTua")} />
+        <ErrorState title={t("titoli.nonTrovata")} message={t("assenze.voceNonTua")} />
       </Pagina>
     );
   }
   if (voce.status === "error") {
     return (
       <Pagina>
-        <ErrorState message={voce.message} />
+        <ErrorState message={await messaggioErrore("libroNonCaricato", voce.errore)} />
       </Pagina>
     );
   }

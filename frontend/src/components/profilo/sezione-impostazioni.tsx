@@ -26,7 +26,8 @@ import { Messaggio } from "@/components/ui/messaggio";
 import { SceltaLuce } from "@/components/profilo/scelta-luce";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { type PreferenzaLuce } from "@/lib/light";
-import { useTranslations } from "next-intl";
+import { ErroreApp, assenza, erroreDi, regola } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /**
  * Il corpo del Profilo (design doc §17): il tuo account, l'avviso di
@@ -75,7 +76,7 @@ export function SezioneImpostazioni({
   indiciStatoIniziale: IndiciStato;
 }) {
   const router = useRouter();
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [consenso, setConsenso] = useState(consensoIniziale);
   const [indiciStato, setIndiciStato] = useState(indiciStatoIniziale);
   const [errore, setErrore] = useState<string | null>(null);
@@ -88,10 +89,8 @@ export function SezioneImpostazioni({
       const token = await getAccessToken();
       const result = await aggiornaConsenso(token, valore);
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_provisioned"
-            ? t("sessione.accountIncompleto")
-            : result.message,
+        throw new ErroreApp(
+          result.status === "not_provisioned" ? assenza("accountIncompleto") : result.errore,
         );
       }
       return result.data;
@@ -109,7 +108,7 @@ export function SezioneImpostazioni({
     onError: (err: unknown, valore: boolean) => {
       setConsenso(!valore);
       setErrore(
-        err instanceof Error ? err.message : t("errori.consensoNonCambiato"),
+        spiega("consensoNonCambiato", erroreDi(err)),
       );
     },
   });
@@ -119,7 +118,7 @@ export function SezioneImpostazioni({
       const token = await getAccessToken();
       const result = await esportaLibriLetti(token);
       if (result.status !== "ok") {
-        throw new Error(result.message);
+        throw new ErroreApp(result.errore);
       }
       return result;
     },
@@ -137,7 +136,7 @@ export function SezioneImpostazioni({
     },
     onError: (err: unknown) => {
       setErroreExport(
-        err instanceof Error ? err.message : t("errori.fileNonScaricato"),
+        spiega("fileNonScaricato", erroreDi(err)),
       );
     },
   });
@@ -147,12 +146,12 @@ export function SezioneImpostazioni({
       const token = await getAccessToken();
       const result = await eliminaAccount(token, confermaNomeUtente);
       if (result.status !== "ok") {
-        throw new Error(
+        throw new ErroreApp(
           result.status === "conferma_non_corrispondente"
-            ? "Il nome utente digitato non corrisponde."
+            ? regola("conferma_non_corrispondente")
             : result.status === "not_provisioned"
-              ? t("sessione.accountIncompleto")
-              : result.message,
+              ? assenza("accountIncompleto")
+              : result.errore,
         );
       }
     },
@@ -171,7 +170,7 @@ export function SezioneImpostazioni({
     },
     onError: (err: unknown) => {
       setErroreCancellazione(
-        err instanceof Error ? err.message : t("errori.accountNonCancellato"),
+        spiega("accountNonCancellato", erroreDi(err)),
       );
     },
   });

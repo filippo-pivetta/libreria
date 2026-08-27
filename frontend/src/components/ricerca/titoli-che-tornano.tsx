@@ -10,6 +10,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { cercaPopolari, type TitoloPopolare } from "@/lib/api/ricerca";
 import { spessoreCosta } from "@/lib/shelf-pack";
 import { useContainerWidth, useMisureScaffale } from "@/lib/use-container-width";
+import { ErroreApp } from "@/lib/api/errore";
 
 const CHIAVE = "ricerca-popolari";
 /** Quanti si chiedono al backend: il doppio di quanti se ne mostrano
@@ -76,7 +77,7 @@ export function TitoliCheTornano() {
     queryFn: async () => {
       const token = await getAccessToken();
       const risultato = await cercaPopolari(token, RICHIESTI);
-      if (risultato.status !== "ok") throw new Error(risultato.message);
+      if (risultato.status !== "ok") throw new ErroreApp(risultato.errore);
       return risultato.data;
     },
   });

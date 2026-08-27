@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ErrorState } from "@/components/states/error-state";
 import { SchedaPubblica } from "@/components/scheda-pubblica/scheda-pubblica";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * La scheda di un libro che NON si ha in libreria (design doc §13).
@@ -37,7 +38,7 @@ export default async function BookPage(props: PageProps<"/book/[fonte]/[id]">) {
   const t = await getTranslations();
 
   if (fonte !== "catalogo" && fonte !== "google") {
-    return <ErrorState title="Non trovata" message="Questa pagina non esiste." />;
+    return <ErrorState title={t("titoli.nonTrovata")} message={t("assenze.paginaInesistente")} />;
   }
 
   const supabase = await createClient();
@@ -54,16 +55,16 @@ export default async function BookPage(props: PageProps<"/book/[fonte]/[id]">) {
 
   if (result.status === "not_found") {
     return (
-      <ErrorState title="Non trovato" message="Questo libro non è nei cataloghi. Rifai la ricerca." />
+      <ErrorState title={t("titoli.nonTrovato")} message={t("assenze.libroFuoriCatalogo")} />
     );
   }
   if (result.status === "fonte_irraggiungibile") {
     // Stato distinto da "non esiste": chi guarda deve sapere che il libro
     // potrebbe esserci e che è il catalogo a non rispondere (§13).
-    return <ErrorState message="I cataloghi non rispondono. Riprova fra poco." />;
+    return <ErrorState message={t("avvisi.cataloghiMuti")} />;
   }
   if (result.status === "error") {
-    return <ErrorState message={result.message} />;
+    return <ErrorState message={await messaggioErrore("schedaNonCaricata", result.errore)} />;
   }
 
   const volumiAlternativi =

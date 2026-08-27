@@ -11,6 +11,9 @@
  * restava nessuno da avvertire.
  */
 
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_MODELLO, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
+
 export type Preview = {
   id: string;
   voceId: string;
@@ -29,12 +32,12 @@ export type PreviewResult =
   | { status: "ok"; data: Preview }
   | { status: "not_found" }
   | { status: "consenso_revocato" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
@@ -52,10 +55,10 @@ async function esito(response: Response): Promise<PreviewResult> {
   if (response.status === 404) return { status: "not_found" };
   if (response.status === 409) return { status: "consenso_revocato" };
   if (response.status === 503) {
-    return { status: "error", message: "Il parere non è arrivato. Riprova fra poco." };
+    return { status: "error", errore: ERRORE_MODELLO };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
   return { status: "ok", data: toPreview((await response.json()) as Body) };
 }
@@ -75,7 +78,7 @@ export async function getPreview(
       }),
     );
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 }
 
@@ -95,14 +98,14 @@ export async function generaPreview(
       }),
     );
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 }
 
 export type CancellaPreviewResult =
   | { status: "ok" }
   | { status: "not_found" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 export async function cancellaArtefatto(
   accessToken: string,
@@ -119,12 +122,12 @@ export async function cancellaArtefatto(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) return { status: "not_found" };
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
   return { status: "ok" };
 }

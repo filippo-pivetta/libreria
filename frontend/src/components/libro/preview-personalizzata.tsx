@@ -11,6 +11,8 @@ import { IconaAltro } from "@/components/ui/icone";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { Messaggio } from "@/components/ui/messaggio";
 import { useTranslations } from "next-intl";
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 /**
  * "Me lo consigli?" (design doc §9, issue #6): un parere su questo libro
@@ -77,6 +79,7 @@ export function PreviewPersonalizzata({
 }) {
   const queryClient = useQueryClient();
   const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [spenta, setSpenta] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const [apertoPerIntero, setApertoPerIntero] = useState(false);
@@ -90,7 +93,11 @@ export function PreviewPersonalizzata({
       const result = await getPreview(token, voceId);
       if (result.status === "ok") return result.data;
       if (result.status === "not_found") return null;
-      throw new Error(result.status === "consenso_revocato" ? "spenta" : result.message);
+      // Consenso revocato: nessuna preview da mostrare, e non è un
+      // errore da segnalare — l'interfaccia lo dice già con la riga di
+      // `spentaDavvero`, che nasce dalla query sul consenso.
+      if (result.status === "consenso_revocato") return null;
+      throw new ErroreApp(result.errore);
     },
   });
 
@@ -115,8 +122,8 @@ export function PreviewPersonalizzata({
         return null;
       }
       if (result.status !== "ok") {
-        throw new Error(
-          result.status === "not_found" ? t("assenze.voceSparita") : result.message,
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("voceSparita") : result.errore,
         );
       }
       return result.data;
@@ -126,18 +133,17 @@ export function PreviewPersonalizzata({
       setSpenta(false);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: chiave }),
-    onError: (err: unknown) =>
-      setErrore(err instanceof Error ? err.message : "Il parere non è arrivato."),
+    onError: (err: unknown) => setErrore(spiega("anteprimaNonArrivata", erroreDi(err))),
   });
 
   const cancella = useMutation({
     mutationFn: async (artefattoId: string) => {
       const token = await getAccessToken();
       const result = await cancellaArtefatto(token, artefattoId);
-      if (result.status === "error") throw new Error(result.message);
+      if (result.status === "error") throw new ErroreApp(result.errore);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: chiave }),
-    onError: () => setErrore(t("errori.parereNonCancellato")),
+    onError: (err: unknown) => setErrore(spiega("parereNonCancellato", erroreDi(err))),
   });
 
   const spentaDavvero = spenta || consenso === false;
@@ -214,9 +220,7 @@ export function PreviewPersonalizzata({
           </div>
         </div>
       ) : spentaDavvero ? (
-        <p className="t-meta mt-2 max-w-[52ch]">
-          L&apos;elaborazione assistita è spenta. Puoi riaccenderla dal profilo.
-        </p>
+        <p className="t-meta mt-2 max-w-[52ch]">{t("regole.consenso_revocato")}</p>
       ) : (
         <>
           <p className="t-meta mt-2 max-w-[60ch]">

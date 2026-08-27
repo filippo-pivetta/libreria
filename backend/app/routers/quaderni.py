@@ -38,7 +38,7 @@ router = APIRouter(tags=["quaderni"])
 
 _CONSENSO_REVOCATO = {
     "error_code": "consenso_revocato",
-    "message": "L'elaborazione assistita è disattivata. Puoi riattivarla dal tuo profilo.",
+    "message": "L’elaborazione assistita è spenta. Puoi riaccenderla dal tuo profilo.",
 }
 _PROFILO_ASSENTE = "Il tuo account non è ancora stato completato."
 

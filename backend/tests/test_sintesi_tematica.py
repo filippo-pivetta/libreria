@@ -412,7 +412,7 @@ def test_post_sintesi_422_senza_contenuto(authenticated: TestClient, dati: dict[
     response = authenticated.post("/sintesi-tematica")
 
     assert response.status_code == 422
-    assert response.json()["detail"]["error_code"] == "contenuto_insufficiente"
+    assert response.json()["detail"]["error_code"] == "insight_insufficienti"
 
 
 def test_post_sintesi_422_nessun_tema_rilevante(

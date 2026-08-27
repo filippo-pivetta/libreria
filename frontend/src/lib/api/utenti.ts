@@ -7,6 +7,8 @@
 
 import { toVoceConLibro, type VoceConLibro, type VoceConLibroBody } from "@/lib/api/voci";
 import { intestazioniConLingua } from "@/lib/lingua";
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
 
 export type StatoRelazione = "assente" | "in_attesa" | "attiva";
 
@@ -64,17 +66,17 @@ function toMembro(body: MembroBody): Membro {
   };
 }
 
-function baseUrlOrError(): { baseUrl: string } | { status: "error"; message: string } {
+function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
   return { baseUrl };
 }
 
 export type UtentiResult =
   | { status: "ok"; data: ElencoMembri }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** Sotto le due lettere non si cerca: il backend non interroga
  * l'anagrafica (`utenti_service.MIN_QUERY`) e questo modulo non lo
@@ -107,11 +109,11 @@ export async function getUtenti(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as ElencoMembriBody;
@@ -138,7 +140,7 @@ export type LibreriaCollegatoResult =
   // (più) accessibile (design doc §15), da non confondere con una
   // libreria vuota — quella torna "ok" con voci: [].
   | { status: "non_collegato" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /** GET /utenti/{id}/voci: la libreria di un collegato (design doc §15).
  * `acceptLanguage`, opzionale: vedi il docstring di
@@ -158,7 +160,7 @@ export async function getLibreriaCollegato(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
@@ -168,7 +170,7 @@ export async function getLibreriaCollegato(
     return { status: "non_collegato" };
   }
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as LibreriaCollegatoBody;

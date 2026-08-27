@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslations } from "next-intl";
+import { Messaggio } from "@/components/ui/messaggio";
 
 // No real subscription: only here to satisfy useSyncExternalStore's signature.
 function noSubscription() {
@@ -61,7 +62,7 @@ export default function LoginPage() {
       // Mai la stringa grezza del fornitore (design doc §6): finora qui
       // compariva "Invalid login credentials", in inglese, sotto un campo
       // etichettato in italiano.
-      setError(traduciErroreAuth(signInError));
+      setError(t(traduciErroreAuth(signInError)));
       return;
     }
 
@@ -127,12 +128,11 @@ export default function LoginPage() {
                   className="h-7 rounded-none border-0 bg-transparent px-0 py-0 text-base"
                 />
               </div>
-              {/* Design doc §6: the sign-in error is text in `ink` under the field, not a red box. */}
-              {error && (
-                <p role="alert" className="text-sm text-ink">
-                  {error}
-                </p>
-              )}
+              {/* Design doc §6: l'errore d'accesso è testo in `ink` sotto
+                  il campo, non un riquadro rosso. Passa dal primitivo come
+                  ogni altro messaggio dell'app: era l'ultimo `<p>` scritto
+                  a mano, e quindi l'ultimo senza regione `aria-live`. */}
+              <Messaggio className="text-sm">{error}</Messaggio>
             </div>
 
             <Button type="submit" size="lg" disabled={isSubmitting} className="mt-1">

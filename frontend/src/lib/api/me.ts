@@ -7,6 +7,9 @@
  * l'atterraggio dal link di invito ha stabilito la sessione nel browser
  * (docs/adr/0013) — non esiste ancora un giro server-side a quel punto.
  */
+
+import type { ErroreApi } from "@/lib/api/errore";
+import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta, regola } from "@/lib/api/errore";
 export type IndiciStato = "pronti" | "spenti" | "in_ricostruzione";
 
 export type Me = {
@@ -26,7 +29,7 @@ export type MeResult =
   // L'utente è autenticato, ma il Manutentore non ha ancora creato la
   // riga in public.utente/public.utente_privato (ADR 0007).
   | { status: "not_provisioned" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 type MeResponseBody = {
   id: string;
@@ -40,7 +43,7 @@ type MeResponseBody = {
 export async function getMe(accessToken: string): Promise<MeResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   let response: Response;
@@ -51,7 +54,7 @@ export async function getMe(accessToken: string): Promise<MeResult> {
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
@@ -59,7 +62,7 @@ export async function getMe(accessToken: string): Promise<MeResult> {
   }
 
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const body = (await response.json()) as MeResponseBody;
@@ -73,8 +76,8 @@ export type CompleteAccountResult =
   // guarda, va trattato come un successo silenzioso (l'account esiste
   // già esattamente come lo si voleva creare).
   | { status: "already_completed" }
-  | { status: "validation_error"; message: string }
-  | { status: "error"; message: string };
+  | { status: "validation_error"; errore: ErroreApi }
+  | { status: "error"; errore: ErroreApi };
 
 type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
 
@@ -84,7 +87,7 @@ export async function completeAccount(
 ): Promise<CompleteAccountResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   let response: Response;
@@ -99,7 +102,7 @@ export async function completeAccount(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 201) {
@@ -107,7 +110,7 @@ export async function completeAccount(
   }
 
   if (response.status === 422) {
-    return { status: "validation_error", message: "Il nome utente non è valido." };
+    return { status: "validation_error", errore: regola("nome_utente_non_valido") };
   }
 
   if (response.status === 409) {
@@ -121,7 +124,7 @@ export async function completeAccount(
     }
   }
 
-  return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+  return { status: "error", errore: erroreDaRisposta(response) };
 }
 
 function toMe(body: MeResponseBody): Me {
@@ -138,7 +141,7 @@ function toMe(body: MeResponseBody): Me {
 export type AggiornaConsensoResult =
   | { status: "ok"; data: Me }
   | { status: "not_provisioned" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /**
  * Accende o spegne l'elaborazione assistita (`PATCH /me/consenso`,
@@ -157,7 +160,7 @@ export async function aggiornaConsenso(
 ): Promise<AggiornaConsensoResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   let response: Response;
@@ -172,7 +175,7 @@ export async function aggiornaConsenso(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 404) {
@@ -180,7 +183,7 @@ export async function aggiornaConsenso(
   }
 
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   return { status: "ok", data: toMe((await response.json()) as MeResponseBody) };
@@ -190,7 +193,7 @@ export type EliminaAccountResult =
   | { status: "ok" }
   | { status: "conferma_non_corrispondente" }
   | { status: "not_provisioned" }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 /**
  * Cancellazione self-service dell'account (`DELETE /me`, issue #8, PRD
@@ -204,7 +207,7 @@ export async function eliminaAccount(
 ): Promise<EliminaAccountResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   let response: Response;
@@ -219,7 +222,7 @@ export async function eliminaAccount(
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (response.status === 204) {
@@ -238,12 +241,12 @@ export async function eliminaAccount(
     }
   }
 
-  return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+  return { status: "error", errore: erroreDaRisposta(response) };
 }
 
 export type EsportaLibriLettiResult =
   | { status: "ok"; blob: Blob; filename: string }
-  | { status: "error"; message: string };
+  | { status: "error"; errore: ErroreApi };
 
 const _NOME_FILE_RIPIEGO = "libri-letti.csv";
 
@@ -266,7 +269,7 @@ function _nomeFileDaHeader(header: string | null): string {
 export async function esportaLibriLetti(accessToken: string): Promise<EsportaLibriLettiResult> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) {
-    return { status: "error", message: "L’app non è configurata come dovrebbe. Parla con chi mantiene l’istanza." };
+    return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
 
   let response: Response;
@@ -276,11 +279,11 @@ export async function esportaLibriLetti(accessToken: string): Promise<EsportaLib
       cache: "no-store",
     });
   } catch {
-    return { status: "error", message: "Il server non risponde. Controlla la connessione e riprova." };
+    return { status: "error", errore: ERRORE_RETE };
   }
 
   if (!response.ok) {
-    return { status: "error", message: "Il server ha risposto male. Riprova fra poco." };
+    return { status: "error", errore: erroreDaRisposta(response) };
   }
 
   const blob = await response.blob();

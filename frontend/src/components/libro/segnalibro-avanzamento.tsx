@@ -9,16 +9,8 @@ import type { Lettura, VoceDettaglio } from "@/lib/api/voci";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { CampoData } from "@/components/ui/campo-data";
-import { useTranslations } from "next-intl";
-
-const MESSAGGI_ERRORE: Record<string, string> = {
-  avanzamento_data_futura: "La data non può essere nel futuro.",
-  avanzamento_data_regressiva: "La data precede l’ultimo avanzamento registrato.",
-  avanzamento_pagina_regressiva: "La pagina è inferiore a quella già raggiunta.",
-  avanzamento_pagina_supera_successivo: "La pagina supera un avanzamento successivo.",
-  avanzamento_data_supera_successivo: "La data supera un avanzamento successivo.",
-  avanzamento_oltre_pagine_adottate: "La pagina supera le pagine adottate per questa copia.",
-};
+import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
 type ContestoOttimistico = { precedente: VoceDettaglio | undefined };
 type ValoriAvanzamento = { pagina: number; data: string };
@@ -51,7 +43,7 @@ export function SegnalibroAvanzamento({
 }) {
   const queryClient = useQueryClient();
   const { showError } = useToast();
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const ultimo = lettura.avanzamenti.at(-1);
   const minimo = ultimo?.pagina ?? 0;
   const dataMinima = ultimo?.data ?? lettura.dataInizio;
@@ -132,13 +124,13 @@ export function SegnalibroAvanzamento({
       const token = await getAccessToken();
       const result = await registraAvanzamento(token, lettura.id, pagina, dataScelta);
       if (result.status !== "ok") {
-        const messaggio =
-          result.status === "non_valido"
-            ? (MESSAGGI_ERRORE[result.errorCode] ?? result.message)
-            : result.status === "not_found"
-              ? t("assenze.letturaSparita")
-              : result.message;
-        throw new Error(messaggio);
+        // Le sei frasi dei rifiuti (data futura, pagina regressiva, …)
+        // stavano qui in un `Record` italiano: ora sono `regole.*` nel
+        // catalogo, quindi esistono anche in inglese e le nomina
+        // l'`error_code` che il backend manda già.
+        throw new ErroreApp(
+          result.status === "not_found" ? assenza("letturaSparita") : result.errore,
+        );
       }
       return result.data;
     },
@@ -175,7 +167,7 @@ export function SegnalibroAvanzamento({
       if (context?.precedente) {
         queryClient.setQueryData(["voce", voceId], context.precedente);
       }
-      showError(error.message);
+      showError(spiega("avanzamentoNonRegistrato", erroreDi(error)));
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["voce", voceId] });

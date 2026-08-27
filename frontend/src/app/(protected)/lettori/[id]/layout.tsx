@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/states/error-state";
 import { BarraContesto } from "@/components/lettori/barra-contesto";
 import { getTranslations } from "next-intl/server";
+import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Layout del contesto di un collegato (design doc §15, emendamento 20
@@ -41,7 +42,7 @@ export default async function LibreriaCollegatoLayout(
   if (result.status === "not_found") {
     return (
       <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
-        <ErrorState title="Non trovato" message={t("assenze.utenteInesistente")} />
+        <ErrorState title={t("titoli.nonTrovato")} message={t("assenze.utenteInesistente")} />
       </main>
     );
   }
@@ -52,7 +53,7 @@ export default async function LibreriaCollegatoLayout(
           {/* Non "sei stato rimosso", non "errore": una stanza chiusa
               (design doc §15). */}
           <ErrorState
-            title="Non più accessibile"
+            title={t("titoli.nonPiuAccessibile")}
             message={t("assenze.libreriaChiusa")}
           />
           {/* Era un comando testuale sottolineato: in una pagina che è un
@@ -68,7 +69,7 @@ export default async function LibreriaCollegatoLayout(
   if (result.status === "error") {
     return (
       <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
-        <ErrorState message={result.message} />
+        <ErrorState message={await messaggioErrore("metricheSueNonCaricate", result.errore)} />
       </main>
     );
   }

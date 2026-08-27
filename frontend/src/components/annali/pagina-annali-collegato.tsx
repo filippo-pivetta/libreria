@@ -12,17 +12,27 @@ import { RigaAffiancata } from "@/components/annali/riga-affiancata";
 import { LibriInComune } from "@/components/annali/libri-in-comune";
 import { ErrorState } from "@/components/states/error-state";
 import { ScheletroAnnali } from "@/components/states/scheletri";
-import { useTranslations } from "next-intl";
+import { ERRORE_SERVER, ErroreApp, assenza, erroreDi, regola } from "@/lib/api/errore";
+import type { ErroreApi } from "@/lib/api/errore";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
-function messaggioErrore(
-  result: { status: string; message?: string },
-  t: (chiave: string) => string,
-): string {
-  if (result.status === "non_collegato") return t("assenze.libreriaChiusa");
-  if (result.status === "not_found") return t("assenze.utenteInesistente");
-  if (result.status === "anno_futuro") return "Gli anni futuri non sono selezionabili.";
-  if (result.status === "error" && result.message) return result.message;
-  return t("errori.metricheSueNonCaricate");
+/**
+ * Gli esiti non-ok delle metriche, tradotti in `ErroreApi`.
+ *
+ * Prima era una `messaggioErrore(result, t)` per file, che scriveva le
+ * frasi a mano — "Gli anni futuri non sono selezionabili." era italiano
+ * fisso in due copie, e il caso `error` ricadeva su `result.message`,
+ * cioè sulla stringa di trasporto. Qui si classifica soltanto: la frase
+ * la compone `spiega()` più in basso, dal catalogo.
+ */
+function erroreDelRisultato(result: {
+  status: string;
+  errore?: ErroreApi;
+}): ErroreApi {
+  if (result.status === "anno_futuro") return regola("anno_futuro");
+  if (result.status === "non_collegato") return assenza("libreriaChiusa");
+  if (result.status === "not_found") return assenza("utenteInesistente");
+  return result.errore ?? ERRORE_SERVER;
 }
 
 /**
@@ -51,7 +61,7 @@ export function PaginaAnnaliCollegato({
   vociProprie: VoceConLibro[];
   vociCollegato: VoceConLibro[];
 }) {
-  const t = useTranslations();
+  const spiega = useMessaggioErrore();
   const [anno, setAnno] = useState(metricheCollegatoIniziali.anno);
 
   const collegatoQuery = useQuery({
@@ -59,7 +69,7 @@ export function PaginaAnnaliCollegato({
     queryFn: async () => {
       const token = await getAccessToken();
       const result = await getMetricheCollegato(token, utenteId, anno);
-      if (result.status !== "ok") throw new Error(messaggioErrore(result, t));
+      if (result.status !== "ok") throw new ErroreApp(erroreDelRisultato(result));
       return result.data;
     },
     initialData: anno === metricheCollegatoIniziali.anno ? metricheCollegatoIniziali : undefined,
@@ -97,11 +107,7 @@ export function PaginaAnnaliCollegato({
   if (collegatoQuery.isError) {
     return (
       <ErrorState
-        message={
-          collegatoQuery.error instanceof Error
-            ? collegatoQuery.error.message
-            : t("errori.metricheSueNonCaricate")
-        }
+        message={spiega("metricheSueNonCaricate", erroreDi(collegatoQuery.error))}
         onRetry={() => void collegatoQuery.refetch()}
       />
     );
