@@ -9,6 +9,7 @@
     "lint": "eslint",
     "type-check": "next typegen && tsc --noEmit",
     "tokens": "tsx scripts/build-tokens.mts",
+    "icone": "tsx scripts/build-icone.mts",
     "check:contrast": "tsx scripts/check-contrast.mts",
     "prebuild": "npm run tokens",
     "check:messaggi": "tsx scripts/check-messaggi.mts"
