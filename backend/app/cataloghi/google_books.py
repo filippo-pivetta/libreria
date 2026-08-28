@@ -21,6 +21,7 @@ from typing import Any
 
 import httpx
 
+from app.cataloghi import trasporto
 from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.core.config import get_settings
 from app.core.testo import cognome, normalizza
@@ -28,6 +29,19 @@ from app.core.testo import cognome, normalizza
 _URL = "https://www.googleapis.com/books/v1/volumes"
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "google_books"
+
+
+def _cliente() -> httpx.AsyncClient:
+    """Il client condiviso verso questa fonte: uno per processo, tenuto
+    aperto, mai dentro un `async with` (app/cataloghi/trasporto.py).
+
+    Senza `agente.intestazioni()`, come prima: Google identifica il
+    chiamante dalla chiave API, non dal `User-Agent`."""
+    return trasporto.cliente(
+        "google_books",
+        lambda: httpx.AsyncClient(timeout=_TIMEOUT, limits=trasporto.LIMITI),
+    )
+
 
 logger = logging.getLogger("app.cataloghi.google_books")
 
@@ -98,8 +112,7 @@ async def _get(url: str, parametri: dict[str, str]) -> httpx.Response:
     for tentativo in range(_TENTATIVI_MASSIMI):
         ultimo = tentativo == _TENTATIVI_MASSIMI - 1
         try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-                risposta = await client.get(url, params=parametri)
+            risposta = await _cliente().get(url, params=parametri)
         except httpx.HTTPError as errore:
             if ultimo:
                 raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore

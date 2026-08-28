@@ -31,24 +31,39 @@ def indirizzo_chiamante(request: Request) -> str:
     return indirizzo.strip() if indirizzo else get_remote_address(request)
 
 
-limiter = Limiter(key_func=indirizzo_chiamante, default_limits=["120/minute"])
-"""Rete di sicurezza generica per richiesta e per IP (issue #11)."""
+# I tre limiti sotto sono stati alzati (28 agosto 2026) quando l'istanza è
+# tornata a essere a cerchia ristretta: erano tarati su un'istanza aperta,
+# dove il secchio per IP difende gli altri da uno sconosciuto. Fra amici
+# quell'ipotesi cade, e i numeri di prima li toccava per primo chi usava
+# l'app come va usata — la ricerca semantica dieci volte di fila mentre si
+# cerca un ricordo, una sessione di aggiunte una dopo l'altra.
+#
+# Restano, e restano per IP, per l'unica ragione che valeva anche prima e
+# vale ancora: un ciclo impazzito — un `useEffect` senza dipendenze, una
+# scheda lasciata aperta che riprova all'infinito — brucia una quota
+# esterna in pochi minuti, e nessuno se ne accorge finché non arriva il
+# conto. Non sono un tetto di spesa (non contano né token né euro, PRD
+# regola 19), sono un fusibile.
 
-LIMITE_CATALOGHI_ESTERNI = "30/minute"
-"""Più stretto del globale sulla sola ricerca esterna, perché è l'unico
-endpoint che consuma una quota a pagamento e con un tetto giornaliero. Il
-campo di ricerca chiama a ogni pausa nella digitazione: senza un limite
-proprio, una manciata di ricerche insistenti brucerebbe la quota di tutti.
-Trenta al minuto sta largo per una persona che digita e stretto per un
-ciclo impazzito."""
+limiter = Limiter(key_func=indirizzo_chiamante, default_limits=["600/minute"])
+"""Rete di sicurezza generica per richiesta e per IP (issue #11).
 
-LIMITE_FUNZIONI_ASSISTITE = "10/minute"
-"""Sulle funzioni assistite personali (ricerca semantica, preview): ogni
-richiesta è una chiamata al fornitore di modelli, che il PRD dichiara
-essere "l'unica voce di costo variabile" del sistema e lascia
-esplicitamente senza tetto di spesa ("il controllo è manuale, fuori dal
-prodotto"). Questo non è un tetto di spesa — non conta né token né euro,
-e non contraddice quella scelta: è la stessa rete di sicurezza contro il
-ciclo impazzito che LIMITE_CATALOGHI_ESTERNI mette sulla quota di Google,
-tarata più stretta perché una preview costa più di una ricerca e nessuno
-la invoca dieci volte al minuto scrivendo."""
+Seicento al minuto sono dieci al secondo sostenuti: nessuna navigazione
+umana ci arriva nemmeno aprendo pagine a raffica, un ciclo impazzito sì."""
+
+LIMITE_CATALOGHI_ESTERNI = "120/minute"
+"""Sulla sola ricerca esterna, l'unico endpoint che consuma una quota a
+pagamento e con un tetto giornaliero. Il campo di ricerca chiama a ogni
+pausa nella digitazione: due al secondo restano sopra qualunque velocità
+di battitura, e sotto il ritmo di un ciclo."""
+
+LIMITE_FUNZIONI_ASSISTITE = "60/minute"
+"""Sulle funzioni assistite personali (ricerca semantica, preview,
+suggerimenti, sintesi): ogni richiesta è una chiamata al fornitore di
+modelli, che il PRD dichiara essere "l'unica voce di costo variabile" del
+sistema e lascia esplicitamente senza tetto di spesa ("il controllo è
+manuale, fuori dal prodotto").
+
+Dieci al minuto erano pochi per la ricerca semantica, che si usa a
+tentativi: si riscrive la domanda, si cambia una parola, si riprova. È
+esattamente il gesto che il vecchio limite interrompeva."""

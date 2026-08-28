@@ -34,13 +34,24 @@ from typing import Any
 
 import httpx
 
-from app.cataloghi import agente
+from app.cataloghi import agente, trasporto
 from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.core.testo import cognomi
 
 _URL = "https://www.wikidata.org/w/api.php"
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "wikidata"
+
+
+def _cliente() -> httpx.AsyncClient:
+    """Il client condiviso verso questa fonte: uno per processo, tenuto
+    aperto, mai dentro un `async with` (app/cataloghi/trasporto.py)."""
+    return trasporto.cliente(
+        "wikidata",
+        lambda: httpx.AsyncClient(
+            timeout=_TIMEOUT, headers=agente.intestazioni(), limits=trasporto.LIMITI
+        ),
+    )
 
 
 # P31 "istanza di": i tipi che contano come opera scritta. Comprende il
@@ -113,8 +124,7 @@ _LINGUE = {
 
 async def _chiama(parametri: dict[str, str]) -> dict[str, Any]:
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=agente.intestazioni()) as client:
-            risposta = await client.get(_URL, params={**parametri, "format": "json"})
+        risposta = await _cliente().get(_URL, params={**parametri, "format": "json"})
     except httpx.HTTPError as errore:
         raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
     if risposta.status_code >= 400:

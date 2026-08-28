@@ -379,19 +379,34 @@ def test_un_volume_che_google_non_conosce_piu_resta_un_risultato_scaduto(
 
 def test_con_la_cache_calda_non_si_tocca_la_rete(monkeypatch: pytest.MonkeyPatch) -> None:
     """Il fallback non deve diventare la strada normale: finché la ricerca
-    è recente, l'aggiunta continua a non costare una chiamata di quota."""
+    è recente, l'aggiunta continua a non costare una chiamata di quota.
+
+    Il divieto sta sul TRASPORTO e non sul costruttore del client: da
+    quando il client verso Google è condiviso e dura quanto il processo
+    (app/cataloghi/trasporto.py), "non è stato costruito un client" non
+    dice più nulla su quante richieste siano partite — la seconda
+    chiamata riuserebbe il primo. Ora a fallire è la richiesta vera, che
+    è ciò che il test ha sempre voluto vietare.
+    """
     gb.svuota_cache()
     monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
-    _con_risposta(
-        monkeypatch,
-        httpx.Response(200, json={"items": [_elemento("v1", "Le città invisibili")]}),
-    )
+    vietato = False
+
+    def _rispondi(_richiesta: httpx.Request) -> httpx.Response:
+        if vietato:
+            raise AssertionError("cache calda: non deve partire alcuna chiamata")
+        return httpx.Response(200, json={"items": [_elemento("v1", "Le città invisibili")]})
+
+    originale = httpx.AsyncClient
+
+    def _client(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
+        kwargs["transport"] = httpx.MockTransport(_rispondi)
+        return originale(*args, **kwargs)
+
+    monkeypatch.setattr(gb.httpx, "AsyncClient", _client)
     __import__("asyncio").run(gb.cerca("calvino"))
 
-    def _vietato(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
-        raise AssertionError("cache calda: non deve partire alcuna chiamata")
-
-    monkeypatch.setattr(gb.httpx, "AsyncClient", _vietato)
+    vietato = True
     opera = __import__("asyncio").run(gb.opera_per_identificativi("v1", []))
 
     assert opera is not None
@@ -524,3 +539,32 @@ def test_pagecount_assente_resta_assente() -> None:
 def test_pagecount_non_intero_positivo_e_assente(valore: Any) -> None:
     """`True` compreso: in Python è un int, e varrebbe "1 pagina"."""
     assert gb._volume(_elemento("x", "Un libro", pageCount=valore)).pagine is None
+
+
+def test_il_client_verso_una_fonte_e_uno_solo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Due chiamate, un client: è tutto ciò che serve perché la seconda
+    non ripaghi handshake TCP e TLS (app/cataloghi/trasporto.py).
+
+    Senza questo, la regressione sarebbe invisibile — reintrodurre un
+    `async with httpx.AsyncClient(...)` funzionerebbe benissimo, solo più
+    lentamente, e nessun test se ne accorgerebbe.
+    """
+    gb.svuota_cache()
+    monkeypatch.setattr(gb.get_settings(), "google_books_api_key", "prova", raising=False)
+    costruiti: list[httpx.AsyncClient] = []
+    originale = httpx.AsyncClient
+
+    def _client(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
+        kwargs["transport"] = httpx.MockTransport(lambda _: httpx.Response(200, json={"items": []}))
+        creato = originale(*args, **kwargs)
+        costruiti.append(creato)
+        return creato
+
+    monkeypatch.setattr(gb.httpx, "AsyncClient", _client)
+    __import__("asyncio").run(gb.cerca("calvino"))
+    __import__("asyncio").run(gb.cerca("montaigne"))
+
+    assert len(costruiti) == 1
+    # E non è stato chiuso: un client chiuso non si riapre, e la chiamata
+    # dopo fallirebbe con "client is closed".
+    assert costruiti[0].is_closed is False

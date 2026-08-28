@@ -21,7 +21,7 @@ import httpx
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image, ImageStat, UnidentifiedImageError
 
-from app.cataloghi import agente
+from app.cataloghi import agente, trasporto
 from app.core import storage
 from app.lavori.errori import ErroreDefinitivo, ErroreTransitorio
 from app.repositories import catalogo_repository, database
@@ -32,6 +32,21 @@ LATO_MINIATURA = 400
 LATO_GRANDE = 600
 
 _TIMEOUT = httpx.Timeout(15.0)
+
+
+def _cliente() -> httpx.AsyncClient:
+    """Il client condiviso per scaricare le copertine
+    (app/cataloghi/trasporto.py). `follow_redirects` perché sia Google
+    sia Open Library rimandano l'immagine da un altro host."""
+    return trasporto.cliente(
+        "copertine",
+        lambda: httpx.AsyncClient(
+            timeout=_TIMEOUT,
+            follow_redirects=True,
+            headers=agente.intestazioni(),
+            limits=trasporto.LIMITI,
+        ),
+    )
 
 
 # Google risponde 200 anche quando la copertina non esiste, servendo un PNG
@@ -282,17 +297,15 @@ async def esegui(payload: dict[str, Any]) -> None:
     isbn13 = payload.get("isbn13")
 
     dati: bytes | None = None
-    async with httpx.AsyncClient(
-        timeout=_TIMEOUT, follow_redirects=True, headers=agente.intestazioni()
-    ) as client:
-        if volume_id:
-            dati = await _scarica(client, _url_google(str(volume_id)))
-            if dati is not None and not _e_una_copertina(dati, libro_id, "Google"):
-                dati = None
-        if dati is None and isbn13:
-            dati = await _scarica(client, _url_open_library(str(isbn13)))
-            if dati is not None and not _e_una_copertina(dati, libro_id, "Open Library"):
-                dati = None
+    client = _cliente()
+    if volume_id:
+        dati = await _scarica(client, _url_google(str(volume_id)))
+        if dati is not None and not _e_una_copertina(dati, libro_id, "Google"):
+            dati = None
+    if dati is None and isbn13:
+        dati = await _scarica(client, _url_open_library(str(isbn13)))
+        if dati is not None and not _e_una_copertina(dati, libro_id, "Open Library"):
+            dati = None
 
     if dati is None:
         await _scrivi_stato(libro_id, "assente")

@@ -76,6 +76,17 @@ class Settings(BaseSettings):
     worker_intervallo_secondi: float = 2.0
     """Attesa tra due passaggi sulla coda quando non c'è nulla da fare."""
 
+    worker_lotto: int = 3
+    """Quanti lavori il worker prende in carico — e svolge in parallelo —
+    a ogni passaggio (app/lavori/worker.py).
+
+    Tre e non uno: un lavoro è quasi tutto attesa di rete, e in serie
+    l'aggiunta di un libro (sette-otto lavori accodati insieme) sommava
+    quelle attese. Tre e non dieci: la macchina è una shared-cpu-1x da
+    512MB (backend/fly.toml) e la conversione di una copertina tiene
+    l'immagine decompressa in memoria, quindi il parallelismo è limitato
+    dalla RAM prima che dalla rete."""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

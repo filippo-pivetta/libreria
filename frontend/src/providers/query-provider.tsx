@@ -8,9 +8,23 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // Evita rifetch immediati non necessari; ogni query di dominio
-        // futura potrà sovrascrivere questo default per singolo caso.
-        staleTime: 60 * 1000,
+        // Cinque minuti, non uno (28 agosto 2026). Il default di un
+        // minuto era tarato su dati che possono cambiare sotto i piedi
+        // di chi guarda; qui quasi tutto ciò che si legge lo ha scritto
+        // chi sta guardando, in questa stessa sessione, e le mutazioni
+        // invalidano già le chiavi che toccano. Ciò che resta è il
+        // rifetch di cortesia — e su un'istanza a cerchia ristretta è
+        // solo un giro di rete in più (Vercel -> Fly -> Supabase) per
+        // riportare indietro esattamente ciò che è già in pagina.
+        //
+        // Ogni query di dominio può sovrascriverlo: i Quaderni lo
+        // portano già a Infinity (components/quaderni/quaderni.tsx).
+        staleTime: 5 * 60 * 1000,
+        // Tornare sulla scheda del browser non è una richiesta di dati
+        // freschi: è la stessa persona che riprende in mano la stessa
+        // pagina. Con il default (true) ogni cambio di finestra faceva
+        // ripartire tutte le query montate.
+        refetchOnWindowFocus: false,
       },
     },
   });

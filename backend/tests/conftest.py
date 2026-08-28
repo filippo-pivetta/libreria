@@ -28,11 +28,28 @@ import pytest  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import ec  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.cataloghi import trasporto  # noqa: E402
 from app.core import security  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.main import app  # noqa: E402
 
 _TEST_KID = "test-kid"
+
+
+@pytest.fixture(autouse=True)
+def _clienti_http_puliti() -> Iterator[None]:
+    """I client verso le fonti esterne sono condivisi per tutto il
+    processo (app/cataloghi/trasporto.py): senza questa pulizia, il primo
+    test che ne costruisce uno col proprio `MockTransport` lo lascerebbe
+    in piedi per tutti quelli dopo, che si vedrebbero rispondere dal
+    doppio del caso precedente.
+
+    Autouse e non a richiesta: dimenticarla in un test nuovo non lo farebbe
+    fallire, farebbe fallire un altro test — il modo peggiore in cui una
+    suite possa rompersi."""
+    trasporto.dimentica()
+    yield
+    trasporto.dimentica()
 
 
 @pytest.fixture

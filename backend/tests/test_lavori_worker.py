@@ -247,3 +247,92 @@ def test_avvio_doppio_e_un_errore(coda: _Registratore, monkeypatch: pytest.Monke
             await worker.ferma(timeout=5.0)
 
     asyncio.run(_prova())
+
+
+# --- lotto in parallelo -----------------------------------------------------
+
+
+def _accoda_molti(monkeypatch: pytest.MonkeyPatch, quanti: int) -> None:
+    lavori = [
+        {
+            "id": i,
+            "tipo": "prova",
+            "chiave": _LIBRO_ID,
+            "payload": {"libro_id": _LIBRO_ID},
+            "tentativi": 1,
+        }
+        for i in range(quanti)
+    ]
+    consegnati = {"fatto": False}
+
+    def _prendi(conn: Any, lotto: int) -> list[dict[str, Any]]:
+        if consegnati["fatto"]:
+            return []
+        consegnati["fatto"] = True
+        return lavori[:lotto]
+
+    monkeypatch.setattr(lavoro_repository, "prendi_in_carico", _prendi)
+
+
+def test_il_lotto_si_svolge_in_parallelo(
+    coda: _Registratore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Tre lavori da 50ms di attesa ciascuno: in serie sarebbero 150ms, in
+    parallelo poco più di 50.
+
+    Il tempo è la sola cosa che distingua i due comportamenti dall'esterno,
+    e il margine è largo (due volte il minimo teorico) perché la misura non
+    diventi il test più fragile della suite.
+    """
+    _accoda_molti(monkeypatch, 3)
+
+    async def _esegui(payload: dict[str, Any]) -> None:
+        await asyncio.sleep(0.05)
+
+    async def _su_fallimento(payload: dict[str, Any], errore: str) -> None:
+        return None
+
+    monkeypatch.setattr(modulo_worker, "GESTORI", {"prova": Gestore(_esegui, _su_fallimento)})
+
+    inizio = time.monotonic()
+    svolti = asyncio.run(Worker(intervallo=0.01, lotto=3).passo())
+    durata = time.monotonic() - inizio
+
+    assert svolti == 3
+    assert sorted(coda.riusciti) == [0, 1, 2]
+    assert durata < 0.10
+
+
+def test_un_lavoro_che_esplode_non_lascia_a_metà_i_fratelli(
+    coda: _Registratore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`gather` che propaga subito NON ferma le altre coroutine: il ciclo
+    chiuderebbe la connessione mentre un fratello la sta ancora usando.
+
+    Qui il primo lavoro fallisce in un modo che nemmeno `_esegui` cattura
+    (l'errore arriva dalla scrittura sulla coda, non dal gestore), e si
+    verifica che gli altri due siano comunque arrivati in fondo prima che
+    l'errore emerga.
+    """
+    _accoda_molti(monkeypatch, 3)
+    finiti: list[int] = []
+
+    async def _esegui(payload: dict[str, Any]) -> None:
+        await asyncio.sleep(0.01)
+
+    async def _su_fallimento(payload: dict[str, Any], errore: str) -> None:
+        return None
+
+    monkeypatch.setattr(modulo_worker, "GESTORI", {"prova": Gestore(_esegui, _su_fallimento)})
+
+    def _segna_riuscito(conn: Any, lavoro_id: int) -> None:
+        if lavoro_id == 0:
+            raise RuntimeError("connessione caduta")
+        finiti.append(lavoro_id)
+
+    monkeypatch.setattr(lavoro_repository, "segna_riuscito", _segna_riuscito)
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(Worker(intervallo=0.01, lotto=3).passo())
+
+    assert sorted(finiti) == [1, 2]

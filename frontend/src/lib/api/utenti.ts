@@ -40,6 +40,14 @@ export type ElencoMembri = {
   richiesteRicevute: Membro[];
   collegati: Membro[];
   altri: Membro[];
+  /** True quando questi tre gruppi contengono già OGNI membro: la ricerca
+   * per nome può allora restare nel browser, invece di diventare una
+   * richiesta al server per ogni pausa nella digitazione.
+   *
+   * Non è un conteggio travestito — dice "c'è tutto" o "manca qualcosa",
+   * mai quanti siano — e con una ricerca attiva è sempre false, perché
+   * si sta guardando un sottoinsieme per definizione. */
+  elencoCompleto: boolean;
 };
 
 type MembroBody = {
@@ -54,6 +62,7 @@ type ElencoMembriBody = {
   richieste_ricevute: MembroBody[];
   collegati: MembroBody[];
   altri: MembroBody[];
+  elenco_completo?: boolean;
 };
 
 function toMembro(body: MembroBody): Membro {
@@ -78,9 +87,13 @@ export type UtentiResult =
   | { status: "ok"; data: ElencoMembri }
   | { status: "error"; errore: ErroreApi };
 
-/** Sotto le due lettere non si cerca: il backend non interroga
- * l'anagrafica (`utenti_service.MIN_QUERY`) e questo modulo non lo
- * chiama nemmeno, così una battuta sola non parte come richiesta. */
+/** Sotto le due lettere non si cerca *sul server*: il backend non
+ * interroga l'anagrafica (`utenti_service.MIN_QUERY`) e questo modulo non
+ * lo chiama nemmeno, così una battuta sola non parte come richiesta.
+ *
+ * Non vale per la ricerca locale: quando `elencoCompleto` è true i nomi
+ * sono già tutti in pagina, non c'è niente da enumerare e una lettera
+ * sola filtra da subito. */
 export const MIN_RICERCA = 2;
 
 /** GET /utenti: l'elenco membri (design doc §16) in tre gruppi, con lo
@@ -123,6 +136,10 @@ export async function getUtenti(
       richiesteRicevute: body.richieste_ricevute.map(toMembro),
       collegati: body.collegati.map(toMembro),
       altri: body.altri.map(toMembro),
+      // Assente = false: il caso prudente è tornare al server, ed è
+      // quello che deve capitare se un backend più vecchio del frontend
+      // non conosce ancora questo campo.
+      elencoCompleto: body.elenco_completo === true,
     },
   };
 }

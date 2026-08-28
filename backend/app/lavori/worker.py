@@ -44,12 +44,12 @@ _CICLI_TRA_RECUPERI = 150
 
 
 class Worker:
-    def __init__(self, intervallo: float | None = None, lotto: int = 1) -> None:
+    def __init__(self, intervallo: float | None = None, lotto: int | None = None) -> None:
         settings = get_settings()
         self._intervallo = (
             intervallo if intervallo is not None else settings.worker_intervallo_secondi
         )
-        self._lotto = lotto
+        self._lotto = lotto if lotto is not None else settings.worker_lotto
         self._stop = asyncio.Event()
         self._task: asyncio.Task[None] | None = None
         self._connessione: psycopg.Connection[Any] | None = None
@@ -138,8 +138,33 @@ class Worker:
         lavori = await run_in_threadpool(
             lavoro_repository.prendi_in_carico, connessione, self._lotto
         )
-        for lavoro in lavori:
-            await self._esegui(connessione, lavoro)
+        if not lavori:
+            return 0
+
+        # In parallelo e non uno dopo l'altro. Un lavoro è quasi tutto
+        # attesa di rete (Google Books, Open Library, OpenAI, il download
+        # di una copertina): in serie, l'aggiunta di un solo libro — che
+        # ne accoda sette o otto — si smaltiva sommando quelle attese,
+        # ed era il tempo in cui la scheda restava senza copertina e
+        # senza descrizione. Non serve a reggere più carico: serve a far
+        # finire prima la raffica che parte da un singolo gesto.
+        #
+        # `return_exceptions=True` perché un `gather` che propaga subito
+        # NON ferma le altre coroutine: senza, il ciclo chiuderebbe la
+        # connessione mentre un lavoro fratello la sta ancora usando. Qui
+        # si aspetta che tutti abbiano finito, poi si rilancia il primo
+        # errore, e il ciclo si comporta come prima.
+        #
+        # La connessione è una sola e condivisa: `psycopg.Connection` è
+        # thread-safe e serializza da sé le istruzioni, che qui sono
+        # scritture brevi di stato (segna_riuscito, rimetti_in_coda).
+        esiti = await asyncio.gather(
+            *(self._esegui(connessione, lavoro) for lavoro in lavori),
+            return_exceptions=True,
+        )
+        for esito in esiti:
+            if isinstance(esito, BaseException):
+                raise esito
         return len(lavori)
 
     async def _esegui(self, connessione: psycopg.Connection[Any], lavoro: dict[str, Any]) -> None:

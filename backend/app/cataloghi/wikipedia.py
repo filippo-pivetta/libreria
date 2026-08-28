@@ -19,11 +19,25 @@ from dataclasses import dataclass
 
 import httpx
 
-from app.cataloghi import agente
+from app.cataloghi import agente, trasporto
 from app.cataloghi.errori import FonteNonRaggiungibileError
 
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "wikipedia"
+
+
+def _cliente() -> httpx.AsyncClient:
+    """Il client condiviso verso questa fonte: uno per processo, tenuto
+    aperto, mai dentro un `async with` (app/cataloghi/trasporto.py)."""
+    return trasporto.cliente(
+        "wikipedia",
+        lambda: httpx.AsyncClient(
+            timeout=_TIMEOUT,
+            headers=agente.intestazioni(),
+            follow_redirects=True,
+            limits=trasporto.LIMITI,
+        ),
+    )
 
 
 @dataclass(frozen=True)
@@ -43,10 +57,7 @@ async def sommario(lingua: str, titolo_pagina: str) -> Sommario | None:
     percorso = httpx.URL(path=titolo_pagina.replace(" ", "_")).path.lstrip("/")
     url = f"https://{lingua}.wikipedia.org/api/rest_v1/page/summary/{percorso}"
     try:
-        async with httpx.AsyncClient(
-            timeout=_TIMEOUT, headers=agente.intestazioni(), follow_redirects=True
-        ) as client:
-            risposta = await client.get(url)
+        risposta = await _cliente().get(url)
     except httpx.HTTPError as errore:
         raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
 

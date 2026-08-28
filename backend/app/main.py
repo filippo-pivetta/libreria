@@ -9,6 +9,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.cataloghi import trasporto
 from app.core.config import get_settings
 from app.core.exception_handlers import gestore_eccezioni_non_gestite
 from app.core.rate_limit import limiter
@@ -128,6 +129,10 @@ async def _ciclo_di_vita(_app: FastAPI) -> AsyncIterator[None]:
         if worker is not None:
             await worker.ferma()
             logger.info("Worker dei lavori in secondo piano fermato.")
+        # Dopo il worker, mai prima: i client condivisi verso le fonti
+        # esterne (app/cataloghi/trasporto.py) sono gli stessi che un
+        # lavoro in corso sta usando in questo istante.
+        await trasporto.chiudi_tutti()
 
 
 def create_app() -> FastAPI:

@@ -22,16 +22,34 @@ class NonCollegatoError(Exception):
 
 
 # Quanti membri senza relazione si mostrano senza aver cercato nulla.
-# Venticinque è la dimensione di pagina convenzionale di un elenco di
-# persone: riempie un paio di schermate, e oltre non si scorre più — si
-# cerca. Non è una paginazione: non esiste un "mostra altri", perché
-# sfogliare l'anagrafica di un'istanza pubblica non è un mestiere che
-# qualcuno abbia. Chi cerca qualcuno ne sa il nome.
-LIMITE_ELENCO = 25
+#
+# Era venticinque, la dimensione di pagina di un elenco di persone su
+# un'istanza aperta a migliaia di iscritti. Il 28 agosto 2026 l'istanza è
+# tornata a essere a cerchia ristretta — su invito, decine di persone —
+# e con quel numero cade anche la ragione del tetto stretto: venticinque
+# righe non erano "un paio di schermate di una lista infinita", erano
+# quasi tutti, serviti a fette per prudenza verso uno scenario che non
+# c'è.
+#
+# Duecento è il tetto di ciò che resta ragionevole mandare in una
+# risposta sola (duecento righe di id e nome sono una decina di
+# chilobyte, compressi meno), non una previsione di quanti saranno. È
+# quello che rende vero `elenco_completo` sotto, e con lui la ricerca
+# istantanea lato client.
+#
+# **Deve restare sotto il tetto della funzione SQL** (`cerca_membri`,
+# migrazione 20260828100000: 500 righe). Alzarlo oltre quel tetto non dà
+# più righe, dà una bugia: il servizio chiede `LIMITE_ELENCO + 1` e legge
+# "ne sono tornate meno del tetto" come "ci sono tutti", quindi con un
+# tetto SQL più basso della richiesta dichiarerebbe completo un elenco
+# troncato, e il frontend smetterebbe di cercare le persone mancanti.
+LIMITE_ELENCO = 200
 
-# Sotto le due lettere non si cerca: una lettera sola restituirebbe una
-# fetta arbitraria dell'anagrafica a ogni battuta, che è enumerazione
-# travestita da ricerca.
+# Sotto le due lettere non si interroga l'anagrafica: una lettera sola
+# restituirebbe una fetta arbitraria a ogni battuta, che è enumerazione
+# travestita da ricerca. Vale solo quando l'elenco NON è completo: se il
+# frontend ha già tutti i nomi, filtra da sé e non chiede niente a
+# nessuno, quindi non c'è nulla da enumerare.
 MIN_QUERY = 2
 
 # Soglia di somiglianza trigram (pg_trgm). 0.3 è il valore predefinito di
@@ -76,14 +94,20 @@ def _corrisponde(nome_utente: str, query: str | None) -> bool:
 
 async def elenco_membri(
     access_token: str, self_id: UUID, cerca: str | None = None
-) -> dict[str, list[dict[str, Any]]]:
+) -> dict[str, Any]:
     """Elenco membri in tre gruppi (design-frontend.md §16).
 
     Due query totali, non N+1: una per i collegamenti di chi guarda — che
     portano già dentro id e nome dell'altro — e una per la fetta degli
     sconosciuti. Nessun conteggio totale dei membri viene calcolato né
-    restituito: su un'istanza pubblica il numero di iscritti non è
-    un'informazione che l'elenco debba dare.
+    restituito: quanti siano gli iscritti non è un'informazione che
+    l'elenco debba dare, nemmeno su un'istanza a invito.
+
+    Oltre ai tre gruppi esce `elenco_completo`: dice se in questa
+    risposta ci sono già TUTTI i membri, e quindi se chi la riceve può
+    cercare fra i nomi senza tornare al server. Su un'istanza a cerchia
+    ristretta è vero praticamente sempre, ed è ciò che toglie una
+    richiesta per ogni battuta nel campo di ricerca dei Lettori.
 
     I due gruppi che nascono da una relazione (`richieste_ricevute`,
     `collegati`) sono SEMPRE completi, senza tetto: una richiesta nascosta
@@ -118,17 +142,31 @@ async def elenco_membri(
 
     # Con una ricerca troppo corta non si interroga l'anagrafica: i gruppi
     # sopra restano filtrati (sono roba di chi guarda), questo resta vuoto.
+    #
+    # Si chiede una riga IN PIÙ del tetto. Se ne tornano meno del tetto,
+    # allora non c'era altro da mandare e l'elenco è completo: chi lo
+    # riceve ha davanti tutti i membri, e può filtrarli da sé senza
+    # tornare al server a ogni battuta. Se ne torna una in più, il tetto
+    # ha tagliato: si scarta l'eccedenza e si dichiara incompleto, e la
+    # ricerca torna a essere una domanda al server.
+    #
+    # Un conteggio (`count="exact"`) avrebbe risposto alla stessa domanda
+    # e a una in più che non va data: quanti sono gli iscritti. Questa
+    # riga in più dice soltanto "ce n'erano altri", che è tutto ciò che
+    # serve per decidere dove cercare.
     sconosciuti: list[dict[str, Any]] = []
+    elenco_completo = False
     if query is None or len(query) >= MIN_QUERY:
         righe = await run_in_threadpool(
             utente_repository.cerca_membri,
             client,
             self_id,
             query,
-            LIMITE_ELENCO,
+            LIMITE_ELENCO + 1,
             SOGLIA_SOMIGLIANZA,
         )
-        sconosciuti = [_membro(riga, "assente", False, None) for riga in righe]
+        elenco_completo = len(righe) <= LIMITE_ELENCO
+        sconosciuti = [_membro(riga, "assente", False, None) for riga in righe[:LIMITE_ELENCO]]
 
     collegati.sort(key=lambda m: m["nome_utente"].casefold())
     richieste_ricevute.sort(key=lambda m: m["nome_utente"].casefold())
@@ -138,6 +176,11 @@ async def elenco_membri(
         "richieste_ricevute": richieste_ricevute,
         "collegati": collegati,
         "altri": richieste_inviate + sconosciuti,
+        # Vero solo se questa risposta contiene già ogni membro che chi
+        # guarda potrebbe cercare, ricerca vuota compresa. Con una ricerca
+        # attiva non lo è per definizione: si sta guardando un
+        # sottoinsieme, e il frontend non deve dedurne di avere tutto.
+        "elenco_completo": elenco_completo and query is None,
     }
 
 

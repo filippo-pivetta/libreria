@@ -26,6 +26,12 @@ kill_timeout = 35
   # dice come separarli (WORKER_ABILITATO=false qui + `python -m app.lavori`).
   WORKER_ABILITATO = "true"
   WORKER_INTERVALLO_SECONDI = "2.0"
+  # Tre lavori insieme invece di uno alla volta (28 agosto 2026): un lavoro
+  # è quasi tutto attesa di rete, e in serie l'aggiunta di un libro — che
+  # ne accoda sette o otto — sommava quelle attese. Non alzarlo senza
+  # alzare `memory` sotto: una conversione di copertina tiene l'immagine
+  # decompressa in RAM, e qui di RAM ce ne sono 512MB.
+  WORKER_LOTTO = "3"
 
 [http_service]
   internal_port = 8000
@@ -73,10 +79,15 @@ kill_timeout = 35
 
   [[http_service.checks]]
     # A 15s erano 5.760 connessioni al giorno aperte e chiuse verso
-    # Supabase: /health apre una connessione nuova a ogni chiamata
+    # Supabase: /health apriva una connessione nuova a ogni chiamata
     # (app/repositories/database.py, `ping`). E il controllo risponde 200
     # anche col database irraggiungibile, quindi a Fly dice soltanto che il
     # processo è vivo: un minuto è la frequenza giusta per quella domanda.
+    #
+    # Dal 28 agosto 2026 quel costo non c'è più nemmeno al minuto: /health
+    # senza parametri non tocca il database (app/services/health_service.py).
+    # La raggiungibilità di Postgres si chiede con /health?database=1, a
+    # mano, quando si sta indagando su qualcosa.
     path = "/health"
     method = "GET"
     interval = "60s"
