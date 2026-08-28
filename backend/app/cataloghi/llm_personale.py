@@ -36,7 +36,11 @@ Le regole di questo modulo, tutte verificabili sulle firme:
 from typing import Any
 
 from app.cataloghi.openai_client import chiama_json
-from app.core.testo import REGOLA_TRATTINI_PER_IL_MODELLO
+from app.core.testo import (
+    REGOLA_STILE_PER_IL_MODELLO,
+    REGOLA_TRATTINI_PER_IL_MODELLO,
+    VOCE_PERSONALE,
+)
 
 _SCHEMA_PREVIEW = {
     "type": "object",
@@ -152,8 +156,7 @@ async def genera_preview(
                 "3. LIBRI CHE NON GLI SONO PIACIUTI O CHE HA ABBANDONATO: "
                 "usali per capire cosa lo allontana da un libro, non per "
                 "escludere un intero genere o autore.\n\n"
-                "Parli a lui, dandogli del tu, senza convenevoli e senza "
-                "entusiasmo pubblicitario.\n\n"
+                f"{VOCE_PERSONALE}\n\n"
                 "VINCOLI ASSOLUTI sulla risposta:\n"
                 "- MASSIMO OTTANTA PAROLE. Meno va benissimo.\n"
                 '- NESSUN testo tra virgolette di alcun tipo: niente ", '
@@ -168,6 +171,7 @@ async def genera_preview(
                 "qualcosa su cosa non regge per lui), non su generalità. Se "
                 "il profilo non dice abbastanza per un parere onesto, "
                 "dillo in una frase invece di inventare un'affinità."
+                f"\n\n{REGOLA_STILE_PER_IL_MODELLO}"
                 f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
@@ -250,8 +254,8 @@ async def genera_temi(riferimenti: list[tuple[str, str]]) -> list[dict[str, obje
                 "Trovi i temi che tornano in ciò che un lettore ha scritto "
                 "sui suoi libri, SOLO quando lo stesso tema compare in testi "
                 "legati a libri diversi, mai un tema sostenuto da un solo "
-                "libro, per quanto forte sembri. Parli a lui, dandogli del "
-                "tu, senza convenevoli.\n\n"
+                "libro, per quanto forte sembri.\n\n"
+                f"{VOCE_PERSONALE}\n\n"
                 "Per ciascun tema:\n"
                 "- un nome breve, due o quattro parole, senza virgolette;\n"
                 "- una frase sola che lo descrive, MASSIMO VENTICINQUE "
@@ -262,6 +266,7 @@ async def genera_temi(riferimenti: list[tuple[str, str]]) -> list[dict[str, obje
                 "Se nessun tema attraversa libri diversi, restituisci un "
                 "elenco vuoto: meglio niente che un pattern inventato su un "
                 "solo libro."
+                f"\n\n{REGOLA_STILE_PER_IL_MODELLO}"
                 f"\n\n{REGOLA_TRATTINI_PER_IL_MODELLO}"
             ),
         },
@@ -372,6 +377,7 @@ async def genera_suggerimenti(
                 "3. LIBRI CHE NON GLI SONO PIACIUTI O CHE HA ABBANDONATO: "
                 "usali per capire cosa evitare, mai per proporre 'altri "
                 "libri così'.\n\n"
+                f"{VOCE_PERSONALE}\n\n"
                 "VINCOLI:\n"
                 "- Non proporre MAI un titolo dell'elenco 'già in "
                 "libreria' che ricevi, in nessuna forma.\n"
@@ -387,6 +393,7 @@ async def genera_suggerimenti(
                 "suoi appunti, cosa aspettarsi da questo titolo. Mai una "
                 "lode generica o una frase sola buttata lì.\n"
                 f"- {REGOLA_TRATTINI_PER_IL_MODELLO}\n"
+                f"- {REGOLA_STILE_PER_IL_MODELLO}\n"
                 "- Se il materiale non basta per otto proposte oneste, "
                 "proponine di meno: mai riempire con titoli deboli solo "
                 "per arrivare al numero.\n\n"

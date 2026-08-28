@@ -46,7 +46,12 @@ export function SegnalibroAvanzamento({
   const spiega = useMessaggioErrore();
   const ultimo = lettura.avanzamenti.at(-1);
   const minimo = ultimo?.pagina ?? 0;
-  const dataMinima = ultimo?.data ?? lettura.dataInizio;
+  // `?? undefined`: una Lettura senza data di inizio non impone alcun
+  // minimo all'avanzamento. Non capita per una lettura aperta con
+  // "Inizia a leggere" — quella l'inizio ce l'ha sempre — ma può
+  // capitare riprendendo una lettura registrata a posteriori, e un
+  // `min` nullo passato all'input lo renderebbe non valido.
+  const dataMinima = ultimo?.data ?? lettura.dataInizio ?? undefined;
   const massimo = pagineAdottate;
 
   const [testoPagina, setTestoPagina] = useState(String(minimo));

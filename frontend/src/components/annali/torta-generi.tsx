@@ -11,6 +11,15 @@ import { TitoloConChiosa } from "@/components/ui/chiosa";
 
 const SPICCHI_IDENTITA_MASSIMI = 5;
 
+/** La stessa chiosa vale per la ciambella piena e per l'anno senza dati:
+ * scritta qui una volta invece che ricopiata nei due rami. */
+const CHIOSA = (
+  <p>
+    Un libro che sta in più generi si divide fra loro, come fa fra i suoi autori. Qui si vede
+    quanto spazio ciascun genere occupa nell’anno, non quanti libri porta.
+  </p>
+);
+
 type Spicchio = {
   chiave: string;
   nome: string;
@@ -128,12 +137,7 @@ export function TortaGeneri({
       <div>
         <TitoloConChiosa
         titolo="Generi principali"
-        chiosa={
-          <p>
-            Il peso di un libro con più generi si ripartisce tra loro, come per gli autori: la
-            ciambella misura il peso, non il numero di libri.
-          </p>
-        }
+        chiosa={CHIOSA}
       />
         <p className="t-meta mt-2">Nessun dato per l&apos;anno selezionato.</p>
       </div>
@@ -190,12 +194,7 @@ export function TortaGeneri({
     <div>
       <TitoloConChiosa
         titolo="Generi principali"
-        chiosa={
-          <p>
-            Il peso di un libro con più generi si ripartisce tra loro, come per gli autori: la
-            ciambella misura il peso, non il numero di libri.
-          </p>
-        }
+        chiosa={CHIOSA}
       />
       <div className="mt-3 flex flex-col items-center gap-5 sm:flex-row sm:items-start">
         <svg

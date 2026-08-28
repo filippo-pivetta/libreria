@@ -191,9 +191,9 @@ async def _arricchisci(scheda: SchedaRisolta, work_id: str | None, volume: Volum
         scheda.riferimenti.append(("open_library", opera.open_library_work_id, True))
 
 
-def _contenuto_affidabile(opera_ol: open_library.OperaOL, volume: Volume) -> bool:
-    """Se di questo record di Open Library ci si può fidare per titolo,
-    anno e pagine — non solo per l'identificativo.
+def _conferma_il_titolo_che_abbiamo(opera_ol: open_library.OperaOL, volume: Volume) -> bool:
+    """Se un record povero dice del titolo esattamente ciò che sappiamo
+    già, e può quindi essere creduto su anno e pagine.
 
     La guardia `e_plausibile` esisteva già ma era applicata al solo passo
     3 (ricerca per testo). Il passo 2 (ISBN) prendeva `opere[0]` a scatola
@@ -209,14 +209,29 @@ def _contenuto_affidabile(opera_ol: open_library.OperaOL, volume: Volume) -> boo
       edizione. Per una ristampa moderna di un classico è l'errore che il
       PRD nomina per esteso — "plausibile e sbagliato", quindi invisibile.
 
-    Un record ricco (molte edizioni) resta la fonte migliore che abbiamo e
-    vince sul titolo di Google, com'è sempre stato. Un record povero è
-    accettato lo stesso se il suo titolo corrisponde a quello di partenza:
-    lì non sta dicendo nulla di nuovo, quindi non può nemmeno sbagliarlo.
+    Un record povero resta accettabile quando non sta dicendo nulla di
+    nuovo sul titolo: lì non può nemmeno sbagliarlo, e il suo anno è
+    l'unico che abbiamo per le opere poco diffuse, che su Open Library
+    hanno per forza poche edizioni.
+
+    Il confronto però era `_titoli_vicini`, cioè un CONTENIMENTO, ed è lì
+    che la guardia si apriva proprio dove doveva chiudersi: un titolo che
+    AGGIUNGE la marca dell'edizione contiene il nostro e passava. Misurato
+    il 27 agosto 2026 su `isbn:9781515253068`, che Open Library risolve in
+    `Siddharta (Spanish Edition)`, una edizione sola, 1922 diventato 2015.
+    Così il Siddharta di Hesse è finito nel catalogo condiviso col titolo
+    di una ristampa spagnola e la data di quella ristampa come anno di
+    prima pubblicazione. E non era nemmeno recuperabile a valle:
+    `crea_scheda` accoda l'arricchimento assistito solo per i campi che
+    MANCANO, e un anno sbagliato non manca — nessun passaggio successivo
+    lo avrebbe più corretto.
+
+    Un titolo che aggiunge qualcosa al nostro non lo sta confermando: sta
+    dicendo di quale EDIZIONE parla il record. Serve quindi lo stesso
+    titolo, a meno di maiuscole, accenti e punteggiatura.
     """
-    if opera_ol.e_plausibile:
-        return True
-    return _titoli_vicini(volume.titolo, opera_ol.titolo)
+    nostro, suo = normalizza(volume.titolo), normalizza(opera_ol.titolo)
+    return bool(nostro) and nostro == suo
 
 
 async def risolvi(opera_google: google_books.Opera) -> SchedaRisolta:
@@ -265,11 +280,22 @@ async def risolvi(opera_google: google_books.Opera) -> SchedaRisolta:
         # l'opera a cui quell'ISBN appartiene, e vale come riferimento
         # anche quando il record è povero. È il CONTENUTO che va filtrato.
         scheda.riferimenti.append(("open_library", opera_ol.work_id, True))
-        if _contenuto_affidabile(opera_ol, volume):
-            # Il titolo dell'opera secondo il catalogo canonico è l'identità
+        if opera_ol.e_plausibile:
+            # Un record ricco (molte edizioni) è la fonte migliore che
+            # abbiamo e vince sul titolo di Google, com'è sempre stato: il
+            # titolo dell'opera secondo il catalogo canonico è l'identità
             # della scheda, non ciò che si mostra (PRD: "un titolo canonico che
             # serve a identificare l'opera, non a essere mostrato").
             scheda.titolo_canonico = opera_ol.titolo
+            scheda.anno_prima_pubblicazione = opera_ol.anno_prima_pubblicazione
+            if opera_ol.pagine_mediane:
+                scheda.pagine_mediane = opera_ol.pagine_mediane
+        elif _conferma_il_titolo_che_abbiamo(opera_ol, volume):
+            # Anno e pagine sì, il titolo no. I due titoli sono la stessa
+            # stringa a meno di maiuscole e punteggiatura, quindi non c'è
+            # nulla da guadagnare a prendere il suo — e c'è da perdere:
+            # il nostro è già passato da `pulisci_titolo`, il suo è la
+            # forma grezza con cui quel singolo record è stato importato.
             scheda.anno_prima_pubblicazione = opera_ol.anno_prima_pubblicazione
             if opera_ol.pagine_mediane:
                 scheda.pagine_mediane = opera_ol.pagine_mediane

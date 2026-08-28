@@ -23,10 +23,15 @@ from supabase import Client
 def list_letture(client: Client, utente_id: UUID) -> list[dict[str, Any]]:
     """Ogni Lettura dell'utente, aperta o chiusa, qualunque esito: serve
     sia per "libri finiti" (le concluse, filtrate per anno di chiusura
-    nel service) sia per calcolare `anno_minimo` da `data_fine`."""
+    nel service) sia per calcolare `anno_minimo`.
+
+    `anno_fine` accanto a `data_fine` perché l'anno di chiusura può venire
+    da una data piena o dalla sola annata di una lettura registrata a
+    posteriori (migrazione 20260827160000): il service le mette sullo
+    stesso piano con `_anno_chiusura`."""
     response = (
         client.table("lettura")
-        .select("id, voce_id, data_inizio, data_fine, esito")
+        .select("id, voce_id, data_inizio, data_fine, anno_fine, esito")
         .eq("utente_id", str(utente_id))
         .execute()
     )

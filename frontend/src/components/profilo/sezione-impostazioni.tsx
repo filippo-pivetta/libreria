@@ -206,8 +206,8 @@ export function SezioneImpostazioni({
       <section className="flex flex-col gap-2">
         <h2 className="t-section">Luce della stanza</h2>
         <p className="t-meta max-w-prose">
-          La stanza si scurisce da sé dal mattino alla notte. Se preferisci, puoi
-          fermarla su una delle due.
+          La stanza si scurisce da sé, dal mattino alla notte. Se la preferisci ferma,
+          scegli il giorno o la notte.
         </p>
         <SceltaLuce iniziale={preferenzaLuce} />
       </section>
@@ -233,10 +233,10 @@ export function SezioneImpostazioni({
               </p>
               <p className="t-meta">
                 {!consenso
-                  ? "Le cinque funzioni assistite sono spente."
+                  ? "Pareri, suggerimenti, temi e ricerca nei quaderni sono spenti."
                   : indiciStato === "in_ricostruzione"
-                    ? "Gli indici si stanno ricostruendo: la ricerca semantica è incompleta finché non hanno finito."
-                    : "Gli indici sono pronti."}
+                    ? "Gli indici si stanno ricostruendo: finché non hanno finito, la ricerca nei quaderni trova meno di quanto hai scritto."
+                    : "La ricerca nei quaderni copre tutto ciò che hai scritto."}
               </p>
             </div>
             <Switch
@@ -257,10 +257,10 @@ export function SezioneImpostazioni({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="t-section">Esporta i libri letti</h2>
+        <h2 className="t-section">Una copia dei libri letti</h2>
         <p className="t-meta max-w-prose">
           Un CSV con i libri che hai segnato come letti: titolo, autori, generi, date di lettura,
-          voto e recensione. Senza insight e senza la nota di intenzione.
+          voto e recensione. Insight e note di intenzione restano fuori.
         </p>
         <Button
           variant="secondary"
@@ -299,9 +299,9 @@ export function SezioneImpostazioni({
           <div className="flex flex-col gap-1">
             <h2 className="t-section">Cancellazione dell&apos;account</h2>
             <p className="t-meta max-w-prose">
-              Immediata e definitiva, senza periodo di grazia. Porta via libreria, letture,
-              voti, recensioni, insight, note e collegamenti. Scrivi «{nomeUtente}» per
-              confermare.
+              Immediata e definitiva: non c’è un ripensamento, e non resta una copia da
+              nessuna parte. Porta via libreria, letture, voti, recensioni, insight, note e
+              collegamenti. Scrivi «{nomeUtente}» per confermare.
             </p>
           </div>
           <div className="flex max-w-sm items-center gap-2">

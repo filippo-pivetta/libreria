@@ -70,6 +70,7 @@
     "transizione_stato_non_ammessa": "Da questo stato quel passaggio non è ammesso.",
     "lettura_chiusura_precede_ultimo_avanzamento": "La data di fine non può precedere l’ultimo avanzamento registrato.",
     "pagine_adottate_sotto_avanzamento_esistente": "Il nuovo totale è inferiore a un avanzamento già registrato.",
+    "anno_fine_non_valido": "L’anno in cui hai finito il libro non può essere nel futuro.",
     "consenso_revocato": "L’elaborazione assistita è spenta. Puoi riaccenderla dal tuo profilo.",
     "insight_insufficienti": "Scrivi qualche insight o recensione prima di chiedere una sintesi.",
     "letture_insufficienti": "Aggiungi qualche libro letto o scrivi un insight prima di chiedere suggerimenti.",
@@ -120,7 +121,7 @@
     "salvato": "Salvato."
   },
   "generici": {
-    "imprevisto": "Qualcosa si è rotto. Riprova, o torna alla pagina precedente."
+    "imprevisto": "Questa pagina non si è aperta. Riprova, o torna indietro."
   },
   "attesa": {
     "generica": "Un momento…",

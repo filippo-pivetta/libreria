@@ -174,7 +174,7 @@ export function Temi({
             onClick={() => genera.mutate()}
             disabled={genera.isPending}
           >
-            {genera.isPending ? t("attesa.cercoTemi") : "Cerca i temi che attraversano i tuoi libri"}
+            {genera.isPending ? t("attesa.cercoTemi") : "Genera i temi"}
           </Button>
         </div>
         {messaggioVuoto && <p className="t-meta max-w-prose">{messaggioVuoto}</p>}

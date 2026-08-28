@@ -7,6 +7,7 @@ import { creaInsight, type Visibilita } from "@/lib/api/insight";
 import { getVoci, type VoceConLibro } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { Button } from "@/components/ui/button";
+import { AzioniModulo } from "@/components/ui/azioni-modulo";
 import { CampoRicerca } from "@/components/ui/campo-ricerca";
 import { InterruttoriScritto } from "@/components/ui/interruttori-scritto";
 import { Messaggio } from "@/components/ui/messaggio";
@@ -219,18 +220,11 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
           />
         </div>
 
-        <div className="flex items-center gap-1.5 sm:ml-auto">
-          <Button variant="ghost" className="flex-1 sm:flex-none" onClick={onChiudi}>
-            Annulla
-          </Button>
-          <Button
-            className="flex-1 sm:flex-none"
-            disabled={!voceId || testo.trim() === "" || salva.isPending}
-            onClick={() => salva.mutate()}
-          >
-            Salva
-          </Button>
-        </div>
+        <AzioniModulo
+          salvaDisabilitato={!voceId || testo.trim() === "" || salva.isPending}
+          onSalva={() => salva.mutate()}
+          onAnnulla={onChiudi}
+        />
       </div>
 
       <Messaggio>{errore}</Messaggio>

@@ -244,8 +244,8 @@ export function Suggerimenti() {
         <div className="flex flex-col gap-1.5">
           <p className="t-title text-[22px]">Se non hai un titolo in mente</p>
           <p className="t-body max-w-[62ch]">
-            Cinque proposte tratte dal tuo scaffale e da ciò che hai annotato leggendo. Nessuno
-            storico che non sia il tuo, nessun libro che hai già.
+            Cinque proposte tratte dal tuo scaffale e da ciò che hai annotato leggendo. Nessuna
+            lettura che non sia la tua, e nessun titolo che hai già.
           </p>
         </div>
         {/* Campo e comando sullo stesso rigo, come il modulo di Quaderni
@@ -258,7 +258,7 @@ export function Suggerimenti() {
               value={nota}
               onChange={(e) => setNota(e.target.value)}
               maxLength={NOTA_LUNGHEZZA_MASSIMA}
-              placeholder="Qualcosa di breve. Niente romanzi russi, per una volta."
+              placeholder="Poche parole: un’epoca, un tono, qualcosa di cui hai voglia."
               aria-label="Una preferenza per questa richiesta di suggerimenti"
               className="w-full border-0 border-b border-line bg-transparent pb-1.5 font-ui text-[15px] text-ink outline-none placeholder:text-ink-soft focus:border-ink"
             />
@@ -279,14 +279,14 @@ export function Suggerimenti() {
       {spenta && (
         <EmptyState
           title="L’elaborazione assistita è spenta"
-          description="I suggerimenti di lettura sono una delle funzioni che dipendono dal consenso. Riaccendilo dal tuo profilo."
+          description="I suggerimenti nascono da ciò che hai letto e scritto, e per leggerlo serve il consenso. Puoi riaccenderlo dal tuo profilo."
         />
       )}
 
       {suggerimenti && suggerimenti.length === 0 && !spenta && (
         <EmptyState
           title="Nessun suggerimento"
-          description="Non c’è ancora abbastanza storico per proporti qualcosa di onesto."
+          description="Hai letto e annotato ancora troppo poco perché una proposta sia onesta."
         />
       )}
 

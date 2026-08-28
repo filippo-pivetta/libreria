@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cancellaLettura } from "@/lib/api/letture";
 import { getAccessToken } from "@/lib/api/access-token";
 import type { Lettura } from "@/lib/api/voci";
-import { formattaData } from "@/lib/formato";
+import { periodoLettura } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -79,7 +79,7 @@ export function StoricoLetture({
     },
   });
 
-  const unicaLetturaAperta = letture.length === 1 && letture[0].dataFine === null;
+  const unicaLetturaAperta = letture.length === 1 && letture[0].esito === null;
   if (letture.length === 0 || unicaLetturaAperta) return null;
 
   // Dal più recente, come gli insight: un elenco di letture è una
@@ -87,7 +87,7 @@ export function StoricoLetture({
   const recenti = [...letture].reverse();
 
   const puntoLettura = (lettura: Lettura) =>
-    lettura.dataFine === null
+    lettura.esito === null
       ? "bg-ribbon-reading ring-1 ring-inset ring-surface-2/70"
       : lettura.esito === "abbandonata"
         ? "bg-ribbon-abandoned"
@@ -139,10 +139,7 @@ export function StoricoLetture({
                   />
                   <span className="flex min-w-0 flex-col">
                     <span className="t-body text-sm">
-                      {formattaData(lettura.dataInizio, lingua)}
-                      {lettura.dataFine
-                        ? ` – ${formattaData(lettura.dataFine, lingua)}`
-                        : " – in corso"}
+                      {periodoLettura(lettura, lingua)}
                       {lettura.esito ? ` · ${ETICHETTA_ESITO[lettura.esito]}` : ""}
                     </span>
                     <span className="t-meta">

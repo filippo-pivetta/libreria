@@ -1,7 +1,7 @@
 "use client";
 
 import type { VoceDettaglio } from "@/lib/api/voci";
-import { formattaData } from "@/lib/formato";
+import { formattaData, periodoLettura } from "@/lib/formato";
 import { SegnalibroAvanzamento } from "@/components/libro/segnalibro-avanzamento";
 import { TransizioniStato } from "@/components/libro/transizioni-stato";
 import { useLocale } from "next-intl";
@@ -35,8 +35,12 @@ export function BloccoStato({
 }) {
   const lingua = useLocale();
 
-  const letturaAperta = voce.letture.find((lettura) => lettura.dataFine === null) ?? null;
-  const ultimaChiusa = [...voce.letture].reverse().find((lettura) => lettura.dataFine !== null) ?? null;
+  // Aperta si chiede all'esito e non alla data di fine: dalla migrazione
+  // 20260827160000 una lettura registrata a posteriori è conclusa e può
+  // non avere alcuna data, quindi `dataFine === null` la conterebbe fra
+  // quelle in corso.
+  const letturaAperta = voce.letture.find((lettura) => lettura.esito === null) ?? null;
+  const ultimaChiusa = [...voce.letture].reverse().find((lettura) => lettura.esito !== null) ?? null;
   const paginaSalvata = letturaAperta ? (letturaAperta.avanzamenti.at(-1)?.pagina ?? 0) : 0;
   const percentuale =
     voce.pagineAdottate && voce.pagineAdottate > 0
@@ -61,12 +65,22 @@ export function BloccoStato({
                 : "Nessun totale di pagine su questa copia."
             }
           />
-        ) : voce.stato === "letto" && ultimaChiusa?.dataFine ? (
+        ) : voce.stato === "letto" && ultimaChiusa ? (
           <Titolo
-            testo={`Finito il ${formattaData(ultimaChiusa.dataFine, lingua)}`}
-            sotto={`Cominciato il ${formattaData(ultimaChiusa.dataInizio, lingua)}${
-              voce.pagineAdottate ? `, ${voce.pagineAdottate} pagine` : ""
-            }.`}
+            testo={periodoLettura(ultimaChiusa, lingua)}
+            // L'inizio si nomina solo se si conosce: una lettura
+            // registrata a posteriori non ce l'ha, e "Cominciato il"
+            // seguito da una data dedotta sarebbe una cosa che l'Utente
+            // non ha mai detto.
+            sotto={
+              ultimaChiusa.dataInizio
+                ? `Cominciato il ${formattaData(ultimaChiusa.dataInizio, lingua)}${
+                    voce.pagineAdottate ? `, ${voce.pagineAdottate} pagine` : ""
+                  }.`
+                : voce.pagineAdottate
+                  ? `${voce.pagineAdottate} pagine.`
+                  : "Nessun totale di pagine su questa copia."
+            }
           />
         ) : voce.stato === "abbandonato" && ultimaChiusa?.dataFine ? (
           <>
@@ -75,7 +89,10 @@ export function BloccoStato({
               sotto={
                 voce.pagineAdottate && ultimaChiusa.avanzamenti.at(-1)
                   ? `Arrivato a pagina ${ultimaChiusa.avanzamenti.at(-1)!.pagina} di ${voce.pagineAdottate}.`
-                  : `Cominciato il ${formattaData(ultimaChiusa.dataInizio, lingua)}.`
+                  : ultimaChiusa.dataInizio
+                    ? `Cominciato il ${formattaData(ultimaChiusa.dataInizio, lingua)}.`
+                    : "Nessun avanzamento registrato."
+
               }
             />
             {voce.pagineAdottate !== null && voce.pagineAdottate > 0 && ultimaChiusa.avanzamenti.at(-1) && (

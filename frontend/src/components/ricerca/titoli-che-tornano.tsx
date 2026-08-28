@@ -106,8 +106,8 @@ export function TitoliCheTornano() {
     <section className="flex flex-col gap-2">
       <p className="t-title text-[22px]">I titoli che tornano</p>
       <p className="t-meta max-w-prose">
-        Quelli che qui si finiscono più spesso, e più spesso si votano alto. Di chi li abbia letti
-        non si dice nulla, nemmeno quanti — e fra questi non c’è niente che tu abbia già.
+        Quelli che qui si finiscono più spesso, e più spesso si votano alto. Chi li abbia letti
+        non si dice, e nemmeno quanti; e nessuno di questi è già tuo.
       </p>
 
       {/* Sonda alta zero, larga `--cover-w`: stesso presidio dello scaffale

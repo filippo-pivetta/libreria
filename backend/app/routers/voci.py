@@ -79,7 +79,12 @@ async def patch_voce_stato(
 ) -> dict[str, Any]:
     try:
         return await voci_service.cambia_stato(
-            current_user.access_token, voce_id, body.stato, body.data
+            current_user.access_token,
+            voce_id,
+            body.stato,
+            body.data,
+            body.precisione,
+            body.anno_fine,
         )
     except voci_service.VoceNonTrovataError as error:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Voce non trovata.") from error
@@ -97,6 +102,14 @@ async def patch_voce_stato(
             {
                 "error_code": "lettura_chiusura_precede_ultimo_avanzamento",
                 "message": "La data di fine non può precedere l’ultimo avanzamento registrato.",
+            },
+        ) from error
+    except voci_service.AnnoFineNonValidoError as error:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            {
+                "error_code": "anno_fine_non_valido",
+                "message": "L’anno in cui hai finito il libro non può essere nel futuro.",
             },
         ) from error
 

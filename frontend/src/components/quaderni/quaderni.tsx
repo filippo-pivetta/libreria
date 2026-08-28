@@ -214,7 +214,7 @@ export function Quaderni() {
           tolto perché ripeteva la pagina (design-frontend.md §4). */}
       <TestataPagina
         titolo="Quaderni"
-        sottotitolo="Ciò che hai scritto leggendo, in un posto solo."
+        sottotitolo="Ciò che hai scritto in margine alle tue letture."
       />
 
       {scrivendo ? (
@@ -338,8 +338,8 @@ export function Quaderni() {
           // Sopra i risultati e non sotto: chi legge un elenco corto deve
           // sapere perché è corto prima di concludere che è tutto.
           <p className="t-meta max-w-prose">
-            Gli indici si stanno ricostruendo: questi risultati sono incompleti. Riprova fra
-            qualche minuto.
+            Gli indici si stanno ricostruendo: qui manca ancora una parte di ciò che hai
+            scritto. Riprova fra qualche minuto.
           </p>
         )}
 
@@ -358,9 +358,9 @@ export function Quaderni() {
                     description: "I tuoi quaderni restano interi: hai filtrato, non perso niente.",
                   }
                 : {
-                    title: "Non hai ancora scritto niente",
+                    title: "I quaderni sono ancora bianchi",
                     description:
-                      "Scrivi un pensiero su un libro che stai leggendo: da qui in poi lo ritrovi sempre.",
+                      "Annota un pensiero su un libro che stai leggendo. Da qui in poi lo ritrovi quando lo cerchi, e ogni tanto ti torna incontro da solo.",
                   }
           }
         />

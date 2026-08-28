@@ -34,14 +34,15 @@ export function CartaLetture({
         chiosa={
           abbandoni > 0 ? (
             <p>
-              Un abbandono non entra nei libri finiti, ma le sue pagine restano contate: sono
-              pagine che {altrui ? "ha" : "hai"} letto. La durata conta gli estremi, quindi una
-              lettura aperta e chiusa in giornata dura un giorno.
+              Un libro lasciato a metà non entra fra quelli finiti, ma le pagine restano
+              contate: {altrui ? "le ha lette" : "le hai lette"} comunque. E la durata conta il
+              primo giorno e l’ultimo, quindi un libro cominciato e finito nella stessa giornata
+              è durato un giorno.
             </p>
           ) : (
             <p>
-              La durata conta gli estremi: una lettura aperta e chiusa in giornata dura un giorno,
-              non zero.
+              La durata conta il primo giorno e l’ultimo: un libro cominciato e finito nella
+              stessa giornata è durato un giorno, non zero.
             </p>
           )
         }

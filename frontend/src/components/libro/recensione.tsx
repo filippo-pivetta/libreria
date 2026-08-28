@@ -15,6 +15,7 @@ import {
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
 import { Invito } from "@/components/ui/invito";
+import { AzioniModulo } from "@/components/ui/azioni-modulo";
 import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";
 import { IconaCollegati, IconaLucchetto } from "@/components/ui/icone";
 import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
@@ -24,15 +25,26 @@ import { useTranslations } from "next-intl";
 /**
  * Recensione (design doc §9): un paragrafo Literata sulla pagina destra,
  * sotto le stelle — una per Voce (PRD, entità Recensione), condivisa per
- * default. Stesso pattern blur-salva di `NotaIntenzione`, incluso il
- * significato di "campo svuotato": qui però svuotarlo cancella la
- * recensione (`DELETE`), non la imposta a un valore nullo, perché il
- * testo della recensione non è mai opzionale a schema.
+ * default. Annulla/Salva come `NotaIntenzione` e come i due moduli
+ * dell'insight: `AzioniModulo`.
  *
- * Il controllo di visibilità non ha un'affordance specificata dal design
- * doc: si usa qui il minimo coerente con `NotaIntenzione`, un comando
- * testuale sottolineato — punto da rivedere con chi cura il design se ne
- * emerge uno più specifico.
+ * **Qui l'esplicito conta più che altrove**, ed è la ragione per cui il
+ * blur-salva è stato tolto per primo da questo componente (28 agosto
+ * 2026). Due motivi che la nota non ha: la recensione la leggono i
+ * collegati, quindi uscire dal campo la PUBBLICAVA; e svuotarla non la
+ * azzera ma la CANCELLA (`DELETE`, perché il testo non è mai opzionale a
+ * schema), quindi un campo svuotato per ripensarci e una finestra
+ * cambiata distruggevano un testo che nessuno aveva chiesto di
+ * distruggere. Adesso quel caso ha un nome sul bottone.
+ *
+ * Anche la visibilità entra nella scrittura invece di partire da sola al
+ * tocco dell'interruttore: il modulo è tutto il pannello, intestazione
+ * compresa, e un pannello con due modi di salvare sarebbe peggio di
+ * quello che c'era prima. Chi la commuta e cambia idea preme Annulla.
+ *
+ * I bottoni compaiono solo mentre c'è qualcosa da decidere — `cambiato`
+ * — e spariscono da soli subito dopo Salva o Annulla, invece di restare
+ * lì spenti: stesso schema di `NotaIntenzione`.
  *
  * Per un collegato: sola lettura, nessuna riga se non condivisa o non
  * scritta ("l'assenza è muta", design doc §15).
@@ -53,6 +65,29 @@ export function Recensione({
   const [aperta, setAperta] = useState(recensione !== null);
   const [testo, setTesto] = useState(recensione?.testo ?? "");
   const [visibilita, setVisibilita] = useState<Visibilita>(recensione?.visibilita ?? "condiviso");
+  // L'ultimo salvato che conosciamo, come in `NotaIntenzione`: da qui si
+  // misura `cambiato`, non dalla prop `recensione` — quella si aggiorna
+  // solo dopo il refetch che segue l'invalidazione, mentre i bottoni
+  // devono sparire nell'istante in cui la scrittura riesce.
+  const [salvato, setSalvato] = useState<{ testo: string; visibilita: Visibilita } | null>(
+    recensione ? { testo: recensione.testo, visibilita: recensione.visibilita } : null,
+  );
+  const testoSalvato = salvato?.testo ?? "";
+  const visibilitaSalvata: Visibilita = salvato?.visibilita ?? "condiviso";
+  // Si adegua durante il render se cambia da fuori — pattern React per
+  // "adjusting state when a prop changes", niente effetto. Il campo
+  // segue solo se non c'è già una modifica in corso: un cambiamento
+  // esterno non deve cancellare ciò che si sta scrivendo qui.
+  if (
+    (recensione?.testo ?? "") !== testoSalvato ||
+    (recensione?.visibilita ?? "condiviso") !== visibilitaSalvata
+  ) {
+    if (testo === testoSalvato && visibilita === visibilitaSalvata) {
+      setTesto(recensione?.testo ?? "");
+      setVisibilita(recensione?.visibilita ?? "condiviso");
+    }
+    setSalvato(recensione ? { testo: recensione.testo, visibilita: recensione.visibilita } : null);
+  }
   const conferma = useConfermaEffimera();
 
   function invalida() {
@@ -68,16 +103,20 @@ export function Recensione({
           result.status === "not_found" ? assenza("voceSparita") : result.errore,
         );
       }
+      return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (nuova) => {
+      setSalvato({ testo: nuova.testo, visibilita: nuova.visibilita });
       invalida();
       conferma.mostra();
     },
     onError: (error: unknown) => {
+      // Il testo resta in campo: vedi la stessa nota in
+      // `nota-intenzione.tsx`. Qui pesa di più, perché una recensione è
+      // il testo più lungo che l'app chieda di scrivere.
       showError(
         spiega("recensioneNonSalvata", erroreDi(error)),
       );
-      setTesto(recensione?.testo ?? "");
     },
   });
 
@@ -95,38 +134,44 @@ export function Recensione({
       // svuotarlo è ciò che ha innescato la cancellazione: se il prop
       // `recensione` resta temporaneamente quello vecchio (l'invalidazione
       // è asincrona) e l'Utente riapre il campo prima che arrivi il
-      // refetch, un blur senza scrivere nulla non deve poter far
-      // ripartire un'altra scrittura.
+      // refetch, il modulo deve ripartire vuoto invece che con il testo
+      // appena cancellato.
+      setSalvato(null);
       setTesto("");
       setAperta(false);
     },
     onError: (error: unknown) => {
+      // Qui invece il testo si RIPRISTINA: la cancellazione è fallita,
+      // quindi la recensione c'è ancora, e il campo deve tornare a
+      // mostrare quella che c'è davvero.
       showError(
         spiega("recensioneNonCancellata", erroreDi(error)),
       );
-      setTesto(recensione?.testo ?? "");
+      setTesto(testoSalvato);
     },
   });
 
-  function salvaSeCambiato() {
-    const finale = testo.trim();
-    if (finale === "") {
-      if (recensione !== null) {
-        mutazioneCancella.mutate();
-      }
+  const cambiato = testo.trim() !== testoSalvato || visibilita !== visibilitaSalvata;
+  const cancella = salvato !== null && testo.trim() === "";
+  const inCorso = mutazioneScrivi.isPending || mutazioneCancella.isPending;
+
+  function salva() {
+    if (cancella) {
+      mutazioneCancella.mutate();
       return;
     }
-    if (finale !== recensione?.testo || visibilita !== recensione?.visibilita) {
-      mutazioneScrivi.mutate({ testo: finale, visibilita });
-    }
+    if (!cambiato || testo.trim() === "") return;
+    mutazioneScrivi.mutate({ testo: testo.trim(), visibilita });
   }
 
-  function alternaVisibilita(condiviso: boolean) {
-    const nuova: Visibilita = condiviso ? "condiviso" : "privato";
-    setVisibilita(nuova);
-    if (testo.trim() !== "") {
-      mutazioneScrivi.mutate({ testo: testo.trim(), visibilita: nuova });
-    }
+  function annulla() {
+    setTesto(testoSalvato);
+    setVisibilita(visibilitaSalvata);
+    // Aperta dall'invito e mai scritta: annullare la richiude, come nel
+    // modulo dell'insight. Con una recensione già scritta il pannello
+    // resta dov'è — i bottoni spariscono comunque, perché `cambiato`
+    // torna falso.
+    if (salvato === null) setAperta(false);
   }
 
   if (!isOwner) {
@@ -157,7 +202,7 @@ export function Recensione({
             promettesse. Ora è un interruttore premuto, con `aria-pressed`. */}
         <PastigliaInterruttore
           pressed={visibilita === "condiviso"}
-          onPressedChange={alternaVisibilita}
+          onPressedChange={(condiviso) => setVisibilita(condiviso ? "condiviso" : "privato")}
           aria-label="Condividi la recensione con i collegati"
         >
           {visibilita === "condiviso" ? (
@@ -177,12 +222,23 @@ export function Recensione({
         <textarea
           value={testo}
           onChange={(event) => setTesto(event.target.value)}
-          onBlur={salvaSeCambiato}
           rows={5}
           placeholder="Cosa ne pensi?"
           className="t-appunto w-full resize-none border-0 bg-transparent text-ink outline-none placeholder:text-ink-soft"
         />
-        <Messaggio tono="conferma" className="mt-2">{conferma.visibile ? t("conferme.salvato") : ""}</Messaggio>
+        {(cambiato || conferma.visibile) && (
+          <div className="mt-3.5 flex flex-col gap-3 border-t border-line pt-3.5 sm:flex-row sm:items-center sm:gap-2.5">
+            <Messaggio tono="conferma">{conferma.visibile ? t("conferme.salvato") : ""}</Messaggio>
+            {cambiato && (
+              <AzioniModulo
+                etichettaSalva={cancella ? "Cancella la recensione" : "Salva"}
+                salvaDisabilitato={inCorso}
+                onSalva={salva}
+                onAnnulla={annulla}
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

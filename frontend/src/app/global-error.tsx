@@ -38,9 +38,9 @@ export default function GlobalError({
   return (
     <html lang="it" className={interTight.variable}>
       <body className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="font-display text-lg font-medium text-ink">Qualcosa si è rotto</p>
+        <p className="font-display text-lg font-medium text-ink">L’app non si è aperta</p>
         <p className="max-w-sm text-sm text-ink-soft">
-          Riprova, o torna alla pagina precedente.
+          Riprova, o torna indietro.
         </p>
         {/* Scritto a mano di proposito — vedi sopra: qui meno dipendenze
             si tirano dentro, meglio è — ma alla misura che la scala dei

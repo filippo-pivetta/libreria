@@ -31,6 +31,11 @@ def list_by_voce(client: Client, voce_id: UUID) -> list[dict[str, Any]]:
 def get_lettura_aperta_id(client: Client, voce_id: UUID) -> UUID | None:
     """La Lettura aperta corrente della Voce, se c'è: un nuovo insight vi si
     lega da solo (PRD, entità Insight), non è una scelta del chiamante.
+    Aperta si chiede all'esito e non a `data_fine`: dalla migrazione
+    20260827160000 una Lettura registrata a posteriori può essere conclusa
+    senza alcuna data, e cercarla per `data_fine is null` legherebbe
+    l'insight nuovo a una lettura finita.
+
     `None` sia se la Voce non ha alcuna Lettura aperta sia se `voce_id` non
     esiste o non è visibile a chi chiama — in quest'ultimo caso l'insert
     dell'insight fallirà comunque sulla FK composita verso
@@ -39,7 +44,7 @@ def get_lettura_aperta_id(client: Client, voce_id: UUID) -> UUID | None:
         client.table("lettura")
         .select("id")
         .eq("voce_id", str(voce_id))
-        .is_("data_fine", "null")
+        .is_("esito", "null")
         .maybe_single()
         .execute()
     )

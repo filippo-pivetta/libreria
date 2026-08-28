@@ -67,6 +67,8 @@ _METRICHE_ZERO: dict[str, Any] = {
     "durata_massima_giorni": None,
     "durata_massima_titolo": None,
     "libri_senza_pagine": 0,
+    "pagine_senza_giorno": 0,
+    "libri_finiti_senza_giorno": 0,
 }
 
 
@@ -543,7 +545,22 @@ def _lettura(
         "voce_id": _voce_id(voce),
         "data_inizio": inizio,
         "data_fine": fine,
+        "anno_fine": None,
         "esito": esito,
+    }
+
+
+def _lettura_a_posteriori(id_: str, voce: str, anno: int | None) -> dict[str, Any]:
+    """Una Lettura registrata a posteriori (migrazione 20260827160000):
+    conclusa, senza data di inizio, e chiusa sulla sola annata — oppure
+    senza alcuna data quando nemmeno l'anno si conosce (`anno=None`)."""
+    return {
+        "id": id_,
+        "voce_id": _voce_id(voce),
+        "data_inizio": None,
+        "data_fine": None,
+        "anno_fine": anno,
+        "esito": "conclusa",
     }
 
 
@@ -770,3 +787,135 @@ def test_metriche_di_letture_a_cavallo_anno_e_un_conteggio_non_un_flag(
 
     assert risultato["ha_letture_a_cavallo_anno"] is True
     assert risultato["letture_a_cavallo_anno"] == 2
+
+
+# --- letture registrate a posteriori (migrazione 20260827160000) ------------
+
+
+def test_metriche_lettura_con_la_sola_annata_conta_libro_e_pagine(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """La scelta di prodotto: le pagine di una lettura chiusa sulla sola
+    annata entrano nel totale dell'anno.
+
+    Non hanno un Avanzamento da cui essere contate — senza un giorno non
+    esiste una riga da datare — quindi arrivano dalle pagine adottate
+    della Voce. Un totale annuo senza ripartizione mensile è un dato
+    onesto; uno zero accanto a un libro finito sembrerebbe un guasto.
+    """
+    letture = [_lettura_a_posteriori("l1", "v1", 2026)]
+    voci = {_voce_id("v1"): _voce("b1", ["a1"], ["g1"], pagine_adottate=300)}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["libri_finiti"] == 1
+    assert risultato["pagine_lette"] == 300
+    # Ma non in un mese, e nemmeno in un giorno: quelli il dato non li ha.
+    assert risultato["pagine_per_mese"] == [0] * 12
+    assert risultato["giorni_con_lettura"] == 0
+    # Lo scarto è dichiarato, non nascosto (design-frontend.md §14).
+    assert risultato["pagine_senza_giorno"] == 300
+    assert risultato["libri_finiti_senza_giorno"] == 1
+    # L'autore e il genere invece contano: quelli non dipendono dal giorno.
+    assert risultato["autori_piu_letti"][0]["peso"] == 1.0
+    assert risultato["libri_senza_genere"] == 0
+
+
+def test_metriche_pagine_per_mese_piu_senza_giorno_fa_pagine_lette(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """L'invariante nuova, che sostituisce `sum(pagine_per_mese) ==
+    pagine_lette`: il grafico mensile mostra tutto tranne ciò che un mese
+    non ce l'ha, e quel resto è esattamente `pagine_senza_giorno`."""
+    letture = [
+        _lettura("l1", "v1", "2026-01-10", "2026-01-20"),
+        _lettura_a_posteriori("l2", "v2", 2026),
+    ]
+    voci = {
+        _voce_id("v1"): _voce("b1", ["a1"], []),
+        _voce_id("v2"): _voce("b2", ["a2"], [], pagine_adottate=150),
+    }
+    avanzamenti = [_avanzamento("l1", 120, "2026-01-20")]
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=avanzamenti, voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["pagine_lette"] == 270
+    assert risultato["pagine_senza_giorno"] == 150
+    assert sum(risultato["pagine_per_mese"]) == 120
+    assert (
+        sum(risultato["pagine_per_mese"]) + risultato["pagine_senza_giorno"]
+        == risultato["pagine_lette"]
+    )
+
+
+def test_metriche_lettura_senza_alcuna_data_non_appartiene_a_nessun_anno(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Chi non ricorda nemmeno l'anno segna il libro come letto lo stesso:
+    resta nello storico, e non compare in nessuna metrica annuale. È la
+    distinzione di Letterboxd fra "visto" e la riga datata del diario."""
+    letture = [_lettura_a_posteriori("l1", "v1", None)]
+    voci = {_voce_id("v1"): _voce("b1", ["a1"], [])}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["libri_finiti"] == 0
+    assert risultato["pagine_lette"] == 0
+    assert risultato["libri_finiti_senza_giorno"] == 0
+    # E non sposta nemmeno il primo anno selezionabile, che senza dati
+    # datati resta quello corrente (PRD, comportamento #12).
+    assert risultato["anno_minimo"] == 2026
+
+
+def test_metriche_una_lettura_a_posteriori_non_ha_durata_ne_e_a_cavallo_d_anno(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Senza data di inizio non c'è una durata da mediare né un anno
+    precedente da cui provenire: entrambe le metriche saltano la riga
+    invece di dedurre un inizio che l'Utente non ha dato."""
+    letture = [
+        _lettura("l1", "v1", "2026-02-01", "2026-02-11"),
+        _lettura_a_posteriori("l2", "v2", 2026),
+    ]
+    voci = {_voce_id("v1"): _voce("b1", ["a1"], []), _voce_id("v2"): _voce("b2", ["a2"], [])}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    risultato = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert risultato["libri_finiti"] == 2
+    assert risultato["letture_a_cavallo_anno"] == 0
+    assert risultato["ha_letture_a_cavallo_anno"] is False
+    # 11 giorni, estremi inclusi, e la media è su quella sola lettura.
+    assert risultato["durata_media_giorni"] == 11
+    assert risultato["durata_massima_giorni"] == 11
+
+
+def test_metriche_annata_di_chiusura_seleziona_l_anno(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Una lettura registrata sul 2019 appartiene al 2019, non all'anno in
+    cui è stata inserita: è tutto il punto del riempimento storico."""
+    letture = [_lettura_a_posteriori("l1", "v1", 2019)]
+    voci = {_voce_id("v1"): _voce("b1", ["a1"], [], pagine_adottate=200)}
+    _patch_repo(monkeypatch, letture=letture, avanzamenti=[], voci=voci)
+
+    import asyncio
+
+    del_2019 = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2019, "it"))
+    del_2026 = asyncio.run(metriche_service.metriche_di("token", _USER_ID, 2026, "it"))
+
+    assert del_2019["libri_finiti"] == 1
+    assert del_2019["pagine_lette"] == 200
+    assert del_2026["libri_finiti"] == 0
+    # E il primo anno selezionabile scende al 2019, altrimenti quel libro
+    # sarebbe contato in un anno che l'interfaccia non lascia raggiungere.
+    assert del_2019["anno_minimo"] == 2019

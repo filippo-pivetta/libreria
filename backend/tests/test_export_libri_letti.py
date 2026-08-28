@@ -162,8 +162,8 @@ def test_libro_senza_recensione_ne_voto_ha_campi_vuoti(repository: list[dict[str
 
     righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
 
-    assert righe[1][8] == ""  # voto
-    assert righe[1][9] == ""  # recensione
+    assert righe[1][9] == ""  # voto
+    assert righe[1][10] == ""  # recensione
 
 
 def test_titolo_e_generi_seguono_la_lingua_richiesta(repository: list[dict[str, Any]]) -> None:
@@ -213,3 +213,51 @@ def test_esporta_la_lettura_conclusa_non_quella_ancora_aperta(
 
     assert righe[1][6] == "2019-01-01"
     assert righe[1][7] == "2019-03-01"
+    assert righe[1][8] == ""  # nessuna annata: la chiusura ha il suo giorno
+
+
+def test_esporta_l_annata_quando_la_chiusura_non_ha_un_giorno(
+    repository: list[dict[str, Any]],
+) -> None:
+    """Una lettura registrata a posteriori (migrazione 20260827160000)
+    esce con la sua annata nella colonna dedicata e le due date vuote —
+    mai con "2019" infilato dove il resto del file scrive "2019-03-01"."""
+    repository.append(
+        _voce(
+            letture=[
+                {
+                    "data_inizio": None,
+                    "data_fine": None,
+                    "anno_fine": 2019,
+                    "esito": "conclusa",
+                }
+            ]
+        )
+    )
+
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
+
+    assert righe[1][6] == ""  # nessun inizio: non si conosce
+    assert righe[1][7] == ""  # nessun giorno di fine
+    assert righe[1][8] == "2019"
+
+
+def test_fra_due_concluse_di_precisione_diversa_vince_la_piu_recente(
+    repository: list[dict[str, Any]],
+) -> None:
+    """L'annata entra nell'ordinamento come il 31 dicembre di quell'anno:
+    è una chiave di confronto, non un dato, e infatti nel file la data di
+    fine resta vuota."""
+    repository.append(
+        _voce(
+            letture=[
+                {"data_inizio": "2019-01-01", "data_fine": "2019-03-01", "esito": "conclusa"},
+                {"data_inizio": None, "data_fine": None, "anno_fine": 2021, "esito": "conclusa"},
+            ]
+        )
+    )
+
+    righe = _righe_csv(_run(export_service.libri_letti_csv("t", _USER_ID, "it")))
+
+    assert righe[1][7] == ""
+    assert righe[1][8] == "2021"

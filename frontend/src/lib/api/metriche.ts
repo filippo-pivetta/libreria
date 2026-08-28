@@ -32,8 +32,17 @@ export type Metriche = {
   riletture: number;
   /** Somma degli incrementi datati nell'anno, mai delle pagine
    * raggiunte (PRD): include anche le Letture non concluse o
-   * abbandonate. */
+   * abbandonate, più le pagine delle letture registrate a posteriori
+   * con la sola annata (`pagineSenzaGiorno`). */
   pagineLette: number;
+  /** La parte di `pagineLette` che non ha un giorno: viene dalle letture
+   * chiuse sulla sola annata, dove non esiste un avanzamento da cui
+   * contarla. È ciò che il grafico dei mesi non può mostrare, e per
+   * questo va dichiarato invece di sparire (design-frontend.md §14). */
+  pagineSenzaGiorno: number;
+  /** Quante delle letture concluse nell'anno sono state registrate con
+   * la sola annata. Zero: non c'è nulla da dichiarare. */
+  libriFinitiSenzaGiorno: number;
   autoriPiuLetti: VoceClassifica[];
   generiPrincipali: VoceClassifica[];
   /** Libri finiti nell'anno senza alcun genere assegnato: lo scarto da
@@ -50,8 +59,9 @@ export type Metriche = {
   // --- Aggiunte dal ridisegno degli Annali (design-frontend.md §14) ------
 
   /** Dodici numeri, da gennaio a dicembre, sempre di lunghezza 12 anche
-   * per un anno in corso. È `pagineLette` a una risoluzione più fine:
-   * la somma delle caselle coincide col totale per costruzione. */
+   * per un anno in corso. È `pagineLette` a una risoluzione più fine,
+   * meno ciò che un mese non ce l'ha: la somma delle caselle vale
+   * `pagineLette - pagineSenzaGiorno` per costruzione. */
   paginePerMese: number[];
   /** Date distinte con almeno un avanzamento a incremento positivo:
    * misura l'abitudine, non il volume. */
@@ -92,6 +102,8 @@ type MetricheBody = {
   libri_finiti: number;
   riletture: number;
   pagine_lette: number;
+  pagine_senza_giorno: number;
+  libri_finiti_senza_giorno: number;
   autori_piu_letti: VoceClassificaBody[];
   generi_principali: VoceClassificaBody[];
   libri_senza_genere: number;
@@ -118,6 +130,8 @@ function toMetriche(body: MetricheBody): Metriche {
     libriFiniti: body.libri_finiti,
     riletture: body.riletture,
     pagineLette: body.pagine_lette,
+    pagineSenzaGiorno: body.pagine_senza_giorno,
+    libriFinitiSenzaGiorno: body.libri_finiti_senza_giorno,
     autoriPiuLetti: body.autori_piu_letti,
     generiPrincipali: body.generi_principali,
     libriSenzaGenere: body.libri_senza_genere,

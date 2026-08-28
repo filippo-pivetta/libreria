@@ -34,7 +34,10 @@ export function TestataLibro({ voce, isOwner }: { voce: VoceDettaglio; isOwner: 
     voce.letture.reduce((somma, lettura) => somma + lettura.insight.length, 0);
 
   const cronaca: string[] = [];
-  if (prima) {
+  // Solo se l'inizio si conosce: una libreria riempita a posteriori non
+  // ha un "cominciato il", e il resto della cronaca (riletture, insight)
+  // resta comunque vero.
+  if (prima?.dataInizio) {
     cronaca.push(`Cominciato il ${formattaData(prima.dataInizio, lingua)}`);
     if (voce.letture.length > 1) {
       cronaca.push(voce.letture.length === 2 ? "riletto una volta" : `${voce.letture.length} letture`);

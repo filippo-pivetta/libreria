@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  * forma dei dati che arriveranno: chi lo usa lo adatta con `className`
  * o lo sostituisce con uno scheletro più mirato quando serve.
  */
-export function LoadingState({ label = "Caricamento…" }: { label?: string }) {
+export function LoadingState({ label = "Un momento…" }: { label?: string }) {
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-3">
       <span className="sr-only">{label}</span>

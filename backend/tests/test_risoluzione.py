@@ -117,6 +117,68 @@ def test_un_record_orfano_col_titolo_giusto_resta_accettato(
     assert scheda.anno_prima_pubblicazione == 1980
 
 
+def test_un_record_orfano_che_dichiara_l_edizione_non_detta_ne_titolo_ne_anno(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il caso vero da cui nasce questa guardia nella sua forma stretta.
+
+    `isbn:9781515253068` (Siddharta di Hesse, ristampa spagnola del 2015)
+    risolve su Open Library in un record da una edizione sola intitolato
+    "Siddharta (Spanish Edition)", con `first_publish_year: 2015`. Il
+    confronto per contenimento lo accettava — quel titolo CONTIENE il
+    nostro — e il catalogo condiviso si ritrovava un'opera del 1922 col
+    titolo di una ristampa e la data della ristampa come anno di prima
+    pubblicazione.
+
+    Un titolo che aggiunge la marca dell'edizione non conferma il nostro:
+    dice di quale edizione parla il record.
+    """
+    _senza_wikidata(monkeypatch)
+    _con_isbn(
+        monkeypatch,
+        ol.OperaOL(
+            "OL40752097W", "Siddharta (Spanish Edition)", ("Herman Hesse",), 2015, 40, 1, ()
+        ),
+    )
+
+    scheda = asyncio.run(
+        risoluzione.risolvi(
+            gb.Opera(
+                rappresentante=_volume(
+                    titolo="Siddharta",
+                    autori=("Herman Hesse",),
+                    lingua="es",
+                    anno_pubblicazione=2015,
+                    pagine=40,
+                    isbn13="9781515253068",
+                )
+            )
+        )
+    )
+
+    assert scheda.titolo_canonico == "Siddharta"
+    assert scheda.anno_prima_pubblicazione is None
+    assert ("open_library", "OL40752097W", True) in scheda.riferimenti
+
+
+def test_un_record_orfano_col_titolo_giusto_non_ne_impone_la_forma(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dello stesso titolo si prende l'anno, non la stringa: il nostro è
+    già passato da `pulisci_titolo`, il suo è la forma grezza con cui quel
+    singolo record è stato importato."""
+    _senza_wikidata(monkeypatch)
+    _con_isbn(
+        monkeypatch,
+        ol.OperaOL("OL2W", "IL NOME DELLA ROSA.", ("Umberto Eco",), 1980, 533, 1, ()),
+    )
+
+    scheda = asyncio.run(risoluzione.risolvi(gb.Opera(rappresentante=_volume())))
+
+    assert scheda.titolo_canonico == "Il nome della rosa"
+    assert scheda.anno_prima_pubblicazione == 1980
+
+
 def test_l_anno_dell_edizione_non_diventa_mai_l_anno_dell_opera(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

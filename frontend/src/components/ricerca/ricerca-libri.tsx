@@ -206,8 +206,8 @@ export function RicercaLibri() {
            insieme, senza distinzione"). Resta la sola cosa che non si può
            indovinare: che la ricerca esce dall'app. */
         <p className="max-w-prose text-sm text-ink-soft">
-          Si cerca in tutto ciò che i cataloghi conoscono: non soltanto in ciò che qui è già stato
-          letto.
+          Qui la ricerca esce dalla stanza: va per tutti i cataloghi, non soltanto fra i libri
+          che qualcuno, qui, ha già letto.
         </p>
       )}
     </div>

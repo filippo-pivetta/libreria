@@ -70,6 +70,7 @@
     "transizione_stato_non_ammessa": "That step isn’t allowed from the book’s current status.",
     "lettura_chiusura_precede_ultimo_avanzamento": "The end date can’t come before the last progress you recorded.",
     "pagine_adottate_sotto_avanzamento_esistente": "The new total is lower than progress you’ve already recorded.",
+    "anno_fine_non_valido": "The year you finished the book can’t be in the future.",
     "consenso_revocato": "Assisted processing is off. You can turn it back on from your profile.",
     "insight_insufficienti": "Write a few insights or reviews before asking for a synthesis.",
     "letture_insufficienti": "Add a few books you’ve read, or write an insight, before asking for suggestions.",
@@ -120,7 +121,7 @@
     "salvato": "Saved."
   },
   "generici": {
-    "imprevisto": "Something broke. Try again, or go back to the previous page."
+    "imprevisto": "This page didn’t open. Try again, or go back."
   },
   "attesa": {
     "generica": "One moment…",

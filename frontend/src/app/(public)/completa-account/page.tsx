@@ -257,8 +257,8 @@ export default function CompletaAccountPage() {
             <Separator />
 
             <p className="text-sm text-ink-soft">
-              Visibilità e consenso all&rsquo;elaborazione assistita si gestiscono dal profilo,
-              in qualsiasi momento.
+              Chi vede cosa, e il consenso all&rsquo;elaborazione assistita, li decidi dal
+              profilo, quando vuoi.
             </p>
 
             <Button type="submit" disabled={isSubmitting}>

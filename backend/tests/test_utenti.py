@@ -216,6 +216,8 @@ _METRICHE: dict[str, Any] = {
     "durata_massima_giorni": None,
     "durata_massima_titolo": None,
     "libri_senza_pagine": 0,
+    "pagine_senza_giorno": 0,
+    "libri_finiti_senza_giorno": 0,
 }
 
 

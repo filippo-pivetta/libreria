@@ -123,8 +123,16 @@ export type Avanzamento = {
 
 export type Lettura = {
   id: string;
-  dataInizio: string;
+  /** Nulla per una lettura registrata a posteriori: chi segna oggi un
+   * libro letto nel 2019 non sa quando l'ha cominciato, e l'app non lo
+   * deduce (migrazione 20260827160000). */
+  dataInizio: string | null;
   dataFine: string | null;
+  /** L'annata di conclusione quando il giorno non si conosce. Si esclude
+   * con `dataFine`: al più una delle due è valorizzata. Entrambe nulle
+   * su una lettura conclusa significa che non se ne conosce la data —
+   * il libro è letto, ma non appartiene ad alcun anno. */
+  annoFine: number | null;
   esito: "conclusa" | "abbandonata" | null;
   avanzamenti: Avanzamento[];
   /** Raggruppati per Lettura (design doc §10), gating spoiler già
@@ -202,8 +210,9 @@ type AvanzamentoBody = {
 
 type LetturaBody = {
   id: string;
-  data_inizio: string;
+  data_inizio: string | null;
   data_fine: string | null;
+  anno_fine: number | null;
   esito: "conclusa" | "abbandonata" | null;
   avanzamenti: AvanzamentoBody[];
   insight: InsightEssenzialeBody[];
@@ -277,6 +286,7 @@ function toLettura(body: LetturaBody): Lettura {
     id: body.id,
     dataInizio: body.data_inizio,
     dataFine: body.data_fine,
+    annoFine: body.anno_fine,
     esito: body.esito,
     avanzamenti: body.avanzamenti.map(toAvanzamento),
     insight: body.insight.map(toInsightEssenziale),
@@ -462,6 +472,13 @@ async function patchVoce(
   return { status: "ok", data: toVoce((await response.json()) as VoceBody) };
 }
 
+/** Quanto si sa della data in cui il libro è stato finito. Serve solo a
+ * «l'ho già letto», la lettura registrata a posteriori: chi segna oggi un
+ * libro letto anni fa sa il giorno, o solo l'anno, o niente, e l'app non
+ * riempie i buchi al posto suo. `giorno` è il comportamento di sempre per
+ * ogni altra transizione. */
+export type PrecisioneChiusura = "giorno" | "anno" | "ignota";
+
 /** PATCH /voci/{id}/stato: l'unica transizione ammessa dallo stato
  * corrente (design doc §9: "l'interfaccia non offre mai una transizione
  * vietata"), ma il 409 resta gestito qui per difesa in profondità. */
@@ -470,8 +487,18 @@ export function cambiaStato(
   voceId: string,
   stato: StatoVoce,
   data?: string,
+  precisione: PrecisioneChiusura = "giorno",
+  annoFine?: number,
 ): Promise<ScritturaVoceResult> {
-  return patchVoce(accessToken, `/voci/${voceId}/stato`, data ? { stato, data } : { stato });
+  return patchVoce(accessToken, `/voci/${voceId}/stato`, {
+    stato,
+    ...(data ? { data } : {}),
+    // Si manda solo quando non è il default: un corpo che non la nomina
+    // si comporta come prima, ed è quello che fanno tutte le altre
+    // transizioni.
+    ...(precisione === "giorno" ? {} : { precisione }),
+    ...(annoFine !== undefined ? { anno_fine: annoFine } : {}),
+  });
 }
 
 /** PATCH /voci/{id}/pagine-adottate: correzione del totale (design doc
