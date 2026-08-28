@@ -13,9 +13,10 @@ import {
 } from "@/lib/api/insight";
 import type { Lettura } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
-import { formattaData } from "@/lib/formato";
+import { formattaData, periodoLettura } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { AzioniModulo } from "@/components/ui/azioni-modulo";
 import { Invito } from "@/components/ui/invito";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { InterruttoriScritto } from "@/components/ui/interruttori-scritto";
@@ -108,18 +109,12 @@ function ModuloInsight({
           />
         </div>
 
-        <div className="flex items-center gap-1.5 sm:ml-auto">
-          <Button variant="ghost" className="flex-1 sm:flex-none" onClick={onAnnulla}>
-            Annulla
-          </Button>
-          <Button
-            className="flex-1 sm:flex-none"
-            disabled={testo.trim() === "" || inCorso}
-            onClick={() => onSalva({ testo: testo.trim(), spoiler, visibilita })}
-          >
-            {etichettaSalva}
-          </Button>
-        </div>
+        <AzioniModulo
+          etichettaSalva={etichettaSalva}
+          salvaDisabilitato={testo.trim() === "" || inCorso}
+          onSalva={() => onSalva({ testo: testo.trim(), spoiler, visibilita })}
+          onAnnulla={onAnnulla}
+        />
       </div>
     </div>
   );
@@ -492,7 +487,7 @@ export function InsightLista({
   const lettureRecenti = [...letture].reverse();
 
   const puntoLettura = (lettura: Lettura) =>
-    lettura.dataFine === null
+    lettura.esito === null
       ? "bg-ribbon-reading ring-1 ring-inset ring-surface-2/70"
       : lettura.esito === "abbandonata"
         ? "bg-ribbon-abandoned"
@@ -514,9 +509,9 @@ export function InsightLista({
               key={lettura.id}
               voceId={voceId}
               titolo={
-                lettura.dataFine === null
-                  ? `Dal ${formattaData(lettura.dataInizio, lingua)}, in corso`
-                  : `${formattaData(lettura.dataInizio, lingua)} – ${formattaData(lettura.dataFine, lingua)}` +
+                lettura.esito === null
+                  ? periodoLettura(lettura, lingua)
+                  : `${periodoLettura(lettura, lingua)}` +
                     (lettura.esito === "abbandonata" ? ", abbandonata" : ", conclusa")
               }
               colorePunto={puntoLettura(lettura)}

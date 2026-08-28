@@ -105,10 +105,31 @@ export function IconaLibro(props: Props) {
 }
 
 /** Il menù di riga. Sostituisce il glifo `⋯`. */
+/**
+ * I tre puntini che aprono i menù (storico delle letture, insight, temi,
+ * parere). È l'unica icona del gruppo fatta di PIENI invece che di
+ * contorni, e non per capriccio.
+ *
+ * Era disegnata come tre tratti di lunghezza zero (`M6 12h.01`) chiusi
+ * dal `stroke-linecap` tondo: il diametro del puntino era quindi il
+ * contorno stesso, 1,9 su griglia 24, che a `size-4` — la misura che
+ * `Button` dà alle icone — fa **1,27px** sullo schermo. Un TRATTO di
+ * 1,27px si legge, perché è lungo; un DISCO di 1,27px no: l'antialiasing
+ * lo spalma su due pixel a mezza opacità, e di un inchiostro che sta a
+ * 6:1 su `surface-1` non resta quasi nulla. Il pulsante c'era, col suo
+ * bersaglio da 32px e i 44px sotto il dito, ma non si vedeva.
+ *
+ * Con un raggio dichiarato il diametro smette di essere un effetto
+ * collaterale del contorno: 1,75 su griglia 24 fa 2,33px a `size-4`, e
+ * fra un puntino e l'altro restano 2,5 unità d'aria, quindi si leggono
+ * ancora come tre e non come un trattino.
+ */
 export function IconaAltro(props: Props) {
   return (
-    <Icona strokeWidth={1.9} {...props}>
-      <path d="M6 12h.01M12 12h.01M18 12h.01" />
+    <Icona fill="currentColor" stroke="none" {...props}>
+      <circle cx="6" cy="12" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="18" cy="12" r="1.75" />
     </Icona>
   );
 }

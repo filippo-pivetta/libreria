@@ -181,8 +181,16 @@ class LetturaConAvanzamenti(BaseModel):
     pagine")."""
 
     id: UUID
-    data_inizio: date
+    data_inizio: date | None
+    """Nulla per una lettura registrata a posteriori: chi segna oggi un
+    libro letto nel 2019 non sa quando l'ha cominciato, e l'app non lo
+    deduce (migrazione 20260827160000)."""
     data_fine: date | None
+    anno_fine: int | None
+    """L'annata di conclusione quando il giorno non si conosce. Si
+    esclude con `data_fine`: al più una delle due è valorizzata, e
+    l'anno di chiusura è sempre `anno_fine` oppure l'anno di
+    `data_fine`."""
     esito: EsitoLettura | None
     avanzamenti: list[AvanzamentoEssenziale]
     # Raggruppati per Lettura (design-frontend.md §10, "come impone il
@@ -218,14 +226,32 @@ class AggiungiVoceResponse(BaseModel):
     already_existed: bool
 
 
+PrecisioneChiusura = Literal["giorno", "anno", "ignota"]
+
+
 class CambiaStatoRequest(BaseModel):
     """Corpo di PATCH /voci/{id}/stato. `data` è opzionale: se assente,
     la RPC usa il giorno corrente in Europa centrale (PRD: "il giorno
     corrente come predefinito"). A seconda della transizione rappresenta
-    la data di inizio (apertura di una Lettura) o di fine (chiusura)."""
+    la data di inizio (apertura di una Lettura) o di fine (chiusura).
+
+    `precisione` dice quanto si sa della CHIUSURA, ed esiste per la
+    lettura registrata a posteriori (migrazione 20260827160000): chi
+    segna oggi un libro letto anni fa sa il giorno, o solo l'anno, o
+    niente. Il default `giorno` è il comportamento di sempre, quindi un
+    client che non la manda si comporta esattamente come prima.
+
+    `anno_fine` vale solo con `precisione="anno"`. Non è validato qui
+    contro l'anno corrente: la RPC lo rifiuta con MTG14 se è futuro, e
+    duplicare il confronto significherebbe tenere allineate due
+    definizioni di "oggi" — quella del server applicativo e quella in
+    Europa centrale del database, che è l'unica che vale (PRD).
+    """
 
     stato: StatoVoce
     data: date | None = None
+    precisione: PrecisioneChiusura = "giorno"
+    anno_fine: int | None = None
 
 
 class CorreggiPagineRequest(BaseModel):

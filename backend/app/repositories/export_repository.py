@@ -22,7 +22,7 @@ _SELECT = (
     "libro_autore(ordine, autore:autore_id(nome_canonico)), "
     "libro_genere(genere:genere_id(genere_etichetta(lingua, etichetta))), "
     "variante_titolo(lingua, titolo)), "
-    "letture:lettura(data_inizio, data_fine, esito), "
+    "letture:lettura(data_inizio, data_fine, anno_fine, esito), "
     "recensione(testo)"
 )
 

@@ -34,6 +34,26 @@ def _anno(data_iso: str) -> int:
     return date.fromisoformat(data_iso).year
 
 
+def _anno_chiusura(lettura: dict[str, Any]) -> int | None:
+    """L'anno a cui una Lettura chiusa appartiene, qualunque precisione
+    abbia la sua chiusura (migrazione 20260827160000).
+
+    Tre casi, e sono tutti e tre legittimi: il giorno (`data_fine`), la
+    sola annata di una lettura registrata a posteriori (`anno_fine`),
+    oppure nulla — chi l'ha segnata non sapeva nemmeno l'anno. `None`
+    significa "questa Lettura non appartiene ad alcun anno", ed è la
+    ragione per cui ogni filtro annuale qui dentro passa da questa
+    funzione invece di leggere `data_fine`: una Lettura senza anno resta
+    nello storico e nel conteggio a vita, e non compare in nessuna
+    metrica annuale. È la stessa scelta di Letterboxd fra "visto" e la
+    riga datata del diario."""
+    if lettura.get("anno_fine") is not None:
+        return int(lettura["anno_fine"])
+    if lettura.get("data_fine"):
+        return _anno(lettura["data_fine"])
+    return None
+
+
 def _etichetta_genere(genere: dict[str, Any], lingua: str) -> str | None:
     """L'etichetta nella lingua dell'interfaccia (issue #34) se c'è.
     `genere_etichetta` copre ogni id dell'elenco chiuso in entrambe le
@@ -79,9 +99,11 @@ def _anno_minimo(
     dato -> l'unico anno selezionabile resta quello corrente, con zeri
     ovunque."""
     anni = [
-        _anno(lettura["data_fine"])
-        for lettura in letture
-        if lettura["esito"] == "conclusa" and lettura["data_fine"]
+        anno
+        for anno in (
+            _anno_chiusura(lettura) for lettura in letture if lettura["esito"] == "conclusa"
+        )
+        if anno is not None
     ]
     anni += [_anno(avanzamento["data"]) for avanzamento in avanzamenti]
     return min(anni) if anni else anno_corrente
@@ -99,11 +121,22 @@ def _titolo(libro: dict[str, Any], lingua: str) -> str:
     return str(variante or libro["titolo_canonico"])
 
 
+def _ha_durata(lettura: dict[str, Any]) -> bool:
+    """Una durata esiste solo se si conoscono entrambi gli estremi.
+
+    Una lettura registrata a posteriori non ha data di inizio, e spesso
+    nemmeno un giorno di fine: non ha quindi una durata da mettere nella
+    media, e trattarla come lunga zero giorni — o un giorno — sarebbe
+    inventare il dato che la migrazione 20260827160000 ha tolto di mezzo
+    apposta."""
+    return bool(lettura.get("data_inizio")) and bool(lettura.get("data_fine"))
+
+
 def _durata_giorni(lettura: dict[str, Any]) -> int:
     """Estremi inclusi: una Lettura cominciata e conclusa lo stesso
     giorno dura un giorno, non zero. `data_fine` non è mai anteriore a
     `data_inizio` (`trg_lettura_valida`), quindi il risultato è sempre
-    >= 1."""
+    >= 1. Da chiamare solo su una Lettura per cui `_ha_durata` è vera."""
     inizio = date.fromisoformat(lettura["data_inizio"])
     fine = date.fromisoformat(lettura["data_fine"])
     return (fine - inizio).days + 1
@@ -152,9 +185,7 @@ async def metriche_di(
     concluse_anno = [
         lettura
         for lettura in letture
-        if lettura["esito"] == "conclusa"
-        and lettura["data_fine"]
-        and _anno(lettura["data_fine"]) == anno_richiesto
+        if lettura["esito"] == "conclusa" and _anno_chiusura(lettura) == anno_richiesto
     ]
 
     voci = await run_in_threadpool(
@@ -183,17 +214,38 @@ async def metriche_di(
     libri_senza_genere = 0
     letture_a_cavallo_anno = 0
     libri_senza_pagine = 0
+    # Le pagine delle letture registrate a posteriori con la sola annata.
+    # Vengono da `pagine_adottate` e non da un Avanzamento, perché un
+    # Avanzamento senza giorno non esiste nello schema — e inventargliene
+    # uno rimetterebbe dentro il dato falso (migrazione 20260827160000).
+    pagine_senza_giorno = 0
+    libri_finiti_senza_giorno = 0
     voti: list[float] = []
     voti_per_stella = [0, 0, 0, 0, 0]
 
     for lettura in concluse_anno:
-        if _anno(lettura["data_inizio"]) != anno_richiesto:
+        # Solo dove l'inizio si conosce: una lettura registrata a
+        # posteriori non è "a cavallo dell'anno", è senza inizio, e
+        # contarla qui direbbe all'Utente una cosa che non è successa.
+        if lettura["data_inizio"] and _anno(lettura["data_inizio"]) != anno_richiesto:
             letture_a_cavallo_anno += 1
 
         voce = voci.get(lettura["voce_id"])
         if voce is None:
             continue
         libro = voce["libro"]
+
+        # Una lettura conclusa nell'anno senza un giorno a cui appendere
+        # l'avanzamento finale: le sue pagine entrano nel totale
+        # dell'anno — è la scelta di prodotto, un totale annuo senza
+        # ripartizione mensile è un dato onesto, mentre uno zero accanto
+        # a quaranta libri sembra un guasto — ma non nei dodici mesi né
+        # nei giorni con lettura, che il giorno lo vogliono davvero.
+        # Il conteggio è per LETTURA e non per Voce, come `libri_finiti`:
+        # due riletture registrate nello stesso anno contano due volte.
+        if not lettura["data_fine"]:
+            libri_finiti_senza_giorno += 1
+            pagine_senza_giorno += voce.get("pagine_adottate") or 0
 
         # Il voto sta sulla Voce, non sulla Lettura: due riletture della
         # stessa Voce concluse nello stesso anno porterebbero lo stesso
@@ -242,16 +294,20 @@ async def metriche_di(
             libri_senza_genere += 1
 
     incrementi = _calcola_incrementi(avanzamenti)
-    # Un solo passaggio per tre risultati: il totale, i dodici mesi e le
-    # date distinte. Sono la stessa somma a tre risoluzioni diverse,
-    # quindi `sum(pagine_per_mese) == pagine_lette` per costruzione.
+    # Un solo passaggio per tre risultati: il totale degli Avanzamenti
+    # datati, i dodici mesi e le date distinte. Sono la stessa somma a tre
+    # risoluzioni diverse, quindi `sum(pagine_per_mese) == pagine_datate`
+    # per costruzione — e NON `== pagine_lette`, che porta in più le
+    # pagine delle letture con la sola annata: quelle un mese non ce
+    # l'hanno, e `pagine_senza_giorno` esce a parte proprio perché il
+    # grafico mensile possa dichiarare ciò che non mostra.
     pagine_per_mese = [0] * 12
     giorni_letti: set[str] = set()
-    pagine_lette = 0
+    pagine_datate = 0
     for data_iso, incremento in incrementi:
         if _anno(data_iso) != anno_richiesto:
             continue
-        pagine_lette += incremento
+        pagine_datate += incremento
         pagine_per_mese[date.fromisoformat(data_iso).month - 1] += incremento
         # Un incremento nullo (una correzione, la stessa pagina segnata
         # due volte) non fa di quel giorno un giorno di lettura.
@@ -265,13 +321,12 @@ async def metriche_di(
     abbandoni = sum(
         1
         for lettura in letture
-        if lettura["esito"] == "abbandonata"
-        and lettura["data_fine"]
-        and _anno(lettura["data_fine"]) == anno_richiesto
+        if lettura["esito"] == "abbandonata" and _anno_chiusura(lettura) == anno_richiesto
     )
 
-    durate = [_durata_giorni(lettura) for lettura in concluse_anno]
-    lettura_piu_lunga = max(concluse_anno, key=_durata_giorni, default=None)
+    con_durata = [lettura for lettura in concluse_anno if _ha_durata(lettura)]
+    durate = [_durata_giorni(lettura) for lettura in con_durata]
+    lettura_piu_lunga = max(con_durata, key=_durata_giorni, default=None)
     voce_piu_lunga = voci.get(lettura_piu_lunga["voce_id"]) if lettura_piu_lunga else None
 
     return {
@@ -280,7 +335,9 @@ async def metriche_di(
         "anno_massimo": anno_corrente,
         "libri_finiti": libri_finiti,
         "riletture": riletture,
-        "pagine_lette": pagine_lette,
+        "pagine_lette": pagine_datate + pagine_senza_giorno,
+        "pagine_senza_giorno": pagine_senza_giorno,
+        "libri_finiti_senza_giorno": libri_finiti_senza_giorno,
         "autori_piu_letti": _classifica(pesi_autori, nomi_autori),
         "generi_principali": _classifica(pesi_generi, nomi_generi),
         "libri_senza_genere": libri_senza_genere,

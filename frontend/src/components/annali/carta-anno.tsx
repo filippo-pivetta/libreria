@@ -63,6 +63,8 @@ export function CartaAnno({
     paginePerMese,
     haLettureACavalloAnno,
     lettureACavalloAnno,
+    pagineSenzaGiorno,
+    libriFinitiSenzaGiorno,
   } = metriche;
 
   // "Quest'anno" solo quando l'anno mostrato è davvero quello corrente
@@ -82,8 +84,25 @@ export function CartaAnno({
         ? `1 dei ${libriFiniti} libri finiti non ha`
         : `${libriSenzaPagine} dei ${libriFiniti} libri finiti non hanno`;
 
+  // Le letture registrate con la sola annata (migrazione
+  // 20260827160000): il libro e le sue pagine contano nell'anno, ma un
+  // mese non ce l'hanno. Il grafico sotto le tace per forza, quindi la
+  // chiosa le dichiara — stesso principio dei libri senza genere accanto
+  // alla classifica (§14): uno scarto si dice, non si nasconde.
+  const scartoSenzaGiorno =
+    libriFinitiSenzaGiorno > 0 ? (
+      <p>
+        {libriFinitiSenzaGiorno === 1
+          ? `Un libro finito ${altrui ? "è stato segnato" : "l’hai segnato"} con il solo anno`
+          : `${libriFinitiSenzaGiorno} libri finiti ${altrui ? "sono stati segnati" : "li hai segnati"} con il solo anno`}
+        {pagineSenzaGiorno > 0
+          ? `: le sue ${pagineSenzaGiorno.toLocaleString("it-IT")} pagine contano nel totale, ma restano fuori dal grafico dei mesi, che un giorno non ce l’ha.`
+          : ": contano fra i libri finiti, ma restano fuori dal grafico dei mesi, che un giorno non ce l’ha."}
+      </p>
+    ) : null;
+
   const chiosa =
-    libriSenzaPagine > 0 || haLettureACavalloAnno ? (
+    libriSenzaPagine > 0 || haLettureACavalloAnno || scartoSenzaGiorno ? (
       <>
         {libriSenzaPagine > 0 && (
           <p>
@@ -92,6 +111,7 @@ export function CartaAnno({
             {pagineLette.toLocaleString("it-IT")} è una somma per difetto.
           </p>
         )}
+        {scartoSenzaGiorno}
         {haLettureACavalloAnno && (
           <p>
             {lettureACavalloAnno === 1

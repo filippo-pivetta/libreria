@@ -164,7 +164,7 @@ def testi_propri_con_riferimenti(client: Client, utente_id: UUID) -> list[dict[s
 
 _SELECT_PROFILO = (
     f"id, stato, voto, libro:libro_id ({_SELECT_LIBRO}), "
-    "letture:lettura (data_fine, esito), recensione (testo), insight (testo, data)"
+    "letture:lettura (data_fine, anno_fine, esito), recensione (testo), insight (testo, data)"
 )
 
 MASSIMO_INSIGHT_PER_VOCE = 2
@@ -184,11 +184,21 @@ def _data_lettura(letture: list[dict[str, Any]], esito: str) -> str | None:
     """La data più recente fra le Letture chiuse con l'esito indicato
     (stesso pattern di `export_service._ultima_lettura_conclusa`, esteso
     anche a "abbandonata": qui serve sapere non solo quando un libro è
-    stato finito, ma anche quando è stato lasciato)."""
+    stato finito, ma anche quando è stato lasciato).
+
+    È una CHIAVE DI ORDINAMENTO e nient'altro: `profilo_lettura` la usa
+    per ordinare pilastri, delusi e letti di recente, e non la manda mai
+    al modello né la mostra. Per questo una lettura registrata a
+    posteriori con la sola annata (migrazione 20260827160000) entra con
+    il 31 dicembre di quell'anno invece di restare fuori: senza, una
+    libreria riempita a mano non avrebbe alcun "letto di recente" e i
+    suggerimenti perderebbero il segnale più forte che hanno."""
     date = [
         str(lettura["data_fine"])
+        if lettura.get("data_fine")
+        else f"{int(lettura['anno_fine']):04d}-12-31"
         for lettura in letture
-        if lettura.get("esito") == esito and lettura.get("data_fine")
+        if lettura.get("esito") == esito and (lettura.get("data_fine") or lettura.get("anno_fine"))
     ]
     return max(date) if date else None
 

@@ -241,6 +241,7 @@ def test_get_voce_returns_detail(
                     "id": "00000000-0000-0000-0000-0000000000c1",
                     "data_inizio": "2026-08-15",
                     "data_fine": None,
+                    "anno_fine": None,
                     "esito": None,
                     "avanzamenti": [
                         {
@@ -309,6 +310,7 @@ def _get_dettaglio_con_insight_spoiler(client: Any, voce_id: UUID, lingua: str) 
                 "id": str(_LETTURA_APERTA_ID),
                 "data_inizio": "2026-08-15",
                 "data_fine": None,
+                "anno_fine": None,
                 "esito": None,
                 "avanzamenti": [],
             }
@@ -395,6 +397,7 @@ def test_get_voce_dettaglio_espone_insight_senza_spoiler_per_intero(
                     "id": str(_LETTURA_APERTA_ID),
                     "data_inizio": "2026-08-15",
                     "data_fine": None,
+                    "anno_fine": None,
                     "esito": None,
                     "avanzamenti": [],
                 }
@@ -444,6 +447,7 @@ def test_get_voce_dettaglio_raggruppa_insight_senza_lettura(
                     "id": str(_LETTURA_APERTA_ID),
                     "data_inizio": "2026-08-15",
                     "data_fine": None,
+                    "anno_fine": None,
                     "esito": None,
                     "avanzamenti": [],
                 }
@@ -519,7 +523,12 @@ def test_patch_stato_returns_updated_voce(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_cambia_stato(
-        access_token: str, voce_id: UUID, nuovo_stato: str, data: date | None
+        access_token: str,
+        voce_id: UUID,
+        nuovo_stato: str,
+        data: date | None,
+        precisione: str = "giorno",
+        anno_fine: int | None = None,
     ) -> dict[str, Any]:
         assert voce_id == _VOCE_ID
         assert nuovo_stato == "in_lettura"
@@ -534,11 +543,82 @@ def test_patch_stato_returns_updated_voce(
     assert response.json()["stato"] == "in_lettura"
 
 
+def test_patch_stato_inoltra_precisione_e_annata(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """«L'ho già letto» con la sola annata: il corpo porta `precisione` e
+    `anno_fine` invece di una data, e devono arrivare intatti al service —
+    è lì che si decide se la Lettura nasce con un giorno, con un anno o
+    senza nulla (migrazione 20260827160000)."""
+
+    async def _fake_cambia_stato(
+        access_token: str,
+        voce_id: UUID,
+        nuovo_stato: str,
+        data: date | None,
+        precisione: str = "giorno",
+        anno_fine: int | None = None,
+    ) -> dict[str, Any]:
+        assert nuovo_stato == "letto"
+        assert data is None
+        assert precisione == "anno"
+        assert anno_fine == 2019
+        return {**_VOCE, "stato": "letto"}
+
+    monkeypatch.setattr(voci_service, "cambia_stato", _fake_cambia_stato)
+
+    response = authenticated.patch(
+        f"/voci/{_VOCE_ID}/stato",
+        json={"stato": "letto", "precisione": "anno", "anno_fine": 2019},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["stato"] == "letto"
+
+
+def test_patch_stato_rifiuta_una_precisione_sconosciuta(authenticated: TestClient) -> None:
+    """L'elenco chiuso sta nello schema, non solo nella RPC: un valore
+    fuori elenco è un 422, non un 500 dal database."""
+    response = authenticated.patch(
+        f"/voci/{_VOCE_ID}/stato", json={"stato": "letto", "precisione": "circa"}
+    )
+    assert response.status_code == 422
+
+
+def test_patch_stato_returns_409_su_annata_futura(
+    authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _fake_cambia_stato(
+        access_token: str,
+        voce_id: UUID,
+        nuovo_stato: str,
+        data: date | None,
+        precisione: str = "giorno",
+        anno_fine: int | None = None,
+    ) -> dict[str, Any]:
+        raise voci_service.AnnoFineNonValidoError
+
+    monkeypatch.setattr(voci_service, "cambia_stato", _fake_cambia_stato)
+
+    response = authenticated.patch(
+        f"/voci/{_VOCE_ID}/stato",
+        json={"stato": "letto", "precisione": "anno", "anno_fine": 3000},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["error_code"] == "anno_fine_non_valido"
+
+
 def test_patch_stato_returns_404_when_voce_not_found(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_cambia_stato(
-        access_token: str, voce_id: UUID, nuovo_stato: str, data: date | None
+        access_token: str,
+        voce_id: UUID,
+        nuovo_stato: str,
+        data: date | None,
+        precisione: str = "giorno",
+        anno_fine: int | None = None,
     ) -> dict[str, Any]:
         raise voci_service.VoceNonTrovataError
 
@@ -553,7 +633,12 @@ def test_patch_stato_returns_409_on_transizione_non_ammessa(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_cambia_stato(
-        access_token: str, voce_id: UUID, nuovo_stato: str, data: date | None
+        access_token: str,
+        voce_id: UUID,
+        nuovo_stato: str,
+        data: date | None,
+        precisione: str = "giorno",
+        anno_fine: int | None = None,
     ) -> dict[str, Any]:
         raise voci_service.TransizioneNonAmmessaError
 
@@ -569,7 +654,12 @@ def test_patch_stato_returns_409_on_chiusura_precede_ultimo_avanzamento(
     authenticated: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def _fake_cambia_stato(
-        access_token: str, voce_id: UUID, nuovo_stato: str, data: date | None
+        access_token: str,
+        voce_id: UUID,
+        nuovo_stato: str,
+        data: date | None,
+        precisione: str = "giorno",
+        anno_fine: int | None = None,
     ) -> dict[str, Any]:
         raise voci_service.ChiusuraPrecedeUltimoAvanzamentoError
 

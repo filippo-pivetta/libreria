@@ -31,8 +31,19 @@ class MetricheResponse(BaseModel):
     riletture: int
     # Somma degli incrementi datati nell'anno (PRD), mai delle pagine
     # raggiunte: include anche le pagine di Letture non ancora concluse
-    # o abbandonate (regola 13).
+    # o abbandonate (regola 13), più le pagine adottate delle letture
+    # registrate a posteriori con la sola annata (`pagine_senza_giorno`).
     pagine_lette: int
+    # La parte di `pagine_lette` che non ha un giorno: viene dalle
+    # letture chiuse sulla sola annata (migrazione 20260827160000), dove
+    # non esiste un Avanzamento da cui contarla. Esce a parte perché è
+    # ciò che il grafico mensile NON può mostrare, e il PRD vuole che uno
+    # scarto si dichiari invece di sparire (design-frontend.md §14).
+    pagine_senza_giorno: int
+    # Quante delle Letture concluse nell'anno sono state registrate con
+    # la sola annata. Zero significa che ogni libro finito ha il suo
+    # giorno e non c'è nulla da dichiarare.
+    libri_finiti_senza_giorno: int
     autori_piu_letti: list[VoceClassificaResponse]
     generi_principali: list[VoceClassificaResponse]
     # Libri finiti nell'anno senza alcun genere assegnato ("non
@@ -62,8 +73,10 @@ class MetricheResponse(BaseModel):
     # dicembre, sempre di lunghezza 12 anche per un anno in corso (i mesi
     # non ancora arrivati valgono zero, e il frontend li distingue da un
     # mese a zero perché conosce `giorni_trascorsi`). È la stessa somma
-    # di `pagine_lette`, solo non collassata: sum(pagine_per_mese) ==
-    # pagine_lette per costruzione.
+    # di `pagine_lette` MENO `pagine_senza_giorno`, solo non collassata:
+    # sum(pagine_per_mese) == pagine_lette - pagine_senza_giorno per
+    # costruzione. Una lettura registrata sulla sola annata un mese non
+    # ce l'ha, e metterla in dicembre sarebbe inventarlo.
     pagine_per_mese: list[int]
     # Date distinte in cui esiste almeno un Avanzamento con incremento
     # positivo. Misura l'abitudine, non il volume: un Avanzamento a

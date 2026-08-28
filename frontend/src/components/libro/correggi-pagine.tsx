@@ -122,7 +122,22 @@ export function CorreggiPagine({
             event.currentTarget.blur();
           }
         }}
-        className="w-[4ch] border-0 bg-transparent p-0 font-ui text-sm tabular-nums text-ink outline-none placeholder:text-ink-soft"
+        // Le frecce del campo numerico si tolgono, e non per estetica: in
+        // Chrome e Safari il pulsante di incremento sta DENTRO la scatola
+        // del testo (`opacity: 0` finché non ci si passa sopra, ma sempre
+        // disposto) e si prende una tredicina di pixel fissi. A corpo 14
+        // qui restavano meno di venti pixel per le cifre, cioè due: un
+        // libro da 380 pagine mostrava 38. Nell'altro campo numerico
+        // (`segnalibro-avanzamento`) il difetto non si vede perché il
+        // corpo è 48 e quei pixel ci stanno nel margine.
+        //
+        // La larghezza non è più 4ch perché `4ch` non sono quattro cifre:
+        // `ch` è l'avanzamento dello zero PROPORZIONALE di Inter Tight
+        // (0,578em), mentre `tabular-nums` rende ogni cifra a 0,601em
+        // (misurato sul binario in `src/fonts`). Quattro cifre sono
+        // 2,40em, cioè 4,16ch: `4ch` le tagliava anche senza le frecce, e
+        // quattro cifre servono — un Meridiano passa le mille pagine.
+        className="w-[4.5ch] border-0 bg-transparent p-0 font-ui text-sm tabular-nums text-ink outline-none [appearance:textfield] placeholder:text-ink-soft [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
       />
       <IconaMatita aria-hidden className="size-3.5 shrink-0 text-ink-soft" />
       <Messaggio tono="conferma">{conferma.visibile ? t("conferme.salvato") : ""}</Messaggio>

@@ -23,6 +23,11 @@ _INTESTAZIONE = [
     "pagine_adottate",
     "data_inizio_lettura",
     "data_fine_lettura",
+    # L'annata, per le letture registrate a posteriori senza un giorno
+    # (migrazione 20260827160000). Una colonna sua e non un valore
+    # infilato in `data_fine_lettura`: un CSV che alterna "2019-03-12" e
+    # "2019" nella stessa colonna non si apre con nessuno strumento.
+    "anno_fine_lettura",
     "voto",
     "recensione",
 ]
@@ -64,17 +69,33 @@ def _generi(libro: dict[str, Any], lingua: str) -> str:
     return "; ".join(etichette)
 
 
+def _chiave_ordinamento(lettura: dict[str, Any]) -> str:
+    """La chiave con cui si sceglie la "più recente" fra letture di
+    precisione diversa. Un'annata vale il 31 dicembre di quell'anno:
+    è un ORDINE, non un dato — non viene scritto nel CSV, dove l'anno
+    esce nella sua colonna e la data di fine resta vuota."""
+    if lettura.get("data_fine"):
+        return str(lettura["data_fine"])
+    return f"{int(lettura['anno_fine']):04d}-12-31"
+
+
 def _ultima_lettura_conclusa(letture: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """La Lettura chiusa con esito "conclusa" più recente per data di
-    fine: se la Voce è "letto" ce n'è sempre almeno una, ma non si
-    solleva se per qualche motivo non ce ne fosse — i due campi restano
-    vuoti invece di far fallire l'intera esportazione per una riga."""
+    """La Lettura chiusa con esito "conclusa" più recente: se la Voce è
+    "letto" ce n'è sempre almeno una, ma non si solleva se per qualche
+    motivo non ce ne fosse — i campi restano vuoti invece di far fallire
+    l'intera esportazione per una riga.
+
+    Una lettura registrata a posteriori con la sola annata entra qui come
+    le altre; una senza alcuna data resta fuori dal confronto, perché non
+    c'è nulla con cui ordinarla — se è l'unica, la riga esce con le tre
+    colonne della lettura vuote, che è esattamente ciò che si sa."""
     concluse = [
         lettura
         for lettura in letture
-        if lettura.get("esito") == "conclusa" and lettura.get("data_fine")
+        if lettura.get("esito") == "conclusa"
+        and (lettura.get("data_fine") or lettura.get("anno_fine"))
     ]
-    return max(concluse, key=lambda lettura: lettura["data_fine"], default=None)
+    return max(concluse, key=_chiave_ordinamento, default=None)
 
 
 def _recensione_testo(riga: dict[str, Any]) -> str:
@@ -100,6 +121,7 @@ def _riga_csv(riga: dict[str, Any], lingua: str) -> list[Any]:
         riga.get("pagine_adottate"),
         lettura["data_inizio"] if lettura else None,
         lettura["data_fine"] if lettura else None,
+        lettura.get("anno_fine") if lettura else None,
         riga.get("voto"),
         _recensione_testo(riga),
     ]

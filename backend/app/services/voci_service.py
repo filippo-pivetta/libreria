@@ -40,6 +40,13 @@ class VoceNonTrovataError(Exception):
     (MTG13, sollevato dentro `cambia_stato_voce`)."""
 
 
+class AnnoFineNonValidoError(Exception):
+    """L'annata di conclusione è futura o fuori scala (MTG14). Vale solo
+    per la lettura registrata a posteriori: chiudere una Lettura nel
+    futuro è lo stesso errore di un Avanzamento datato domani (regola
+    15), e produce un libro finito in un anno non ancora cominciato."""
+
+
 class PagineSottoAvanzamentoEsistenteError(Exception):
     """Il nuovo totale di pagine adottate è inferiore a un avanzamento già
     registrato (MTG11 — PRD, caso limite "il totale è un tetto, non un
@@ -50,6 +57,7 @@ _ERRCODE_A_ECCEZIONE: dict[str, type[Exception]] = {
     "MTG07": ChiusuraPrecedeUltimoAvanzamentoError,
     "MTG10": TransizioneNonAmmessaError,
     "MTG13": VoceNonTrovataError,
+    "MTG14": AnnoFineNonValidoError,
 }
 
 
@@ -146,12 +154,23 @@ async def dettaglio(
 
 
 async def cambia_stato(
-    access_token: str, voce_id: UUID, nuovo_stato: str, data: date | None
+    access_token: str,
+    voce_id: UUID,
+    nuovo_stato: str,
+    data: date | None,
+    precisione: str = "giorno",
+    anno_fine: int | None = None,
 ) -> dict[str, Any]:
     client = get_user_client(access_token)
     try:
         return await run_in_threadpool(
-            voce_repository.cambia_stato, client, voce_id, nuovo_stato, data
+            voce_repository.cambia_stato,
+            client,
+            voce_id,
+            nuovo_stato,
+            data,
+            precisione,
+            anno_fine,
         )
     except APIError as error:
         eccezione = _ERRCODE_A_ECCEZIONE.get(error.code or "")

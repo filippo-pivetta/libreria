@@ -58,7 +58,7 @@ _SELECT_LISTA = f"{_SELECT_CON_LIBRO}, lettura_aperta:lettura(avanzamento(pagina
 # seconda chiamata (verificato manualmente contro PostgREST locale).
 _SELECT_DETTAGLIO = (
     f"{_SELECT_CON_LIBRO_E_DESCRIZIONE}, "
-    "letture:lettura (id, data_inizio, data_fine, esito, creato_at, "
+    "letture:lettura (id, data_inizio, data_fine, anno_fine, esito, creato_at, "
     "avanzamenti:avanzamento (id, pagina, data, generato_automaticamente, creato_at))"
 )
 
@@ -215,7 +215,7 @@ def list_con_libro(client: Client, utente_id: UUID, lingua: str) -> list[dict[st
         .select(_SELECT_LISTA)
         .eq("utente_id", str(utente_id))
         .order("ordine", foreign_table="libro.libro_autore")
-        .is_("lettura_aperta.data_fine", "null")
+        .is_("lettura_aperta.esito", "null")
         .execute()
     )
     righe = cast("list[dict[str, Any]]", response.data)
@@ -342,7 +342,12 @@ def delete(client: Client, voce_id: UUID) -> bool:
 
 
 def cambia_stato(
-    client: Client, voce_id: UUID, nuovo_stato: str, data: date | None
+    client: Client,
+    voce_id: UUID,
+    nuovo_stato: str,
+    data: date | None,
+    precisione: str = "giorno",
+    anno_fine: int | None = None,
 ) -> dict[str, Any]:
     """Unico canale di scrittura per `stato`: la RPC `cambia_stato_voce`
     valida la matrice di transizione e applica i suoi effetti collaterali
@@ -357,6 +362,8 @@ def cambia_stato(
             "p_voce_id": str(voce_id),
             "p_nuovo_stato": nuovo_stato,
             "p_data": data.isoformat() if data is not None else None,
+            "p_precisione": precisione,
+            "p_anno_fine": anno_fine,
         },
     ).execute()
     response = (
