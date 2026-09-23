@@ -25,7 +25,7 @@ def _run(coro: Any) -> Any:
 @pytest.fixture
 def scritture(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     registro: dict[str, Any] = {"scritto": None}
-    monkeypatch.setattr(modulo.database, "apri_connessione", lambda: _ConnessioneContesto())
+    monkeypatch.setattr(modulo.database, "connessione_dal_pool", lambda: _ConnessioneContesto())
     monkeypatch.setattr(modulo.catalogo_repository, "generi_ammessi", lambda conn: _GENERI_AMMESSI)
     monkeypatch.setattr(
         modulo.catalogo_repository,

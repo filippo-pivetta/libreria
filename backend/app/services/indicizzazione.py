@@ -56,7 +56,7 @@ def _accoda(utente_id: UUID, tipo: str, contenuto_id: UUID) -> None:
     # Chiave sul contenuto e non sull'utente: `uq_lavoro_pendente` collassa
     # così tre correzioni rapide dello stesso insight in un lavoro solo,
     # lasciando indipendenti insight diversi.
-    with database.apri_connessione() as connessione:
+    with database.connessione_dal_pool() as connessione:
         lavoro_repository.accoda(
             connessione,
             TIPO_LAVORO,

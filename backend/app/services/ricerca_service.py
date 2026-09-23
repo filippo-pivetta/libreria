@@ -163,7 +163,7 @@ def _libri_noti(opere: list[google_books.Opera]) -> dict[str, UUID]:
     perché la scheda lo sia.
     """
     noti: dict[str, UUID] = {}
-    with database.apri_connessione() as connessione:
+    with database.connessione_dal_pool() as connessione:
         for opera in opere:
             riferimenti: list[tuple[str, str]] = [
                 ("google_books", opera.rappresentante.volume_id),
@@ -281,7 +281,7 @@ async def aggiungi_da_catalogo(
 
 
 def _libro_per_riferimenti(riferimenti: list[tuple[str, str]]) -> UUID | None:
-    with database.apri_connessione() as connessione:
+    with database.connessione_dal_pool() as connessione:
         return catalogo_repository.libro_per_riferimenti(connessione, riferimenti)
 
 
@@ -290,7 +290,7 @@ def _trova_o_crea(scheda: risoluzione.SchedaRisolta) -> UUID:
     aggiunto: il volume di partenza poteva essere sconosciuto mentre
     l'opera a cui appartiene era già una scheda."""
     riferimenti = [(f, i) for f, i, _ in scheda.riferimenti]
-    with database.apri_connessione() as connessione:
+    with database.connessione_dal_pool() as connessione:
         esistente = catalogo_repository.libro_per_riferimenti(connessione, riferimenti)
         if esistente is not None:
             # La scheda c'era, ma con identificativi diversi da quelli con

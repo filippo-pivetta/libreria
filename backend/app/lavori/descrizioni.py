@@ -55,7 +55,7 @@ async def esegui(payload: dict[str, Any]) -> None:
         return
 
     def _scrivi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             catalogo_repository.scrivi_descrizioni(connessione, libro_id, trovate)
             # Emendamento design-frontend.md §24: Wikipedia a volte è una
             # frase sola, altre volte più lunga dello standard. Accodato

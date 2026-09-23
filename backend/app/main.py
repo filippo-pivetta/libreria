@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.core.exception_handlers import gestore_eccezioni_non_gestite
 from app.core.rate_limit import limiter
 from app.lavori.worker import Worker
+from app.repositories import database
 from app.routers import (
     avanzamenti,
     collegamenti,
@@ -130,9 +131,11 @@ async def _ciclo_di_vita(_app: FastAPI) -> AsyncIterator[None]:
             await worker.ferma()
             logger.info("Worker dei lavori in secondo piano fermato.")
         # Dopo il worker, mai prima: i client condivisi verso le fonti
-        # esterne (app/cataloghi/trasporto.py) sono gli stessi che un
+        # esterne (app/cataloghi/trasporto.py) e il pool di connessioni
+        # dirette (app/repositories/database.py) sono gli stessi che un
         # lavoro in corso sta usando in questo istante.
         await trasporto.chiudi_tutti()
+        database.chiudi_pool_db()
 
 
 def create_app() -> FastAPI:

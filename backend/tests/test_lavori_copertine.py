@@ -182,7 +182,7 @@ def scritture(monkeypatch: pytest.MonkeyPatch) -> _Scritture:
     def _apri_connessione() -> Any:
         raise AssertionError("il percorso con immagine deve passare da aggiorna_copertina")
 
-    monkeypatch.setattr(copertine.database, "apri_connessione", _apri_connessione)
+    monkeypatch.setattr(copertine.database, "connessione_dal_pool", _apri_connessione)
     return registro
 
 
@@ -244,7 +244,7 @@ def test_ripiego_su_open_library_quando_google_non_ha_la_copertina(
             (mini, grande, colore)
         ),
     )
-    monkeypatch.setattr(copertine.database, "apri_connessione", lambda: _ConnessioneContesto())
+    monkeypatch.setattr(copertine.database, "connessione_dal_pool", lambda: _ConnessioneContesto())
     _con_risposte(
         monkeypatch,
         {

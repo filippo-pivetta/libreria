@@ -323,7 +323,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     await run_in_threadpool(storage.carica, percorso_grande, grande)
 
     def _scrivi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             catalogo_repository.aggiorna_copertina(
                 connessione, libro_id, percorso_miniatura, percorso_grande, colore, colore_scuro
             )
@@ -363,7 +363,7 @@ async def su_fallimento(payload: dict[str, Any], errore: str) -> None:
 
 async def _scrivi_stato(libro_id: str, stato: str) -> None:
     def _scrivi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             catalogo_repository.segna_copertina(connessione, libro_id, stato)
 
     await run_in_threadpool(_scrivi)
