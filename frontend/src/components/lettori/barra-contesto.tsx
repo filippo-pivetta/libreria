@@ -1,5 +1,6 @@
 "use client";
 
+import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -88,7 +89,7 @@ export function BarraContesto({
 
   const tabs = (
     <>
-      <Link
+      <CollegamentoIntento
         href={`/lettori/${utenteId}`}
         aria-current={!schedaAnnali ? "page" : undefined}
         className={`t-label relative pb-2.5 tracking-[0.1em] transition-colors ${
@@ -98,8 +99,8 @@ export function BarraContesto({
         }`}
       >
         Libreria
-      </Link>
-      <Link
+      </CollegamentoIntento>
+      <CollegamentoIntento
         href={`/lettori/${utenteId}/annali`}
         aria-current={schedaAnnali ? "page" : undefined}
         className={`t-label relative pb-2.5 tracking-[0.1em] transition-colors ${
@@ -109,7 +110,7 @@ export function BarraContesto({
         }`}
       >
         Annali
-      </Link>
+      </CollegamentoIntento>
     </>
   );
 

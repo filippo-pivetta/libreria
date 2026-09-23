@@ -1,33 +1,30 @@
-import { getVoci } from "@/lib/api/voci";
-import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
-import { createClient } from "@/lib/supabase/server";
+import { Suspense } from "react";
+
+import { vociMie } from "@/lib/dati/letture";
 import { ErrorState } from "@/components/states/error-state";
+import { ScheletroScaffale } from "@/components/states/scheletri";
 import { Scaffale } from "@/components/libreria/scaffale";
-import { getTranslations } from "next-intl/server";
 import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
- * Libreria (design doc §7): scaffale di dorsi, vista predefinita di
- * questa issue (l'alternativa a elenco resta fuori). Fetch iniziale lato
- * server con il token già validato dal layout dell'area protetta;
- * `Scaffale` lo idrata in TanStack Query per le mutazioni successive
- * senza refetch completo.
+ * Libreria (design doc §7): scaffale di dorsi, vista predefinita.
+ *
+ * La pagina è sincrona e non attende nulla: l'attesa sta tutta nel figlio
+ * dentro `<Suspense>`. È ciò che permette alla rotta di essere
+ * prerenderizzata e al guscio di comparire subito alla navigazione, con
+ * lo scheletro solo dove i dati arrivano davvero dopo. `Scaffale` idrata
+ * poi il risultato in TanStack Query per le mutazioni successive.
  */
-export default async function ProtectedHomePage() {
-  const t = await getTranslations();
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+export default function ProtectedHomePage() {
+  return (
+    <Suspense fallback={<ScheletroScaffale />}>
+      <ScaffaleDellaLibreria />
+    </Suspense>
+  );
+}
 
-  if (!session) {
-    // Il layout ha già verificato la sessione prima di renderizzare
-    // questa pagina: se manca qui è una scadenza fra i due controlli,
-    // non un errore di logica.
-    return <ErrorState message={t("sessione.scaduta")} />;
-  }
-
-  const result = await getVoci(session.access_token, await accettaLinguaInoltrata());
+async function ScaffaleDellaLibreria() {
+  const result = await vociMie();
 
   if (result.status === "error") {
     return <ErrorState message={await messaggioErrore("libreriaNonCaricata", result.errore)} />;

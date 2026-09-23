@@ -139,15 +139,20 @@ const SUN: Array<[sunriseH: number, sunsetH: number]> = [
   [7.45, 16.70], // dic
 ];
 
+/** Costruito una volta sola: `Intl.DateTimeFormat` è l'oggetto più caro di
+ * questo file, e prima ne nasceva uno a ogni chiamata — quattro per
+ * richiesta, fra `generateViewport` e il layout radice. */
+const FORMATO_ROMA = new Intl.DateTimeFormat("it-IT", {
+  timeZone: "Europe/Rome",
+  hour: "2-digit",
+  minute: "2-digit",
+  month: "2-digit",
+  hour12: false,
+});
+
 /** Ora corrente in CET/CEST come numero decimale, indipendente dal fuso del server. */
 export function nowInRomeHours(d: Date = new Date()): { hours: number; month: number } {
-  const parts = new Intl.DateTimeFormat("it-IT", {
-    timeZone: "Europe/Rome",
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
+  const parts = FORMATO_ROMA.formatToParts(d);
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
   return { hours: get("hour") + get("minute") / 60, month: get("month") - 1 };
 }
@@ -222,33 +227,41 @@ function schedule(month: number): Array<[hour: number, anchor: Anchor]> {
   ];
 }
 
-/** L'ancoraggio dominante nell'istante dato. Serve per l'attributo data-light. */
-export function currentAnchor(d: Date = new Date()): Anchor {
-  const { hours, month } = nowInRomeHours(d);
-  const s = schedule(month);
-  for (let i = 0; i < s.length - 1; i++) {
-    if (hours >= s[i][0] && hours < s[i + 1][0]) {
-      const t = (hours - s[i][0]) / (s[i + 1][0] - s[i][0]);
-      return t < 0.5 ? s[i][1] : s[i + 1][1];
-    }
-  }
-  return "notte";
-}
-
-/** La palette interpolata fra i due ancoraggi adiacenti. */
-export function currentPalette(d: Date = new Date()): Palette {
+/** I due ancoraggi adiacenti all'istante dato e la posizione fra loro.
+ *
+ * Una funzione sola perché ancoraggio e palette sono due proiezioni
+ * dello stesso calcolo: prima lo facevano ciascuna per conto proprio, e
+ * `risolviLuce` — che le vuole entrambe — lo pagava due volte, comprese
+ * due letture dell'ora. */
+function segmentoCorrente(d: Date): { from: Anchor; to: Anchor; t: number } {
   const { hours, month } = nowInRomeHours(d);
   const s = schedule(month);
   for (let i = 0; i < s.length - 1; i++) {
     if (hours >= s[i][0] && hours < s[i + 1][0]) {
       const span = s[i + 1][0] - s[i][0];
-      const t = span === 0 ? 0 : (hours - s[i][0]) / span;
-      const [from, to] = [s[i][1], s[i + 1][1]];
-      if (crossesNight(from, to)) return ANCHORS[t < 0.5 ? from : to];
-      return lerpPalette(ANCHORS[from], ANCHORS[to], t);
+      return { from: s[i][1], to: s[i + 1][1], t: span === 0 ? 0 : (hours - s[i][0]) / span };
     }
   }
-  return ANCHORS.notte;
+  return { from: "notte", to: "notte", t: 0 };
+}
+
+function anchorDi({ from, to, t }: { from: Anchor; to: Anchor; t: number }): Anchor {
+  return t < 0.5 ? from : to;
+}
+
+function paletteDi({ from, to, t }: { from: Anchor; to: Anchor; t: number }): Palette {
+  if (crossesNight(from, to)) return ANCHORS[t < 0.5 ? from : to];
+  return lerpPalette(ANCHORS[from], ANCHORS[to], t);
+}
+
+/** L'ancoraggio dominante nell'istante dato. Serve per l'attributo data-light. */
+export function currentAnchor(d: Date = new Date()): Anchor {
+  return anchorDi(segmentoCorrente(d));
+}
+
+/** La palette interpolata fra i due ancoraggi adiacenti. */
+export function currentPalette(d: Date = new Date()): Palette {
+  return paletteDi(segmentoCorrente(d));
 }
 
 /* -----------------------------------------------------------------------------
@@ -374,7 +387,8 @@ export function risolviLuce(
 ): { anchor: Anchor; palette: Palette } {
   if (preferenza === "giorno") return { anchor: "giorno", palette: ANCHORS.giorno };
   if (preferenza === "notte") return { anchor: "notte", palette: ANCHORS.notte };
-  return { anchor: currentAnchor(d), palette: currentPalette(d) };
+  const segmento = segmentoCorrente(d);
+  return { anchor: anchorDi(segmento), palette: paletteDi(segmento) };
 }
 
 /**
@@ -401,6 +415,15 @@ export function lightAttrs(
   "data-light": Anchor;
   style: Record<string, string>;
 } {
-  const { anchor, palette } = risolviLuce(preferenza, d);
+  return attributiLuce(risolviLuce(preferenza, d));
+}
+
+/** Gli stessi attributi, a partire da una luce già risolta: serve a chi
+ * la risolve una volta sola per la richiesta (`lib/luce-richiesta.ts`) e
+ * non vuole ricalcolarla per scriverla su `<html>`. */
+export function attributiLuce({ anchor, palette }: { anchor: Anchor; palette: Palette }): {
+  "data-light": Anchor;
+  style: Record<string, string>;
+} {
   return { "data-light": anchor, style: paletteToCssVars(palette) };
 }

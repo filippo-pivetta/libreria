@@ -1,7 +1,8 @@
-import { getScheda } from "@/lib/api/schede";
-import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
-import { createClient } from "@/lib/supabase/server";
+import { Suspense } from "react";
+
+import { scheda } from "@/lib/dati/catalogo";
 import { ErrorState } from "@/components/states/error-state";
+import { ScheletroScheda } from "@/components/states/scheletri";
 import { SchedaPubblica } from "@/components/scheda-pubblica/scheda-pubblica";
 import { getTranslations } from "next-intl/server";
 import { messaggioErrore } from "@/lib/messaggi-errore-server";
@@ -32,26 +33,29 @@ import { messaggioErrore } from "@/lib/messaggi-errore-server";
  * miglioramento della risoluzione, non un dato di cui la pagina ha
  * bisogno.
  */
-export default async function BookPage(props: PageProps<"/book/[fonte]/[id]">) {
-  const { fonte, id } = await props.params;
-  const { alt } = await props.searchParams;
+export default function BookPage(props: PageProps<"/book/[fonte]/[id]">) {
+  return (
+    <Suspense fallback={<ScheletroScheda />}>
+      <Carta params={props.params} searchParams={props.searchParams} />
+    </Suspense>
+  );
+}
+
+async function Carta({
+  params,
+  searchParams,
+}: {
+  params: PageProps<"/book/[fonte]/[id]">["params"];
+  searchParams: PageProps<"/book/[fonte]/[id]">["searchParams"];
+}) {
+  const [{ fonte, id }, { alt }] = await Promise.all([params, searchParams]);
   const t = await getTranslations();
 
   if (fonte !== "catalogo" && fonte !== "google") {
     return <ErrorState title={t("titoli.nonTrovata")} message={t("assenze.paginaInesistente")} />;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    return <ErrorState message={t("sessione.scaduta")} />;
-  }
-
-  const lingua = await accettaLinguaInoltrata();
-  const result = await getScheda(session.access_token, fonte, id, lingua);
+  const result = await scheda(fonte, id);
 
   if (result.status === "not_found") {
     return (

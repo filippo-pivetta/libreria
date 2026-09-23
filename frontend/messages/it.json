@@ -111,7 +111,6 @@
     "invitoScaduto": "Questo invito non è più valido, o è scaduto. Chiedine uno nuovo a chi mantiene l’istanza."
   },
   "sessione": {
-    "scaduta": "La sessione è scaduta. Ricarica la pagina.",
     "scadutaInvito": "La sessione è scaduta. Chiedi un nuovo invito a chi mantiene l’istanza."
   },
   "avvisi": {

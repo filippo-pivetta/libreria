@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 
+import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import { IconaLibro } from "@/components/ui/icone";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +59,7 @@ export function RiferimentoLibro({
   const conAutori = autori && autori.length > 0 ? `${titolo} · ${autori.join(", ")}` : titolo;
 
   return (
-    <Link
+    <CollegamentoIntento
       href={`/libro/${voceId}`}
       onClick={onClick}
       title={conAutori}
@@ -73,6 +73,6 @@ export function RiferimentoLibro({
     >
       <IconaLibro aria-hidden className="size-3.5 shrink-0 opacity-70" />
       <span className="truncate">{titolo}</span>
-    </Link>
+    </CollegamentoIntento>
   );
 }

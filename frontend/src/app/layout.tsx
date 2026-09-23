@@ -1,21 +1,15 @@
-import type { CSSProperties } from "react";
+import { Suspense, type CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ToastProvider } from "@/providers/toast-provider";
 import { fontVariables } from "@/lib/fonts";
 import { RegistraServiceWorker } from "@/components/layout/registra-service-worker";
-import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 
-import {
-  COOKIE_LUCE,
-  preferenzaValida,
-  risolviLuce,
-  themeColorHex,
-  lightAttrs,
-} from "@/lib/light";
+import { attributiLuce, themeColorHex } from "@/lib/light";
+import { luceCorrente } from "@/lib/luce-richiesta";
 
 export const metadata: Metadata = {
   title: "Montaigne",
@@ -41,40 +35,60 @@ export const metadata: Metadata = {
  * mobile: senza, `env(safe-area-inset-*)` vale zero su iOS e la barra in
  * fondo finirebbe sotto l'indicatore home.
  *
- * `themeColor` è ricalcolato a ogni richiesta perché segue la luce (§3): la
- * chrome del browser si scurisce insieme alla stanza invece di restare bianca
- * sopra un fondo bruno. Non è dichiarato come costante proprio per questo — è
- * una funzione dell'ora, esattamente come la palette.
- *
  * `userScalable` resta al valore predefinito, cioè lo zoom NON è bloccato:
  * disattivarlo è la scorciatoia più comune per far sembrare nativo un sito ed
  * è anche il modo più rapido di renderlo inutilizzabile a chi ingrandisce.
+ *
+ * **Costante, non più `generateViewport()`.** Il colore della chrome
+ * segue la luce (§3) e quindi dipende dal cookie della preferenza: finché
+ * stava qui, ogni rotta dell'app era costretta a bloccare. Il viewport,
+ * a differenza dei metadati, non può essere trasmesso in streaming —
+ * decide l'interfaccia del primo paint — quindi un suo dato di richiesta
+ * impedisce il guscio prerenderizzato a TUTTE le pagine, che è
+ * esattamente ciò che rende la navigazione un'attesa. Il colore non è
+ * stato perso: è sceso nell'albero, in `<Documento>` qui sotto, dove può
+ * arrivare in streaming come tutto il resto.
  */
-export async function generateViewport(): Promise<Viewport> {
-  const preferenza = preferenzaValida((await cookies()).get(COOKIE_LUCE)?.value);
-  return {
-    width: "device-width",
-    initialScale: 1,
-    viewportFit: "cover",
-    themeColor: themeColorHex(risolviLuce(preferenza).palette),
-  };
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+/**
+ * Il documento è avvolto in `<Suspense>` e non reso direttamente.
+ *
+ * Con Cache Components ogni accesso a dati di richiesta fuori da un
+ * confine di sospensione impedisce il prerender della rotta — e qui
+ * l'accesso è il cookie della luce, che vale per TUTTE le rotte perché
+ * sta nel layout radice. Gli attributi della luce stanno su `<html>` e
+ * non possono arrivare in streaming *dentro* il documento: si decidono
+ * nell'istante in cui `<html>` viene emesso. Il confine va quindi messo
+ * SOPRA `<html>`, come indicato da `generate-viewport.md`, così a
+ * sospendere è il documento intero.
+ *
+ * Nessun fallback: prima che la luce sia risolta non c'è nulla da
+ * disegnare che non sia già la stanza sbagliata, ed è esattamente il
+ * lampo che §3 esiste per evitare. Le navigazioni client non rieseguono
+ * il layout radice, quindi questo confine non le riguarda: costa solo
+ * sulla visita diretta, dove l'attesa c'era già.
+ */
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <Suspense>
+      <Documento>{children}</Documento>
+    </Suspense>
+  );
 }
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Compute the current light (design doc §3): always server-side, never
-  // a timer in the browser, so two connected users see the same room at
-  // the same hour and there's no hydration mismatch. No more .dark class
-  // or theme: `data-light` carries the dominant anchor (needed by the few
-  // selectors that must know whether the room is dark), `style` carries
-  // the interpolated values that win over the fallback blocks in
-  // tokens.anchors.css.
+async function Documento({ children }: { children: React.ReactNode }) {
   // La preferenza sulla luce (§3, sessione UI): un cookie letto lato server,
   // come tutto il resto del calcolo. Nessun `localStorage` e nessuno script
   // inline anti-lampeggio: se il valore arrivasse dal browser, la prima
   // pittura userebbe l'ora e la seconda la preferenza, e il salto si vedrebbe
   // a ogni caricamento — esattamente ciò che questo modulo esiste per evitare.
-  const preferenza = preferenzaValida((await cookies()).get(COOKIE_LUCE)?.value);
-  const light = lightAttrs(preferenza);
+  const luce = await luceCorrente();
+  const light = attributiLuce(luce);
   const isNight = light["data-light"] === "notte";
   // La lingua dell'interfaccia (issue #34): non ridedotta qui da
   // `Accept-Language` — `getLocale()` di next-intl legge il valore già
@@ -92,6 +106,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       style={{ ...light.style, colorScheme: isNight ? "dark" : "light" } as CSSProperties}
     >
       <body>
+        {/* Il colore della chrome del browser, che segue la luce (§3): su
+            mobile è ciò che separa un'app da un sito, senza la barra di
+            stato resta bianca mentre la stanza è bruna. Sta qui e non nel
+            viewport perché il viewport non può andare in streaming e
+            bloccherebbe ogni rotta; React solleva i meta resi nell'albero
+            dentro <head>, quindi l'effetto è lo stesso di prima. */}
+        <meta name="theme-color" content={themeColorHex(luce.palette)} />
         {/* Prima cosa raggiungibile da tastiera, invisibile finché non prende
         il fuoco: senza, per arrivare al contenuto di una pagina bisogna
         attraversare ogni volta tutta la navigazione. L’ancora `#contenuto` sta

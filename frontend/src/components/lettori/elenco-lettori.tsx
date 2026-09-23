@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getUtenti, MIN_RICERCA, type ElencoMembri, type Membro } from "@/lib/api/utenti";
@@ -68,6 +69,7 @@ const ATTESA_DIGITAZIONE_MS = 250;
  */
 export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const spiega = useMessaggioErrore();
 
   const [ricerca, setRicerca] = useState("");
@@ -129,7 +131,12 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
 
   const invalida = () => {
     void queryClient.invalidateQueries({ queryKey: ["utenti"] });
-    void queryClient.invalidateQueries({ queryKey: ["collegamenti"] });
+    // Il contatore delle richieste accanto a Lettori non vive in una
+    // query: lo rende il Server Component `(protected)/layout.tsx`, che
+    // chiama `getCollegamenti` a ogni navigazione. Invalidare una chiave
+    // `["collegamenti"]` non lo toccava — nessuna `useQuery` la legge —
+    // e il contatore restava indietro finché non si ricaricava la pagina.
+    router.refresh();
   };
 
   const accetta = useMutation({
@@ -380,7 +387,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
               }
               return (
                 <li key={membro.id}>
-                  <Link
+                  <CollegamentoIntento
                     href={`/lettori/${membro.id}`}
                     className="flex items-center gap-3 p-4 transition-colors duration-(--dur-micro) hover:bg-surface-2"
                   >
@@ -392,7 +399,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
                       aria-hidden
                       className="size-4 shrink-0 -rotate-90 text-ink-soft"
                     />
-                  </Link>
+                  </CollegamentoIntento>
                 </li>
               );
             })}

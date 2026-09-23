@@ -1,5 +1,6 @@
 "use client";
 
+import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import Link from "next/link";
 
 import type { Risultato } from "@/lib/api/ricerca";
@@ -92,12 +93,12 @@ export function RigaRisultato({
               vuole che l'aggiunta non porti via dalla ricerca. Fondere i due
               in un unico bersaglio significherebbe scegliere quale dei due
               perdere. */}
-          <Link
+          <CollegamentoIntento
             href={percorsoScheda(risultato)}
             className="truncate font-display text-base text-ink underline-offset-4 hover:underline"
           >
             {risultato.titolo}
-          </Link>
+          </CollegamentoIntento>
           <span className="truncate font-ui text-sm text-ink-soft">
             {autori || "Autore non indicato"}
             {anno ? ` · ${anno}` : ""}

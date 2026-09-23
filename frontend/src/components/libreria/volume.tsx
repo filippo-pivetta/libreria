@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import type { CSSProperties } from "react";
 
 import type { VoceConLibro } from "@/lib/api/voci";
@@ -47,7 +47,7 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
       : null;
 
   return (
-    <Link
+    <CollegamentoIntento
       href={`/libro/${voce.id}`}
       className="volume liftable"
       title={etichetta}
@@ -115,6 +115,6 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
           </span>
         )}
       </span>
-    </Link>
+    </CollegamentoIntento>
   );
 }

@@ -4,6 +4,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
+  partialPrefetching: true,
+
   // Il link di invito di Supabase (docs/adr/0013) può reindirizzare su
   // 127.0.0.1 anche quando il dev server è raggiunto da "localhost": in
   // sviluppo Next.js blocca di default le richieste agli asset da

@@ -1,9 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { PortaProfilo } from "@/components/layout/porta-profilo";
+import { ContatoreConDati, PortaConDati, PortaInAttesa } from "@/components/layout/barra-dati";
+import type { DatiBarra } from "@/lib/dati/barra";
 
 /**
  * La navigazione di casa propria (design doc §5).
@@ -89,39 +91,7 @@ function attiva(pathname: string, href: string): boolean {
   return pathname.startsWith(href);
 }
 
-/**
- * Il contatore delle richieste ricevute: l'unico elemento in `alert` di
- * tutta l'app (design doc §5). Sta accanto a Lettori e non più accanto al
- * profilo — prima segnalava una cosa che in quella pagina non si poteva
- * fare, ora sta accanto al posto dove si agisce.
- *
- * `aria-label` esplicita perché il solo numero, letto ad alta voce dopo
- * "Lettori", non dice di cosa è il conteggio.
- */
-function Contatore({ n }: { n: number }) {
-  return (
-    <span
-      className="rounded-object bg-alert px-1 py-0.5 font-ui text-[10px] font-semibold text-on-accent normal-case"
-      aria-label={`${n} ${n === 1 ? "richiesta ricevuta" : "richieste ricevute"}`}
-    >
-      {n}
-    </span>
-  );
-}
-
-export function ProtectedNav({
-  userName,
-  receivedRequestCount,
-}: {
-  userName: string;
-  /**
-   * Numero di richieste di collegamento ricevute (design doc §5).
-   * Popolato da app/(protected)/layout.tsx da GET /collegamenti; resta
-   * opzionale così che un fetch fallito lì ometta il contatore invece di
-   * bloccare tutto il layout.
-   */
-  receivedRequestCount?: number;
-}) {
+export function ProtectedNav({ dati }: { dati: Promise<DatiBarra> }) {
   const pathname = usePathname();
 
   return (
@@ -146,16 +116,23 @@ export function ProtectedNav({
                   }`}
                 >
                   {item.label}
-                  {item.href === "/readers" && !!receivedRequestCount && (
+                  {item.href === "/readers" && (
                     <span className="ml-1.5">
-                      <Contatore n={receivedRequestCount} />
+                      <Suspense fallback={null}>
+                        <ContatoreConDati promessa={dati} />
+                      </Suspense>
                     </span>
                   )}
                 </Link>
               );
             })}
           </nav>
-          <PortaProfilo userName={userName} conNome />
+          {/* Il cerchietto tiene il proprio posto mentre le iniziali
+              arrivano: uno spazio vuoto e non uno scheletro pulsante,
+              così non c'è un grigio in più da guardare né un salto. */}
+          <Suspense fallback={<PortaInAttesa />}>
+            <PortaConDati promessa={dati} conNome />
+          </Suspense>
         </div>
       </header>
 
@@ -190,8 +167,10 @@ export function ProtectedNav({
               style={{ minHeight: "var(--tab-h)" }}
             >
               <span className="t-label tracking-[0.1em] text-current">{item.label}</span>
-              {item.href === "/readers" && !!receivedRequestCount && (
-                <Contatore n={receivedRequestCount} />
+              {item.href === "/readers" && (
+                <Suspense fallback={null}>
+                  <ContatoreConDati promessa={dati} />
+                </Suspense>
               )}
             </Link>
           );

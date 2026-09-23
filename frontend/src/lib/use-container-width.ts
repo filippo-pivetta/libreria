@@ -1,6 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+
+/**
+ * `useLayoutEffect` nel browser, `useEffect` sul server.
+ *
+ * La differenza è tutta nel momento in cui la misura arriva. Con
+ * `useEffect` il browser **dipinge prima** di conoscere la larghezza, e
+ * con larghezza zero `impacchetta` (shelf-pack.ts, riga 100) mette ogni
+ * volume in un'unica mensola: si vedeva una fila sola, e subito dopo lo
+ * scaffale che si riorganizzava. Su una libreria di una quindicina di
+ * titoli era un salto pieno. `useLayoutEffect` misura e ricalcola prima
+ * della pittura, quindi arrivando su questa pagina da una navigazione lo
+ * scaffale nasce già nella sua forma definitiva.
+ *
+ * Sul server `useLayoutEffect` non ha senso e React avvisa: lì l'alias
+ * cade su `useEffect`, che non verrà comunque mai eseguito.
+ */
+const useEffettoDiLayout = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
  * Larghezza reale di un contenitore, ricalcolata al ridimensionamento con
@@ -14,7 +31,7 @@ export function useContainerWidth<T extends HTMLElement>(): [RefObject<T | null>
   const ref = useRef<T>(null);
   const [width, setWidth] = useState(0);
 
-  useEffect(() => {
+  useEffettoDiLayout(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -78,7 +95,7 @@ export function useMisureScaffale(): [RefObject<HTMLDivElement | null>, MisureSc
   const sonda = useRef<HTMLDivElement>(null);
   const [misure, setMisure] = useState<MisureScaffale>(PREDEFINITE);
 
-  useEffect(() => {
+  useEffettoDiLayout(() => {
     const elemento = sonda.current;
     if (!elemento) return;
 

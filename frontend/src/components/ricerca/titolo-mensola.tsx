@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import type { CSSProperties } from "react";
 
 import type { TitoloPopolare } from "@/lib/api/ricerca";
@@ -29,7 +29,7 @@ export function TitoloMensola({ titolo }: { titolo: TitoloPopolare }) {
   const pagine = titolo.pagineMedianeCatalogo;
 
   return (
-    <Link
+    <CollegamentoIntento
       href={`/book/catalogo/${titolo.libroId}`}
       className="volume liftable"
       title={etichetta}
@@ -66,6 +66,6 @@ export function TitoloMensola({ titolo }: { titolo: TitoloPopolare }) {
           {autori && <span>{autori}</span>}
         </span>
       </span>
-    </Link>
+    </CollegamentoIntento>
   );
 }

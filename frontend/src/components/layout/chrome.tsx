@@ -1,9 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 
-import { PortaProfilo } from "@/components/layout/porta-profilo";
+import { PortaConDati, PortaInAttesa, SalutoConDati } from "@/components/layout/barra-dati";
 import { ProtectedNav } from "@/components/layout/protected-nav";
+import type { DatiBarra } from "@/lib/dati/barra";
 
 /**
  * Sceglie quale barra mostrare (design doc §5/§9/§15, emendamento 25
@@ -36,16 +38,13 @@ import { ProtectedNav } from "@/components/layout/protected-nav";
  * ramo si trova.
  */
 export function Chrome({
-  userName,
-  saluto,
-  receivedRequestCount,
+  dati,
   children,
 }: {
-  userName: string;
-  /** Calcolato lato server (`lib/saluto.ts`): questo è un componente
-   *  client e l'ora non si legge dal browser. */
-  saluto: string;
-  receivedRequestCount?: number;
+  /** Promessa e non valori: vedi `barra-dati.tsx`. Aspettarla qui
+   *  significherebbe far aspettare anche `children`, cioè l'intera
+   *  pagina, per un nome e un contatore che stanno in barra. */
+  dati: Promise<DatiBarra>;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -53,7 +52,7 @@ export function Chrome({
   if (pathname.startsWith("/lettori/")) {
     return (
       <>
-        <ProtectedNav userName={userName} receivedRequestCount={receivedRequestCount} />
+        <ProtectedNav dati={dati} />
         {children}
       </>
     );
@@ -92,7 +91,7 @@ export function Chrome({
 
   return (
     <>
-      <ProtectedNav userName={userName} receivedRequestCount={receivedRequestCount} />
+      <ProtectedNav dati={dati} />
       <main
         id="contenuto"
         className="sotto-la-barra relative mx-auto w-full max-w-5xl flex-1 px-4 py-3 text-ink sm:p-6"
@@ -107,13 +106,21 @@ export function Chrome({
             più non ha ancora un angolo dove sparire. */}
         {haTitoloProprio ? (
           <div className="absolute right-4 top-3 sm:hidden">
-            <PortaProfilo userName={userName} />
+            <Suspense fallback={<PortaInAttesa />}>
+              <PortaConDati promessa={dati} />
+            </Suspense>
           </div>
         ) : (
           <div className="mb-1 flex items-center gap-3 sm:hidden">
-            {pathname === "/" && <p className="t-saluto min-w-0 truncate">{saluto}</p>}
+            {pathname === "/" && (
+              <Suspense fallback={null}>
+                <SalutoConDati promessa={dati} />
+              </Suspense>
+            )}
             <div className="ml-auto">
-              <PortaProfilo userName={userName} />
+              <Suspense fallback={<PortaInAttesa />}>
+                <PortaConDati promessa={dati} />
+              </Suspense>
             </div>
           </div>
         )}
@@ -122,3 +129,5 @@ export function Chrome({
     </>
   );
 }
+
+

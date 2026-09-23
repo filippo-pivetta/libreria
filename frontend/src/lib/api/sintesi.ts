@@ -137,31 +137,33 @@ export async function getSintesi(accessToken: string): Promise<SintesiResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
+  let response: Response;
   try {
-    return await esito(
-      await fetch(`${config.baseUrl}/sintesi-tematica`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: "no-store",
-      }),
-    );
+    response = await fetch(`${config.baseUrl}/sintesi-tematica`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
   } catch {
     return { status: "error", errore: ERRORE_RETE };
   }
+
+  return esito(response);
 }
 
 export async function generaSintesi(accessToken: string): Promise<SintesiResult> {
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
+  let response: Response;
   try {
-    return await esito(
-      await fetch(`${config.baseUrl}/sintesi-tematica`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: "no-store",
-      }),
-    );
+    response = await fetch(`${config.baseUrl}/sintesi-tematica`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
   } catch {
     return { status: "error", errore: ERRORE_RETE };
   }
+
+  return esito(response);
 }

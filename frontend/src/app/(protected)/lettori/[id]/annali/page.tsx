@@ -1,11 +1,12 @@
-import { getVoci } from "@/lib/api/voci";
-import { getLibreriaCollegato } from "@/lib/api/utenti";
-import { getMetriche, getMetricheCollegato } from "@/lib/api/metriche";
-import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
-import { createClient } from "@/lib/supabase/server";
-import { ErrorState } from "@/components/states/error-state";
-import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collegato";
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+
+import { vociMie } from "@/lib/dati/letture";
+import { libreriaCollegato } from "@/lib/dati/membri";
+import { metricheMie, metricheCollegato as metricheDelCollegato } from "@/lib/dati/metriche";
+import { ErrorState } from "@/components/states/error-state";
+import { ScheletroAnnali } from "@/components/states/scheletri";
+import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collegato";
 import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
@@ -18,42 +19,45 @@ import { messaggioErrore } from "@/lib/messaggi-errore-server";
  * `GET /utenti/{id}/voci`.
  *
  * Il layout di questa cartella ha già verificato l'accesso prima di
- * renderizzare questa pagina (stesso schema di `../page.tsx`): quattro
- * fetch in parallelo, non in cascata — le due librerie servono solo ai
- * libri in comune, le due metriche alla scheda e all'affiancamento.
+ * renderizzare questa pagina: quattro fetch in parallelo, non in
+ * cascata — le due librerie servono solo ai libri in comune, le due
+ * metriche alla scheda e all'affiancamento. Una di quelle quattro,
+ * `libreriaCollegato`, è la stessa che il layout ha già risolto: passando
+ * da `lib/dati` non è più una seconda andata di rete.
  */
-export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id]/annali">) {
-  const { id } = await props.params;
-  const t = await getTranslations();
+export default function AnnaliCollegatoPage(props: PageProps<"/lettori/[id]/annali">) {
+  return (
+    <Suspense fallback={<ScheletroAnnali />}>
+      <AnnaliDelCollegato params={props.params} />
+    </Suspense>
+  );
+}
 
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    return <ErrorState message={t("sessione.scaduta")} />;
-  }
-
-  const lingua = await accettaLinguaInoltrata();
-  const [propria, collegato, metrichePropria, metricheCollegato] = await Promise.all([
-    getVoci(session.access_token, lingua),
-    getLibreriaCollegato(session.access_token, id, lingua),
-    getMetriche(session.access_token, undefined, lingua),
-    getMetricheCollegato(session.access_token, id, undefined, lingua),
+async function AnnaliDelCollegato({
+  params,
+}: {
+  params: PageProps<"/lettori/[id]/annali">["params"];
+}) {
+  const { id } = await params;
+  const [propria, collegato, metrichePropria, metricheSue] = await Promise.all([
+    vociMie(),
+    libreriaCollegato(id),
+    metricheMie(),
+    metricheDelCollegato(id),
   ]);
 
   if (collegato.status !== "ok") {
     // Corsa fra le richieste, non un errore di logica: il layout ha già
     // verificato l'accesso (stesso trattamento di ../page.tsx).
+    const t = await getTranslations();
     return <ErrorState message={t("assenze.libreriaIrraggiungibile")} />;
   }
-  if (metricheCollegato.status !== "ok") {
+  if (metricheSue.status !== "ok") {
     return (
       <ErrorState
         message={await messaggioErrore(
           "metricheSueNonCaricate",
-          metricheCollegato.status === "error" ? metricheCollegato.errore : undefined,
+          metricheSue.status === "error" ? metricheSue.errore : undefined,
         )}
       />
     );
@@ -63,7 +67,7 @@ export default async function AnnaliCollegatoPage(props: PageProps<"/lettori/[id
     <PaginaAnnaliCollegato
       utenteId={id}
       nomeUtente={collegato.utente.nomeUtente}
-      metricheCollegatoIniziali={metricheCollegato.data}
+      metricheCollegatoIniziali={metricheSue.data}
       metrichePropriaIniziale={metrichePropria.status === "ok" ? metrichePropria.data : null}
       vociProprie={propria.status === "ok" ? propria.data : []}
       vociCollegato={collegato.voci}

@@ -70,16 +70,17 @@ export async function getPreview(
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
+  let response: Response;
   try {
-    return await esito(
-      await fetch(`${config.baseUrl}/voci/${voceId}/preview`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: "no-store",
-      }),
-    );
+    response = await fetch(`${config.baseUrl}/voci/${voceId}/preview`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
   } catch {
     return { status: "error", errore: ERRORE_RETE };
   }
+
+  return esito(response);
 }
 
 export async function generaPreview(
@@ -89,17 +90,18 @@ export async function generaPreview(
   const config = baseUrlOrError();
   if ("status" in config) return config;
 
+  let response: Response;
   try {
-    return await esito(
-      await fetch(`${config.baseUrl}/voci/${voceId}/preview`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: "no-store",
-      }),
-    );
+    response = await fetch(`${config.baseUrl}/voci/${voceId}/preview`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
   } catch {
     return { status: "error", errore: ERRORE_RETE };
   }
+
+  return esito(response);
 }
 
 export type CancellaPreviewResult =

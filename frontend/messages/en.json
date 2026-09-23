@@ -111,7 +111,6 @@
     "invitoScaduto": "This invite is no longer valid, or it has expired. Ask whoever maintains this instance for a new one."
   },
   "sessione": {
-    "scaduta": "Your session has expired. Reload the page.",
     "scadutaInvito": "Your session has expired. Ask whoever maintains this instance for a new invite."
   },
   "avvisi": {

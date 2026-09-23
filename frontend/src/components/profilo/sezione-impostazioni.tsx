@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   aggiornaConsenso,
@@ -76,6 +76,7 @@ export function SezioneImpostazioni({
   indiciStatoIniziale: IndiciStato;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const spiega = useMessaggioErrore();
   const [consenso, setConsenso] = useState(consensoIniziale);
   const [indiciStato, setIndiciStato] = useState(indiciStatoIniziale);
@@ -104,6 +105,13 @@ export function SezioneImpostazioni({
     onSuccess: (me) => {
       setConsenso(me.consensoElaborazioneAssistita);
       setIndiciStato(me.indiciStato);
+      // Il consenso è letto anche altrove — la sintesi tematica dei
+      // Quaderni, la preview di una scheda, il parere di una carta
+      // pubblica — tutti sotto la chiave `["me", "consenso"]`. Senza
+      // questa invalidazione quelle tre parti continuavano a credere al
+      // valore di prima per tutto lo `staleTime`, e una funzione appena
+      // riaccesa qui si mostrava lì ancora spenta.
+      void queryClient.invalidateQueries({ queryKey: ["me", "consenso"] });
     },
     onError: (err: unknown, valore: boolean) => {
       setConsenso(!valore);

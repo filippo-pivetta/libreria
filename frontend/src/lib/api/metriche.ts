@@ -10,6 +10,21 @@ import { intestazioniConLingua } from "@/lib/lingua";
 import type { ErroreApi } from "@/lib/api/errore";
 import { ERRORE_CONFIGURAZIONE, ERRORE_RETE, erroreDaRisposta } from "@/lib/api/errore";
 
+type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
+
+/**
+ * `anno_futuro` solo quando è il backend a dirlo (`app/routers/metriche.py`),
+ * non per il solo fatto che lo stato è 422: quello stesso stato lo
+ * produce anche la validazione di FastAPI su un parametro malformato, e
+ * leggerlo come "anno futuro" mostrava a chi guarda una regola che non
+ * era scattata.
+ */
+async function esitoAnnoFuturo(response: Response): Promise<boolean> {
+  const body = (await response.json().catch(() => ({}))) as ErrorBody;
+  const detail = typeof body.detail === "object" ? body.detail : undefined;
+  return detail?.error_code === "anno_futuro";
+}
+
 export type VoceClassifica = {
   id: string;
   nome: string;
@@ -195,7 +210,7 @@ export async function getMetriche(
     return { status: "error", errore: ERRORE_RETE };
   }
 
-  if (response.status === 422) {
+  if (response.status === 422 && (await esitoAnnoFuturo(response))) {
     return { status: "anno_futuro" };
   }
   if (!response.ok) {
@@ -245,7 +260,7 @@ export async function getMetricheCollegato(
   if (response.status === 403) {
     return { status: "non_collegato" };
   }
-  if (response.status === 422) {
+  if (response.status === 422 && (await esitoAnnoFuturo(response))) {
     return { status: "anno_futuro" };
   }
   if (!response.ok) {

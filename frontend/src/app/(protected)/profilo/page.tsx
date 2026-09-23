@@ -1,12 +1,12 @@
-import { cookies } from "next/headers";
+import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 
-import { COOKIE_LUCE, preferenzaValida } from "@/lib/light";
-import { getMe } from "@/lib/api/me";
-import { createClient } from "@/lib/supabase/server";
+import { me } from "@/lib/dati/profilo";
+import { preferenzaLuce } from "@/lib/luce-richiesta";
 import { ErrorState } from "@/components/states/error-state";
+import { ScheletroElenco } from "@/components/states/scheletri";
 import { TestataPagina } from "@/components/layout/testata-pagina";
 import { SezioneImpostazioni } from "@/components/profilo/sezione-impostazioni";
-import { getTranslations } from "next-intl/server";
 import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
@@ -29,41 +29,46 @@ import { messaggioErrore } from "@/lib/messaggi-errore-server";
  * quello degli Annali: un titolo di pagina ha una misura sola in tutta
  * l'app, non una a scelta di chi scrive la pagina.
  */
-export default async function ProfiloPage() {
-  const t = await getTranslations();
-  const preferenzaLuce = preferenzaValida((await cookies()).get(COOKIE_LUCE)?.value);
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+export default function ProfiloPage() {
+  return (
+    <div className="flex flex-col gap-8">
+      <TestataPagina titolo="Profilo" />
+      <Suspense
+        fallback={
+          <>
+            <ScheletroElenco righe={3} />
+            <ScheletroElenco righe={4} />
+          </>
+        }
+      >
+        <Impostazioni />
+      </Suspense>
+    </div>
+  );
+}
 
-  if (!session) {
-    return <ErrorState message={t("sessione.scaduta")} />;
-  }
+async function Impostazioni() {
+  const [profilo, luce] = await Promise.all([me(), preferenzaLuce()]);
 
-  const me = await getMe(session.access_token);
-
-  if (me.status !== "ok") {
+  if (profilo.status !== "ok") {
+    const t = await getTranslations();
     return (
       <ErrorState
         message={
-          me.status === "not_provisioned"
+          profilo.status === "not_provisioned"
             ? t("assenze.accountIncompleto")
-            : await messaggioErrore("libreriaNonCaricata", me.errore)
+            : await messaggioErrore("libreriaNonCaricata", profilo.errore)
         }
       />
     );
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <TestataPagina titolo="Profilo" />
-      <SezioneImpostazioni
-        preferenzaLuce={preferenzaLuce}
-        nomeUtente={me.data.nomeUtente}
-        consensoIniziale={me.data.consensoElaborazioneAssistita}
-        indiciStatoIniziale={me.data.indiciStato}
-      />
-    </div>
+    <SezioneImpostazioni
+      preferenzaLuce={luce}
+      nomeUtente={profilo.data.nomeUtente}
+      consensoIniziale={profilo.data.consensoElaborazioneAssistita}
+      indiciStatoIniziale={profilo.data.indiciStato}
+    />
   );
 }

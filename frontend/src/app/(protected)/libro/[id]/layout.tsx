@@ -1,9 +1,7 @@
-import { getMe } from "@/lib/api/me";
-import { getCollegamenti } from "@/lib/api/collegamenti";
-import { getVoceDettaglio } from "@/lib/api/voci";
-import { getLibreriaCollegato } from "@/lib/api/utenti";
-import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
-import { createClient } from "@/lib/supabase/server";
+import { datiBarra } from "@/lib/dati/barra";
+import { voceDettaglio } from "@/lib/dati/letture";
+import { libreriaCollegato } from "@/lib/dati/membri";
+import { contesto } from "@/lib/dati/sessione";
 import { ErrorState } from "@/components/states/error-state";
 import { ProtectedNav } from "@/components/layout/protected-nav";
 import { BarraContestoLibro } from "@/components/libro/barra-contesto-libro";
@@ -28,21 +26,8 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
   const { id } = await props.params;
   const t = await getTranslations();
 
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    return (
-      <Pagina>
-        <ErrorState message={t("sessione.scaduta")} />
-      </Pagina>
-    );
-  }
-
-  const lingua = await accettaLinguaInoltrata();
-  const voce = await getVoceDettaglio(session.access_token, id, lingua);
+  const { utenteId } = await contesto();
+  const voce = await voceDettaglio(id);
 
   if (voce.status === "not_found") {
     return (
@@ -59,27 +44,17 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
     );
   }
 
-  const isOwner = voce.data.utenteId === session.user.id;
+  const isOwner = voce.data.utenteId === utenteId;
 
   if (isOwner) {
-    // Indipendenti l'uno dall'altro (nessuno dei due usa il risultato
-    // dell'altro): in parallelo invece che in sequenza risparmiano un
-    // giro di rete intero prima che la barra possa comparire.
-    const [me, collegamenti] = await Promise.all([
-      getMe(session.access_token),
-      getCollegamenti(session.access_token),
-    ]);
-    const receivedRequestCount =
-      collegamenti.status === "ok"
-        ? collegamenti.data.filter((c) => c.stato === "in_attesa" && !c.richiestoDaMe).length
-        : undefined;
-
     return (
       <>
-        <ProtectedNav
-          userName={me.status === "ok" ? me.data.nomeUtente : ""}
-          receivedRequestCount={receivedRequestCount}
-        />
+        {/* La promessa non si attende qui: la barra la consuma nei propri
+            confini di attesa, e il contenuto del libro non deve fermarsi
+            per un nome e un contatore. Sono comunque gli stessi dati che
+            il layout dell'area protetta ha già chiesto, quindi di fatto
+            già pronti. */}
+        <ProtectedNav dati={datiBarra()} />
         {/* Sotto i 640px `ProtectedNav` non monta niente in cima, quindi
             senza questa barra la scheda del proprio libro non ha nessun
             ritorno — mentre quella di un collegato ce l'ha. */}
@@ -89,7 +64,7 @@ export default async function LibroLayout(props: LayoutProps<"/libro/[id]">) {
     );
   }
 
-  const collegato = await getLibreriaCollegato(session.access_token, voce.data.utenteId, lingua);
+  const collegato = await libreriaCollegato(voce.data.utenteId);
   const nomeCollegato = collegato.status === "ok" ? collegato.utente.nomeUtente : "";
 
   return (

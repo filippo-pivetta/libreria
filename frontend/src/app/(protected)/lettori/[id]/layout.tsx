@@ -1,8 +1,6 @@
 import Link from "next/link";
 
-import { getLibreriaCollegato } from "@/lib/api/utenti";
-import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
-import { createClient } from "@/lib/supabase/server";
+import { libreriaCollegato } from "@/lib/dati/membri";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/states/error-state";
 import { BarraContesto } from "@/components/lettori/barra-contesto";
@@ -24,20 +22,14 @@ export default async function LibreriaCollegatoLayout(
   const { id } = await props.params;
   const t = await getTranslations();
 
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    return (
-      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
-        <ErrorState message={t("sessione.scaduta")} />
-      </main>
-    );
-  }
-
-  const result = await getLibreriaCollegato(session.access_token, id, await accettaLinguaInoltrata());
+  // Resta un'attesa bloccante, e deliberatamente: questo fetch non serve
+  // solo a disegnare la testata, decide se la stanza è ancora aperta
+  // (design doc §15). Mandarlo in streaming farebbe comparire lo scaffale
+  // per un istante anche a chi il collegamento non ce l'ha più.
+  // `libreriaCollegato` è la stessa funzione che chiamano le due pagine
+  // figlie: la memoization di richiesta la risolve una volta sola, dove
+  // prima erano due chiamate identiche per ogni navigazione.
+  const result = await libreriaCollegato(id);
 
   if (result.status === "not_found") {
     return (

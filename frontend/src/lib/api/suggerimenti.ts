@@ -31,6 +31,8 @@ export type Suggerimento = {
 
 type Body = { suggerimenti: Suggerimento[] };
 
+type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
+
 
 export type SuggerimentiResult =
   | { status: "ok"; data: Suggerimento[] }
@@ -63,7 +65,17 @@ export async function generaSuggerimenti(
 
   if (response.status === 409) return { status: "consenso_revocato" };
   if (response.status === 422) {
-    return { status: "letture_insufficienti", errore: regola("letture_insufficienti") };
+    // Solo quando è il backend a nominare la regola
+    // (`app/routers/suggerimenti.py`). Lo stesso 422 lo produce la
+    // validazione di FastAPI sul corpo — una nota oltre le 200 battute —
+    // e leggerlo come "letture insufficienti" diceva a chi guarda che il
+    // problema era la sua libreria invece della nota che aveva scritto.
+    const body = (await response.json().catch(() => ({}))) as ErrorBody;
+    const detail = typeof body.detail === "object" ? body.detail : undefined;
+    if (detail?.error_code === "letture_insufficienti") {
+      return { status: "letture_insufficienti", errore: regola("letture_insufficienti") };
+    }
+    return { status: "error", errore: regola(detail?.error_code) };
   }
   if (response.status === 503) {
     return { status: "error", errore: ERRORE_MODELLO };
