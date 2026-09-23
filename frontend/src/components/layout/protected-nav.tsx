@@ -78,6 +78,28 @@ const NAV_ITEMS = [
 ] as const;
 
 /**
+ * **Perché queste quattro portano `prefetch` e i libri no.**
+ *
+ * Con `partialPrefetching` un `<Link>` nudo precarica solo il guscio
+ * della rotta, non i suoi dati: la pagina compare subito ma il contenuto
+ * si fa ancora aspettare, e la PRIMA navigazione di una sessione resta
+ * lenta. `prefetch` esteso porta con sé anche i dati.
+ *
+ * Si può fare qui e non altrove perché queste sono un insieme **chiuso e
+ * piccolo**, sempre in vista, che chi apre l'app visita quasi certamente:
+ * è il caso in cui precaricare è giustificato. Due di loro non costano
+ * nemmeno una chiamata (Quaderni e Aggiungi non fanno fetch lato
+ * server), e le altre due la pagano una volta per sessione, perché il
+ * risultato resta nella memoria del browser (`lib/dati/durata.ts`).
+ *
+ * Sui dorsi dello scaffale sarebbe invece sbagliato, e infatti lì c'è il
+ * precaricamento su intento (`ui/collegamento-intento.tsx`): i libri sono
+ * decine o centinaia, e precaricarli tutti significherebbe altrettanti
+ * render lato server per aprirne uno — rubando banda proprio alla pagina
+ * che si sta guardando.
+ */
+
+/**
  * "Lettori" resta accesa anche dentro la libreria o gli annali di un
  * collegato (`/lettori/[id]`, `/lettori/[id]/annali`): da quando la
  * barra globale non sparisce più lì (Chrome, emendamento 25 agosto
@@ -108,6 +130,7 @@ export function ProtectedNav({ dati }: { dati: Promise<DatiBarra> }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch
                   aria-current={active ? "page" : undefined}
                   className={`t-label relative pb-1 tracking-[0.1em] transition-colors duration-(--dur-micro) ${
                     active
@@ -158,6 +181,7 @@ export function ProtectedNav({ dati }: { dati: Promise<DatiBarra> }) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               aria-current={active ? "page" : undefined}
               className={`relative flex flex-1 items-center justify-center gap-1.5 px-1 ${
                 active

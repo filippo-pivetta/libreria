@@ -31,6 +31,13 @@ import Link from "next/link";
  * per link, quindi praticamente gratuito: ogni dorso lo prende, e solo
  * il dorso sfiorato paga il precaricamento dei propri dati.
  *
+ * Le destinazioni fisse — le quattro voci della barra e il Profilo —
+ * non passano di qui: sono un insieme chiuso e sempre in vista, e
+ * portano `prefetch` esteso fin da subito (`layout/protected-nav.tsx`),
+ * così anche la prima navigazione della sessione è immediata. La
+ * differenza non è di gusto ma di numero: quelle sono cinque, i libri
+ * sono decine.
+ *
  * Non aggiunge alcun elemento attorno: `Volume` usa `<Link>` come
  * elemento portante, con le proprie classi, il proprio `style` e le
  * proprie etichette. Un involucro romperebbe l'impacchettamento delle

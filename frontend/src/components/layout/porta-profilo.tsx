@@ -36,6 +36,10 @@ export function PortaProfilo({
   return (
     <Link
       href="/profilo"
+      // Come le quattro voci della barra (`protected-nav.tsx`): è una
+      // destinazione fissa e sempre in vista, e precaricarne anche i dati
+      // rende immediata pure la prima apertura della sessione.
+      prefetch
       aria-current={attiva ? "page" : undefined}
       aria-label={`Profilo di ${userName}`}
       // `bersaglio`: le iniziali sono un cerchio di 32px, e sotto i 640px
