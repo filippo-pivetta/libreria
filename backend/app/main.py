@@ -147,7 +147,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Montaigne API",
         description="API di Montaigne, applicazione di tracciamento letture con "
-        "visibilità privata e condivisa fra utenti collegati (docs/prd.md). "
+        "visibilità privata e condivisa fra utenti collegati (AGENTS.md). "
         "Ogni rotta salvo `/health` richiede un token di sessione Supabase "
         "(`Authorization: Bearer <token>`, docs/adr/0012); l'identità del "
         "chiamante arriva sempre da lì, mai dal corpo o dalla query string.",

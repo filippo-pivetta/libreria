@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // robots.txt esclusa: deve rispondere 200 senza redirect a un
-    // crawler anonimo, altrimenti la regola 6 (docs/prd.md) non ha
+    // crawler anonimo, altrimenti la regola sull’indicizzazione (AGENTS.md) non ha
     // effetto — un redirect a /login servirebbe HTML al posto del
     // testo robots.txt.
     //

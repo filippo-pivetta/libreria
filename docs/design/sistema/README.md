@@ -18,18 +18,13 @@ aggiungono l'unica cosa che la prosa non può fare, cioè far **vedere** la diff
 44 px, fra `t-sentenza` e `t-appunto`, o fra un riquadro alto 44 e un riquadro alto 30 con un
 bersaglio da 44 intorno. Dove le due divergessero, vince il documento.
 
-## Cos'è successo al resto
+## Perché solo quattro
 
-Nascono dal canvas del ridisegno della scheda del libro (agosto 2026), che conteneva anche sei
-tavole di schermata — prima/dopo, mobile, i quattro stati, il libro di un collegato, gli insight.
-Quelle sono state buttate a implementazione avvenuta: erano artefatti di *decisione*, la decisione
-è stata presa e spedita, e il ragionamento è finito in `design-frontend.md`. Un mockup che diverge
-dal codice è peggio di nessun mockup — il prossimo che passa non sa quale dei due sia
+Nascono dal canvas del ridisegno della scheda del libro, che conteneva anche sei tavole di
+schermata. Quelle sono state buttate a implementazione avvenuta: erano artefatti di *decisione*, la
+decisione è stata presa e spedita, e il ragionamento è finito in `design-frontend.md`. Un mockup
+che diverge dal codice è peggio di nessun mockup — il prossimo che passa non sa quale dei due sia
 l'intenzione.
-
-`Main.dc.html` è stata riscritta il 26 agosto 2026: mostrava una tabella prima/dopo con quattro
-pesi di comando, ed era doppiamente vecchia — la "proposta" era stata implementata (quindi non era
-più una proposta) e i pesi nel frattempo erano diventati cinque.
 
 ## Aprirle
 

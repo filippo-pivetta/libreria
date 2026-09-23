@@ -97,7 +97,7 @@ export function Quaderni() {
   const lente = chiesto ? "chiedi" : tema ? "tema" : "sfoglia";
   const filtriEffettivi: FiltriScritti = tema ? { ...filtri, ...filtriDelTema(tema) } : filtri;
   const conFiltri =
-    !!filtri.tipo || !!filtri.soloSpoiler || filtri.anno != null || !!filtri.voceIds?.length;
+    !!filtri.tipo || filtri.anno != null || !!filtri.voceIds?.length;
 
   const elenco = useQuery({
     queryKey: ["scritti", "elenco", filtriEffettivi, mostrati],

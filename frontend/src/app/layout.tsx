@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   // stato è trasparente e la pagina ci scorre sotto — è la ragione per cui
   // `viewportFit: "cover"` sotto non è facoltativo.
   appleWebApp: { capable: true, title: "Montaigne", statusBarStyle: "default" },
-  // Non-negotiable rule 6 (docs/prd.md): no page is indexable. Reinforces
+  // Non-negotiable rule (AGENTS.md): no page is indexable. Reinforces
   // app/robots.ts at the per-page meta-tag level — the rule explicitly
   // calls for "checking the crawler-exclusion directives", plural.
   robots: {

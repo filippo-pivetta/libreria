@@ -1,6 +1,6 @@
 """Spazio file delle copertine.
 
-Il bucket è privato, e non per prudenza: la regola 6 del PRD non ammette
+Il bucket è privato, e non per prudenza: la regola sull’indicizzazione non ammette
 alternative — "nessun dato di lettura e nessun file conservato dal sistema,
 copertine comprese, è accessibile senza autenticazione" — ed è accompagnata
 da un test esplicito, richiesta anonima a qualunque indirizzo di immagine e

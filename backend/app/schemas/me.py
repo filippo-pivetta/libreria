@@ -9,11 +9,11 @@ class MeResponse(BaseModel):
     """Profilo pubblico (`utente`) più stato di consenso/informativa
     (`utente_privato`).
 
-    Nessun campo email: nel prodotto le email non esistono (docs/prd.md),
+    Nessun campo email: nel prodotto le email non esistono (AGENTS.md),
     credenziali e recupero passano fuori dall'app. Nessun campo
     scrivibile oltre a `nome_utente` in fase di creazione (vedi
     `CompleteAccountRequest`): una volta scritto non è più modificabile
-    dall'utente (docs/prd.md).
+    dall'utente (AGENTS.md).
     """
 
     id: UUID

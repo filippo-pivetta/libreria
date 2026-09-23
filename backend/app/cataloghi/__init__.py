@@ -1,7 +1,7 @@
 """Client dei cataloghi bibliografici esterni.
 
 Ogni modulo qui dentro parla con una fonte sola e la usa solo dove è la
-migliore, secondo misure fatte sulle API reali (vedi docs/prd.md e i
+migliore, secondo misure fatte sulle API reali (vedi AGENTS.md e i
 docstring dei singoli moduli):
 
     google_books  ricerca mostrata all'Utente, e i suoi identificativi

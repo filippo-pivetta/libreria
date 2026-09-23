@@ -22,7 +22,7 @@ import { ANCHORS, themeColorHex } from "@/lib/light";
  * che il primo byte di CSS arrivi: senza, sarebbe bianco puro, che è l'unico
  * colore che questa palette non contiene.
  *
- * Non intacca la regola 6 del PRD (nessuna pagina indicizzabile): il manifesto
+ * Non intacca la regola sull’indicizzazione: il manifesto
  * descrive l'applicazione, non espone contenuti, e `start_url` porta alla
  * guardia di autenticazione come qualunque altra rotta.
  */

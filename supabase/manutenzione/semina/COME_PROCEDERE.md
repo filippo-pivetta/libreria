@@ -85,8 +85,8 @@ Le query stanno in `stato_semina.sql`. Le tre che contano:
 3. **Lavori figli** — è lì che finiscono spazio delle copertine e spesa
    del modello.
 
-Due cose da guardare fuori dalle query, perché il PRD le dichiara senza
-tetto e nessuno le sorveglia da solo:
+Due cose da guardare fuori dalle query, perché non hanno tetto e nessuno le
+sorveglia da solo:
 
 - **Spazio Supabase** (Storage → bucket `copertine`). Stima: ~100 KB per
   libro, quindi ~200 MB su 1 GB di piano gratuito per l'intera lista.

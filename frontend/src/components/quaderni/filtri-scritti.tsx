@@ -10,7 +10,7 @@ import { IconaFreccia } from "@/components/ui/icone";
 import { SelettoreLibro } from "@/components/quaderni/selettore-libro";
 
 /**
- * Le pastiglie dei Quaderni: tipo, spoiler, anno, libro.
+ * Le pastiglie dei Quaderni: tipo, anno, libro.
  *
  * ---------------------------------------------------------------------------
  * LO STESSO REGISTRO DELLE PASTIGLIE DELLO SCAFFALE (§7), e non per
@@ -39,6 +39,23 @@ import { SelettoreLibro } from "@/components/quaderni/selettore-libro";
  * ricomporre la prima sarebbero tre modi di dire due cose.
  *
  * ---------------------------------------------------------------------------
+ * NON C'È PIÙ UNA PASTIGLIA "SPOILER", e non va rimessa.
+ *
+ * Restringeva l'elenco agli scritti contrassegnati come spoiler. Ma nei
+ * Quaderni ogni riga è già del richiedente — lo garantiscono le funzioni
+ * SQL, che filtrano `utente_id = auth.uid()` — e la regola 10 del PRD
+ * protegge da uno spoiler *altrui*, mai dal proprio testo: qui il
+ * contrassegno non nasconde niente e infatti la carta lo mostra in chiaro
+ * (`carta-scritto.tsx`). Era quindi l'unica pastiglia della riga a non
+ * rispondere a una domanda che ci si fa davvero — "di che tipo", "di
+ * quale anno", "su quale libro" sì; "quali dei miei pensieri avevo
+ * marcato per i collegati" no.
+ *
+ * Il parametro `solo_spoiler` resta in `GET /scritti`: è il backend a
+ * decidere se ritirarlo, e finché c'è non fa danno. Semplicemente questo
+ * client non lo manda più.
+ *
+ * ---------------------------------------------------------------------------
  * I MENÙ OFFRONO SOLO VALORI CHE HANNO RIGHE. Anni e libri arrivano da
  * `GET /scritti/sfaccettature`, che restituisce solo ciò che esiste col
  * suo conteggio: un menù d'anno che elenca anni in cui non si è scritto
@@ -63,7 +80,7 @@ export function FiltriScrittiBarra({
   });
 
   const nessunFiltro =
-    !filtri.tipo && !filtri.soloSpoiler && filtri.anno == null && !filtri.voceIds?.length;
+    !filtri.tipo && filtri.anno == null && !filtri.voceIds?.length;
 
   // Il vestito è di `ui/pastiglia.tsx`: `basePill` e `classePill` erano
   // ricopiati alla lettera anche in `libreria/scaffale.tsx`, e le due
@@ -117,16 +134,6 @@ export function FiltriScrittiBarra({
         className={pill(filtri.tipo === "recensione")}
       >
         Recensioni
-      </button>
-
-      <button
-        type="button"
-        aria-pressed={!!filtri.soloSpoiler}
-        onClick={() => onCambia({ ...filtri, soloSpoiler: !filtri.soloSpoiler })}
-        {...attributiPastiglia}
-        className={pill(!!filtri.soloSpoiler)}
-      >
-        Spoiler
       </button>
 
       {(sfaccettature?.anni.length ?? 0) > 1 && (

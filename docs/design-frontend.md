@@ -1,6 +1,6 @@
 # Montaigne · Design frontend
 
-Il come dell'interfaccia. Compagno del PRD, che porta il cosa. Descrive la struttura visiva e
+Il come dell'interfaccia. Il cosa sta in `AGENTS.md`. Descrive la struttura visiva e
 di interazione del sistema così com'è pensata oggi: un riferimento per lavorare in modo
 coerente, non una specifica immutabile — si aggiorna quando cambia la comprensione del
 prodotto o quando si trova un'idea migliore.
@@ -86,7 +86,7 @@ si interpolano.
 **Interpolazione in OKLCH.** I mezzitoni restano saturi e leggibili; in sRGB il passaggio fra
 alba e giorno darebbe un mezzogiorno grigio e fangoso.
 
-**Calcolo lato server.** Il PRD fissa il fuso CET uguale per tutti; calcolarlo nel browser
+**Calcolo lato server.** Il dominio fissa il fuso CET uguale per tutti; calcolarlo nel browser
 produrrebbe un mismatch di idratazione in Next.js. Alba e tramonto da tabella a latitudine
 fissa, non dalla posizione dell'utente: due collegati vedono la stessa stanza alla stessa ora.
 
@@ -262,53 +262,24 @@ Notebooks, Annals, Readers.
 | Annali | Metriche per anno |
 | Lettori | Le persone e il rapporto con loro |
 
-**Quaderni non è il ritorno della Torre.** La quarta voce di prima era un
-contenitore di impostazioni che si apriva una volta al mese; questa è il posto
-dove sta ciò che l'Utente ha scritto — insight, recensioni, e i temi che li
-attraversano — cioè metà della materia dell'app, che fino ad agosto 2026 viveva
-in tre pagine senza ingresso (`/cerca`, `/sintesi`, `/suggerimenti`) raggiungibili
-solo da un disclosure chiuso in mezzo ai filtri della Libreria.
+**Quattro voci e non di più, tutte nomi piani** di ciò che contengono: il rimando
+letterario sta nell'insegna, non nella segnaletica interna. Una voce chiamata
+«Assistente» o «Chiedi» nominerebbe il meccanismo invece della materia.
 
-Le due obiezioni che le tenevano fuori dalla barra — scritte nelle sezioni che
-quelle tre pagine descrivevano — vanno tolte, non aggirate. La prima — «la navigazione ha quattro voci e restano
-quattro» — è un argomento sulla barra usato per decidere una collocazione: dice
-dove una funzione *non* va, non dove va. La seconda — «una voce di menu che può
-essere spenta è una voce sbagliata» — vale per una funzione, non per una materia:
-i propri scritti esistono anche a consenso revocato, ed è solo il modo di
-interrogarli che si spegne, cosa che la pagina dichiara invece di sparire.
+**Quaderni sta in barra benché il consenso possa spegnersi**, perché è una materia
+e non una funzione: i propri scritti esistono anche a consenso revocato, e solo il
+modo di interrogarli si spegne — sfogliare, filtrare, scrivere e ripescare un
+vecchio pensiero non chiedono niente al fornitore (§22). La pagina lo dichiara,
+invece di sparire.
 
-Quella seconda risposta è stata a lungo una promessa e basta: fino al 25 agosto
-2026 Quaderni a consenso revocato era due stati vuoti, perché la pagina non
-conteneva i propri scritti — li interrogava soltanto. Ora li contiene (§22), e la
-promessa è mantenuta dal codice: sfogliare, filtrare, scrivere e ripescare un
-vecchio pensiero non chiedono niente al fornitore.
+Il **proprio account** non sta in barra: si chiama **Profilo** (§17) e ci si arriva
+dalle proprie iniziali, in alto a destra su desktop e in cima al contenuto su
+telefono, dove la barra in alto non esiste. «Profilo» è la parola per la persona,
+«impostazioni» resta ai titoli delle sezioni che agiscono sui dati.
 
-Il nome sta nel registro di «Annali»: una parola piana che nomina la cosa, non il
-meccanismo che la produce. Una voce chiamata «Assistente» o «Chiedi» sarebbe stato
-il cassetto di prima con una linguetta più grande, e avrebbe violato la regola di
-questo stesso paragrafo — il rimando letterario sta nell'insegna, non nella
-segnaletica interna.
-
-**Erano quattro, e la quarta era "Torre".** Conteneva i collegamenti e le impostazioni, e ne è
-uscita per due ragioni indipendenti. La prima è la frequenza: le altre tre si aprono ogni giorno,
-quella si apriva una volta al mese, e tenerla alla pari mentiva su quanto servisse. La seconda è
-il nome — era l'unica voce metaforica su una barra di nomi letterali, contro la regola che questo
-stesso paragrafo enuncia poche righe più sotto ("il rimando letterario sta nell'insegna, non nella
-segnaletica interna").
-
-Dei suoi due contenuti, i **collegamenti** sono passati a Lettori (§16): accettare una richiesta
-non è un'impostazione, è la cosa più urgente dell'app, e stava sepolta accanto a "cancella
-l'account" mentre nella pagina dove compariva la persona la stessa richiesta era testo inerte. Ciò
-che resta è il proprio account, che ora si chiama **Profilo** (§17) e non sta in barra: ci si
-arriva dalle proprie iniziali, in alto a destra nella barra su desktop e in cima al contenuto su
-telefono, dove la barra in alto non esiste. "Profilo" non è una parola inventata qui: è quella che
-il PRD usa per questa superficie ("Interruttore nel profilo dell'Utente", "una superficie dedicata
-nel profilo"), mentre riserva "impostazioni" alle azioni sui dati — che sono infatti i titoli
-delle sezioni là dentro.
-
-Con l'arrivo di Quaderni le linguette in fondo tornano quattro, e l'etichetta resta nel
-maiuscoletto pieno di §4 senza stringerne la spaziatura: la più lunga, «QUADERNI», misura
-una sessantina di pixel su una linguetta che a 320px ne ha ottanta.
+L'etichetta sta nel maiuscoletto pieno di §4 senza stringerne la spaziatura: la più
+lunga, «QUADERNI», misura una sessantina di pixel su una linguetta che a 320px ne ha
+ottanta.
 
 La barra sta sul piano 0, non su una carta: non è contenuto, è la stanza. La voce attiva si
 segnala con l'inchiostro pieno e un filetto, non con un riempimento.
@@ -329,9 +300,8 @@ attiva nemmeno sul Profilo — non sono una destinazione fra le altre, sono chi 
 
 Il contatore delle richieste ricevute sta accanto a **Lettori** ed è l'unico elemento in `alert`
 di tutta l'app: senza contatore una richiesta resterebbe invisibile per sempre, non avendo l'app
-notifiche. Stava accanto a Torre, cioè accanto a una pagina diversa da quella in cui la richiesta
-compariva: segnalava una cosa da fare altrove. Ora sta accanto al posto dove si agisce, e quando
-non c'è nulla da fare sparisce insieme alla sua sezione.
+notifiche. Sta accanto al posto dove si agisce, e quando non c'è nulla da fare sparisce
+insieme alla sua sezione.
 
 Questa barra è quella di "casa tua". Nel contesto di un collegato (§15) sparisce del tutto,
 sostituita da una barra contestuale diversa: non è una variazione di questa, è un'altra barra.
@@ -377,7 +347,7 @@ condizione per entrare, quindi non è un avviso da scacciare, è una porta.
 ### Struttura dello scaffale
 
 1. **Il riquadro esiste prima dell'immagine.** Il recupero della copertina è un lavoro in
-   secondo piano (PRD): un libro appena aggiunto compare senza immagine e si riempie dopo. Il
+   secondo piano (vedi AGENTS.md): un libro appena aggiunto compare senza immagine e si riempie dopo. Il
    volume nasce già della dimensione definitiva — `width`/`height` fissi, mai `aspect-ratio` da
    solo — e non salta quando l'immagine atterra.
 2. **Nessuna didascalia sotto i libri.** La copertina è l'etichetta. Dove manca, il segnaposto
@@ -423,26 +393,15 @@ niente montanti, niente cornice, niente parete.
 
 ### La testata: tre righe, e non di più
 
-Sopra lo scaffale c'erano quattro fasce di comandi — titolo di pagina con l'azione primaria,
-campo col conteggio appeso in coda, cinque pastiglie, e un disclosure "Chiedi alla libreria" —
-che misurate facevano **232px su desktop e 307 su un telefono**: mezza schermata di comandi
-prima del primo libro, sulla pagina più visitata dell'app. Da agosto 2026 sono tre righe, 176px
-e 252, e ognuna fa un mestiere solo.
+Tre righe di comandi sopra lo scaffale, **176px su desktop e 252 su un telefono**, e ognuna fa un
+mestiere solo. È il tetto: quattro fasce ne facevano 232 e 307, cioè mezza schermata di comandi
+prima del primo libro, sulla pagina più visitata dell'app.
 
-> **Emendamento (revisione delle testate).** L'argomento con cui questa sezione tolse il titolo —
-> «la linguetta accesa lo dice già» — **non regge alla propria misura**, ed è giusto dirlo qui invece
-> di lasciarlo scoperto. Quella linguetta è `.t-label`: 10,5px, maiuscoletto, al bordo *opposto* a
-> quello dove cade l'occhio, cioè il carattere più piccolo dell'app — la stessa dimensione che il §4
-> dichiara illeggibile come titolo. E se bastasse davvero, dovrebbero cadere anche i titoli di
-> Quaderni, Lettori e Profilo, che ripetono la parola accesa tali e quali: l'argomento non era stato
-> applicato a sé stesso. Apple, che pure concede di lasciare vuoto un titolo ridondante, lo fa per
-> viste di *dettaglio* il cui contenuto si identifica da sé, e ai livelli alti spedisce la
-> ridondanza ovunque (tab «Library» → titolo «Library»).
->
-> **La conclusione resta però giusta, per un'altra ragione.** Il titolo sulla Libreria non serve
-> perché l'orientamento arriva altrove: dalla **barra del titolo** che compare allo scorrimento (§8).
-> Con quella in piedi, la prima schermata non deve più pagare un titolo per averlo — e questo vale
-> per tutte le pagine, non solo per questa.
+> **Perché la Libreria non ha un titolo.** Non perché «la linguetta accesa lo dice già»: quella è
+> `.t-label`, 10,5px, al bordo opposto a quello dove cade l'occhio — la dimensione che §4 dichiara
+> illeggibile come titolo, e se bastasse cadrebbero anche i titoli di Quaderni, Lettori e Profilo.
+> Non ha un titolo perché l'orientamento arriva dalla **barra del titolo** che compare allo
+> scorrimento (§8): con quella in piedi, la prima schermata non deve pagare un titolo per averlo.
 
 **1. Il campo, e accanto l'azione primaria.** Il titolo di pagina non c'è: «La tua libreria» stava
 sotto una linguetta accesa che diceva già «Libreria», nel carattere più piccolo della pagina.
@@ -500,9 +459,8 @@ Il conteggio chiude la stessa riga perché dice esattamente ciò che le pastigli
 volumi si stanno vedendo. Con un filtro attivo mette per primo il numero cambiato e tiene il totale
 accanto per dare la scala («38 di 124»).
 
-**3. L'intestazione dello scaffale.** Prima solo la fascia in cima portava la sua etichetta e le
-mensole sotto non ne avevano nessuna visibile: due sezioni sorelle, una annunciata e una no. Ora
-sotto «In lettura» c'è «Tutta la libreria».
+**3. L'intestazione dello scaffale.** Ogni sezione porta la sua etichetta: sotto «In lettura»
+c'è «Tutta la libreria». Due sezioni sorelle, una annunciata e una no, sarebbero una svista.
 
 **Niente cassetto.** Il disclosure "Chiedi alla libreria" teneva chiuse, in 13px di inchiostro
 tenue e sopra il contenuto, le tre funzioni più caratteristiche dell'app: un contenitore intitolato
@@ -629,7 +587,7 @@ la colonna laterale quando la descrizione è aperta, per questo è un terzo figl
 griglia e non annidata dentro il blocco di segnalibro e giudizio: da annidata, trascinerebbe con
 sé anche l'ordine su mobile.
 
-**L'opera sta di lato** perché è il dato condiviso: non è tua, non la puoi correggere (il PRD
+**L'opera sta di lato** perché è il dato condiviso: non è tua, non la puoi correggere (il dominio
 riserva la correzione dei generi a fuori app), e la sola cosa tua che ci sta dentro, le pagine
 della tua copia, resta lì perché è un fatto bibliografico e non un dato di avanzamento.
 
@@ -672,9 +630,8 @@ non dice una frazione, lo si legge solo perché accanto c'è il numero.
 non il libro che ti dice dove sei. Restano le due più frequenti in evidenza e le altre sotto
 "Altro", e l'interfaccia non offre mai una transizione vietata, invece di offrirla e poi
 rifiutarla. Il campo data usa sempre uno stile proprio (`CampoData`), mai l'aspetto nativo del
-browser — e quando accompagna un pulsante prende il riquadro e la **sua stessa altezza** (§24): il
-riquadro scritto a mano che c'era prima era alto 34 accanto a un pulsante da 44, e la riga non
-aveva una linea di base.
+browser — e quando accompagna un pulsante prende il riquadro e la **sua stessa altezza** (§24),
+altrimenti la riga non ha una linea di base.
 
 ### Zona 3, il giudizio
 
@@ -715,7 +672,7 @@ serve.
 
 **Un parere già chiesto non sparisce mai, ma si fa da parte.** Lo stato governa l'invito a
 chiederne uno, non l'esistenza del blocco: legarla allo stato renderebbe un contenuto dell'Utente
-irraggiungibile appena si preme "Comincia a leggere", e il PRD garantisce che ogni contenuto
+irraggiungibile appena si preme "Comincia a leggere", e il dominio garantisce che ogni contenuto
 proprio si possa cancellare. A decisione chiusa il parere diventa retrospettivo: titolo al
 passato ("Il parere che avevi chiesto"), da `t-sentenza` a `t-appunto`, tagliato a due righe, e il
 solo comando che serve — cancellarlo.
@@ -774,7 +731,7 @@ il riempimento. Niente rosso e niente verde — un interruttore acceso è inchio
 
 ### Un insight si corregge, non solo si cancella
 
-Il menù di un insight porta anche "Modifica", oltre a "Cancella": un contenuto che il PRD
+Il menù di un insight porta anche "Modifica", oltre a "Cancella": un contenuto che il dominio
 dichiara correggibile lo è anche in interfaccia. La correzione usa lo stesso modulo della
 scrittura, non uno che gli somiglia: spoiler e visibilità devono avere la stessa forma quando li
 si sceglie la prima volta e quando li si cambia. L'insight cede il posto al modulo dove sta,
@@ -838,7 +795,7 @@ due misure, non solo fra i due corpi, a far risaltare la frase breve dentro un e
 
 Data piccola, in Inter Tight, spaziata, sotto e non sopra: la frase viene prima.
 
-**Raggruppati per lettura**, come impone il PRD, che lega ogni insight alla lettura in cui è
+**Raggruppati per lettura**, come impone il dominio, che lega ogni insight alla lettura in cui è
 nato. La lettura è un capo, non una carta: la data leggibile in `.t-section`, più un punto del
 colore del nastro per esito — in corso, conclusa, abbandonata. Stesso vocabolario dello scaffale
 e della pastiglia di stato (§9).
@@ -846,12 +803,12 @@ e della pastiglia di stato (§9).
 **Ordine: dal più recente**, gruppi compresi, e detto in cima ("7 · dal più recente").
 
 **Gli orfani vanno in fondo, con un nome.** Sono gli insight scritti prima di cominciare il
-libro, o rimasti quando la lettura a cui erano legati è stata cancellata (il PRD: "restano sulla
+libro, o rimasti quando la lettura a cui erano legati è stata cancellata (il dominio: "restano sulla
 Voce, senza più alcuna Lettura associata"). Stanno alla fine, sotto "Fuori da una lettura", con
 una riga che dice perché esistono.
 
 **Visibilità e spoiler sono segni nel margine.** La visibilità per singolo insight è una
-promessa del PRD, reversibile, quindi va scandita con l'occhio, non dedotta aprendo qualcosa. Un
+promessa del dominio, reversibile, quindi va scandita con l'occhio, non dedotta aprendo qualcosa. Un
 lucchetto per il privato, un occhio coperto per lo spoiler, nel margine sinistro allineati alla
 prima riga, in `ink-soft` a opacità ridotta. Condiviso è il default e non prende segno: assenza,
 non colore, esattamente come "da leggere" non ha nastro (§7).
@@ -861,14 +818,11 @@ contiene. Fra un insight e l'altro c'è spazio, non un filetto.
 
 Il menù di riga sta nel piede accanto alla data, non sospeso sull'angolo del paragrafo.
 
-**Quando sono decine.** Il PRD dice "insight nell'ordine delle unità o decine per libro": si
-mostrano i primi otto per lettura, poi "mostra gli altri N". Nessun filtro e nessun tag: il PRD
+**Quando sono decine.** Il dominio dice "insight nell'ordine delle unità o decine per libro": si
+mostrano i primi otto per lettura, poi "mostra gli altri N". Nessun filtro e nessun tag: il dominio
 li esclude esplicitamente.
 
-**La vista trasversale non è più rinviata** (25 agosto 2026). Diceva "solo dentro la scheda del
-libro", ed era vero quando gli insight non avevano un altro posto dove stare: ricerca semantica e
-sintesi tematica producevano risultati che attraversavano più libri, ma erano pagine di risultati,
-non una vista di navigazione. Ora quella vista esiste ed è **Quaderni** (§22), che i propri scritti
+**La vista trasversale degli insight è Quaderni** (§22), che i propri scritti
 li contiene invece di limitarsi a interrogarli — sfogliabili per tipo, periodo e libro, senza
 formulare una domanda e senza consenso.
 
@@ -917,7 +871,7 @@ chiudersi portandosi via il testo in scrittura.
 
 **Segnalibro trascinabile e campo numerico, accoppiati.** Si trascina per avvicinarsi, si digita
 per precisare — su un libro da 1200 pagine un pixel vale diverse pagine. Il trascinamento rende
-fisico il vincolo del PRD: la porzione già letta è un muro, e il segnalibro non torna indietro
+fisico il vincolo del dominio: la porzione già letta è un muro, e il segnalibro non torna indietro
 perché il dito non ci riesce. Da tastiera, frecce ±1, con maiuscolo ±10. Il campo numerico non
 impone lo stesso muro mentre si sta ancora digitando le cifre — solo alla perdita del focus; il
 tetto (le pagine adottate), quando c'è, si applica sempre, anche a metà digitazione.
@@ -925,7 +879,7 @@ tetto (le pagine adottate), quando c'è, si applica sempre, anche a metà digita
 | Elemento | Regola |
 |---|---|
 | Numero grande, a fuoco all'apertura, tastiera numerica, invio salva | Il caso normale è: tocco, tre cifre, invio |
-| "42 pagine dal 14 agosto" | Il PRD conta le pagine come somma degli incrementi, mai delle pagine raggiunte |
+| "42 pagine dal 14 agosto" | Il dominio conta le pagine come somma degli incrementi, mai delle pagine raggiunte |
 | Barra a due colori | Quello che avevi in `ink-soft`/`accent` attenuato, il tratto in più in `accent` pieno |
 | Rifiuto (pagina, data, tetto) | Un toast in fondo alla pagina (§19), non testo sotto il campo |
 | "Correggi il totale" | Sta con gli altri fatti bibliografici sulla pagina sinistra, non nel pannello dell'avanzamento — è l'unico campo bibliografico che l'Utente corregge sulla propria copia. Si clicca il numero, si scrive, si esce dal campo: salva da solo. Rifiutata se il nuovo totale è inferiore a un avanzamento già inserito |
@@ -945,7 +899,7 @@ sola lettura, che sono un dato di lettura visibile ai collegati (§15).
 **Voce senza pagine adottate:** spariscono totale, percentuale e massimo. Restano numero e
 incremento. Un incremento fuori scala produce un avviso, non un rifiuto.
 
-**Chiusura del libro:** "Ho finito" non passa da qui, chiede solo la data di fine. Il PRD genera
+**Chiusura del libro:** "Ho finito" non passa da qui, chiede solo la data di fine. Il dominio genera
 da solo l'avanzamento finale alle pagine adottate. Va detto in una riga, altrimenti sembra che
 l'app abbia inventato un dato.
 
@@ -953,7 +907,7 @@ l'app abbia inventato un dato.
 
 ## 13. Ricerca e aggiunta
 
-Un campo solo, placeholder "Titolo o autore". Il PRD è netto: non esistono altre vie d'ingresso,
+Un campo solo, placeholder "Titolo o autore". Il dominio è netto: non esistono altre vie d'ingresso,
 né codice digitato né scansione. Nessun selettore di modalità.
 
 **Due corsie in pagina, un mestiere solo.** Sopra il catalogo, per chi un titolo ce l'ha già;
@@ -964,7 +918,7 @@ della Libreria. Il consenso governa solo la seconda corsia; quando è spento la 
 accorge.
 
 Risultati da schede esistenti e cataloghi esterni presentati insieme, senza distinzione, come
-impone il PRD. Ma i libri già in libreria cambiano verbo:
+impone il dominio. Ma i libri già in libreria cambiano verbo:
 
 | Situazione | Verbo | Riga sotto l'autore |
 |---|---|---|
@@ -988,7 +942,7 @@ Ci si arriva dal **titolo** di una riga di ricerca, che diventa un link: il verb
 Sono due gesti diversi — guardare e prendere — e fonderli in un bersaglio solo significherebbe
 sceglierne uno da perdere.
 
-**Stessa carta per tutti i libri, contenuto più magro dove la fonte è più magra.** Il PRD vuole i
+**Stessa carta per tutti i libri, contenuto più magro dove la fonte è più magra.** Il dominio vuole i
 risultati "presentati insieme, senza distinzione": una carta che comparisse solo sulle righe già
 nel sistema renderebbe visibile la divisione interno/esterno che il prodotto nasconde, e la
 renderebbe visibile nel modo peggiore, apparentemente arbitraria ("perché di questo libro posso
@@ -1034,7 +988,7 @@ mostrate per prime perché non richiedono una chiamata esterna.
 sullo scaffale come segnaposto tipografico e riempirsi dopo. Il volume non salta quando arriva
 l'immagine: nasce già della dimensione definitiva.
 
-**Nessun risultato è un vicolo cieco e lo dice.** Il PRD non prevede la creazione manuale di
+**Nessun risultato è un vicolo cieco e lo dice.** Il dominio non prevede la creazione manuale di
 schede: il libro va chiesto a chi mantiene l'istanza. Nessun pulsante "crea comunque", perché non
 esiste. La richiesta è un gesto facile, non una frase di scuse: una riga da copiare con titolo e
 autore già dentro.
@@ -1074,15 +1028,13 @@ Ma stesso piano non vuol dire stesso peso, e la gerarchia la fa la tipografia:
 2. **Chi e cosa**, due colonne da 1024px in su: autori più letti e generi.
 3. **Voti e letture**, due colonne, numeri a 28px.
 
-Tre gradini di dimensione del numero. Prima erano tre carte identiche per forma e larghezza, e la
-pagina non aveva un primo elemento.
+Tre gradini di dimensione del numero, così che la pagina abbia un primo elemento.
 
 ### Il limite di un numero si dice una volta, e con un numero dentro
 
-La regola precedente ("ogni numero porta accanto il suo limite, in una riga piccola, sempre") aveva
-l'intento giusto e l'esecuzione sbagliata: sotto "5.240" stavano diciotto parole di scuse, e
-misurato in inchiostro il limite pesava più del dato che qualificava. Due cose distinte erano state
-fuse in una riga sola.
+Un limite scritto sotto ogni numero, sempre, pesa in inchiostro più del dato che qualifica: sotto
+"5.240" starebbero diciotto parole di scuse. Sono due cose distinte e non vanno fuse in una riga
+sola.
 
 - **L'unità** ("pagine lette", "di cui 2 riletture") dice cosa si sta guardando: resta attaccata al
   numero, sempre, e non porta spiegazioni.
@@ -1134,7 +1086,7 @@ fuori **perché non calcolabili**: lunghezza media e libro più lungo, dato che 
 pagine canonico sul Libro ma solo `pagine_adottate` sulla Voce (ADR 0003), e una media su un
 sottoinsieme autoselezionato sarebbe un numero falso con l'aria di essere vero; tempo e velocità di
 lettura, che richiederebbero un cronometro. Resta **rimandata** la metrica sull'anno di prima
-pubblicazione: il dato c'è, ma il PRD dice che anno e lingua non alimentano metriche in questa
+pubblicazione: il dato c'è, ma il dominio dice che anno e lingua non alimentano metriche in questa
 versione, e una parte di quegli anni è dedotta dal modello e non di fonte.
 
 ### Il selettore d'anno
@@ -1217,7 +1169,7 @@ possiedi anche tu, calcolato dalle due liste già caricate.
 
 **L'assenza è muta.** Nessun lucchetto dove starebbe la nota di intenzione, nessun "questo
 insight è privato", nessun posto vuoto che riveli che qualcosa esiste e non ti è dato. Un
-lucchetto è metadato: rivela che una nota c'è, e il PRD dice che non è visibile a nessuno mai —
+lucchetto è metadato: rivela che una nota c'è, e il dominio dice che non è visibile a nessuno mai —
 e quel "mai" comprende sapere che esiste. Vale identico per insight e recensioni resi privati.
 
 **Nessuna superficie di scrittura e nessuna traccia di dove sarebbero.** Niente "segna
@@ -1225,7 +1177,7 @@ avanzamento", niente stelle cliccabili, niente campo nota. La pagina destra non 
 pulsante, e nemmeno un solo elemento sul piano 2, perché il piano 2 è il piano di ciò che si può
 toccare.
 
-**Anche la coda dei libri da leggere è visibile**, come impone il PRD: non esistono libri
+**Anche la coda dei libri da leggere è visibile**, come impone il dominio: non esistono libri
 nascosti né parti di libreria riservate.
 
 **Collegamento interrotto:** la schermata non dice "sei stato rimosso" e non dice "errore". Dice
@@ -1238,24 +1190,21 @@ che quella libreria non è più accessibile e riporta all'elenco. Una stanza chi
 L'elenco mostra nomi e i tre stati della relazione, e nient'altro: non relazioni fra terzi, non
 libri, non metriche, nessun conteggio di collegamenti, nessuna anteprima. È un registro di nomi.
 
-**Qui vive l'intero ciclo di vita di un collegamento**, dalla richiesta all'interruzione. Prima
-accettare, rifiutare, ritirare e interrompere si facevano nella Torre, e qui una richiesta in
-attesa era testo inerte con una riga che rimandava altrove: la stessa relazione in due pagine, e
-quella in cui compariva la persona era l'unica che non poteva agire. Il contatore rosso non era
-una funzione, era la toppa che serviva a portare l'Utente nell'altra pagina.
+**Qui vive l'intero ciclo di vita di un collegamento**, dalla richiesta all'interruzione:
+accettare, rifiutare, ritirare e interrompere si fanno sulla riga dove compare la persona. La
+stessa relazione in due pagine, con quella che mostra la persona incapace di agire, è l'errore da
+non rifare — il contatore diventerebbe una toppa per portare l'Utente altrove.
 
 Qui non c'è scaffale e non ci sono oggetti: sono persone, non volumi. Carte lunghe sul piano 1,
-righe separate da filetti, iniziali in Fraunces. Nessuna immagine di profilo, che il PRD non
-prevede — e su un'istanza aperta sarebbe anche la prima cosa da moderare.
+righe separate da filetti, iniziali in Fraunces. Nessuna immagine di profilo: non è
+un'entità del prodotto, e sarebbe la prima cosa da moderare.
 
 ### La ricerca, non l'ordine delle sezioni
 
-L'elenco faceva due mestieri con frequenze opposte — andare da qualcuno con cui sei già collegato,
-quotidiano, e trovare qualcuno da chiedere, raro — e la risposta era stata **due carte**, "i tuoi
-collegamenti" e "altri membri". Il ragionamento era giusto, la soluzione risolveva l'ORDINE e non
-il TROVARE: per chiedere un collegamento bisognava scorrere oltre tutti i collegati, e più
-collegamenti si avevano più lontano finiva il gesto raro. Con l'istanza aperta (PRD, *Elenco dei
-membri*) quella lista non finisce nemmeno.
+L'elenco fa due mestieri con frequenze opposte: andare da qualcuno con cui sei già collegato,
+quotidiano, e trovare qualcuno da chiedere, raro. Separarli in due carte risolverebbe l'ORDINE e
+non il TROVARE — il gesto raro finirebbe tanto più lontano quanti più collegamenti si hanno — e
+con un elenco che il tetto può troncare, scorrerlo non basta comunque.
 
 **Un campo di ricerca in cima, che raggiunge chiunque.** Si digita il nome e si agisce sulla riga
 dov'è: che la persona sia il terzo collegato o il novantesimo iscritto non cambia nulla. È la
@@ -1304,29 +1253,26 @@ collegato, quella pagina torna anche ad avere **zero pulsanti**, come §15 presc
 parte solo allo scadere della finestra: fino a lì la riga si spegne e mostra "Annulla".
 
 **Il rifiuto non lascia traccia.** Chi ha chiesto vede la relazione tornare ad assente,
-indistinguibile da chi non ha mai chiesto, e la richiesta è reinviabile. Sull'assenza di un blocco
-e sul perché oggi sia una lacuna dichiarata e non una scelta, vedi PRD (*Collegamento tra utenti*)
-e `docs/lavoro-rimandato.md`.
+indistinguibile da chi non ha mai chiesto, e la richiesta è reinviabile. Sull'assenza di un blocco, che è una scelta
+legata alla cerchia ristretta e non una svista, vedi `docs/lavoro-rimandato.md`.
 
 ---
 
 ## 17. Profilo
 
-**Si chiamava Torre, e conteneva anche i collegamenti.** Quelli sono passati a Lettori (§16); il
-nome è cambiato per le ragioni in §5. Non è più una voce di barra: ci si arriva dalle proprie
-iniziali.
+Il Profilo non è una voce di barra: ci si arriva dalle proprie iniziali (§5). I collegamenti non
+stanno qui ma in Lettori (§16).
 
 Una superficie sola, sei sezioni, in un ordine che è un racconto da sé verso l'esterno e poi
 fuori: **il tuo account** (nome utente ed "Esci"), **chi vede cosa**, **la luce della stanza**,
 **il consenso all'elaborazione assistita**, **l'esportazione dei libri letti**, **la cancellazione
 dell'account**.
 
-"Il tuo account" era una didascalia sopra l'elenco dei collegamenti ("Sei entrato come …"); ora
-che la pagina è del solo account è la prima sezione e ha il peso di una riga vera. La luce viene
+"Il tuo account" è la prima sezione e ha il peso di una riga vera, non di una didascalia. La luce viene
 prima delle tre che riguardano i dati perché è la sola che non li riguarda: cambia come si vede
 l'app, non cosa l'app fa dei tuoi testi.
 
-**I due testi lunghi sono quelli del PRD, parola per parola.** L'avviso di visibilità e il testo
+**I due testi lunghi vivono in `frontend/src/lib/testi-consenso.ts`, e si mostrano parola per parola.** L'avviso di visibilità e il testo
 del consenso non vanno riscritti in forma più breve.
 
 ### Il comando prima del testo
@@ -1335,12 +1281,12 @@ La sezione del consenso metteva l'informativa — trecentosettanta battute — d
 all'interruttore, con altri tre paragrafi sotto: per sapere se il consenso fosse acceso bisognava
 leggere un muro. Ora l'ordine dentro la carta è quello in cui serve: **cos'è** ("Attiva" /
 "Spenta"), **com'è messo adesso** (la riga di stato reale sugli indici), l'interruttore, un
-filetto, e **poi** il testo del PRD per intero. Non una parola in meno: solo non più di traverso
+filetto, e **poi** il testo del consenso per intero. Non una parola in meno: solo non più di traverso
 al comando.
 
 Un paragrafo è stato tolto perché era un doppione, non per accorciare: "le cinque funzioni
 assistite si spengono e gli indici di ricerca costruiti sui tuoi testi vengono cancellati" è già
-l'ultima frase del testo del PRD, due righe sopra nella stessa carta. Ne resta la sola metà che
+l'ultima frase del testo del consenso, due righe sopra nella stessa carta. Ne resta la sola metà che
 aggiungeva qualcosa, ed è la più rassicurante: i pareri e le sintesi già generati restano.
 
 Sotto, una riga sulle note di intenzione: non escono mai, in nessuno stato del consenso.
@@ -1396,12 +1342,9 @@ difficoltà sta dove deve stare, cioè nel dover **scrivere il proprio nome uten
 resta spento finché non coincide. Un pulsante rosso non ha mai fermato nessuno che non fosse già
 stato fermato da quello.
 
-*Diceva il contrario, e vale la pena dire perché è cambiato.* La regola era "non è un pulsante
-rosso… il rosso, in quest'app, vuol dire una cosa sola, ed è il contatore delle richieste", e il
-suo argomento — un'azione che richiede di digitare il proprio nome è già difficile da compiere per
-errore — resta vero e infatti il pulsante è rimasto piano. Quello che l'argomento non copriva è la
-**reperibilità**: la difficoltà di eseguirla non è la stessa cosa del riconoscerla mentre si scorre
-la pagina. La zona risolve il secondo problema senza toccare il primo.
+*Il pulsante resta piano e il rosso sta nel bordo della zona:* la difficoltà di eseguire
+l'azione — digitare il proprio nome — non è la stessa cosa del riconoscerla mentre si scorre la
+pagina. La zona risolve la reperibilità senza toccare la difficoltà.
 
 Schermata finale: due righe che dicono che l'account non c'è più e che per rientrare serve
 parlare con chi mantiene l'istanza.
@@ -1417,7 +1360,7 @@ Gli stati vuoti sono l'unico posto dell'app dove si concede un disegno: una mens
 a tratto, un chilobyte, colore `ink-soft`, larga quanto il contenuto. Non un rettangolo
 tratteggiato, non un'illustrazione piena, non una mascotte.
 
-**Scaffale vuoto:** la mensola disegnata, e sotto un promemoria che il PRD rende possibile: si
+**Scaffale vuoto:** la mensola disegnata, e sotto un promemoria che il dominio rende possibile: si
 può datare una lettura a quando è successa, quindi caricare la libreria storica senza schiacciarla
 sulla data di inserimento.
 
@@ -1487,7 +1430,7 @@ rivolge mai a chi legge e non dà giudizi di valore: **una descrizione è dato c
 riga la leggono tutti, e dandole del tu direbbe a ogni lettore una cosa che vale per un altro.
 
 Il confine fra le due coincide con quello fra `llm.py` e `llm_personale.py`, che esiste per la
-regola 19 del PRD (docs/adr/0018) — cioè per vedere a colpo d'occhio quali funzioni inviano
+la regola sul perimetro dei contenuti personali (docs/adr/0018) — cioè per vedere a colpo d'occhio quali funzioni inviano
 contenuti di un Utente. Non è una coincidenza: è personale ciò che è rivolto a qualcuno.
 
 Perché sono costanti e non frasi nei prompt: `genera_suggerimenti` **non stabiliva alcuna voce**,
@@ -1629,7 +1572,7 @@ particolare su Safari e le transizioni fra pagine diverse.
 
 ## 21. Descrizione dell'opera
 
-Il Libro ha una descrizione (§9, entità Descrizione nel PRD). Fonte preferita Wikipedia — prosa
+Il Libro ha una descrizione (§9). Fonte preferita Wikipedia — prosa
 scritta per spiegare di cosa parla un libro, non per venderlo — con ripiego su Google Books
 quando l'opera non è abbastanza notabile per avere una voce. Nessuna generazione da un modello:
 solo testo che una fonte ha già scritto, mai inventato.
@@ -1686,19 +1629,11 @@ descrizione.
 
 ## 22. Quaderni
 
-**Una voce di navigazione (§5), non tre pagine dietro un cassetto.** Fino ad agosto 2026 la
-ricerca semantica stava su `/cerca` e la sintesi tematica su `/sintesi`: due pagine con lo stesso
-identico impianto — titolo, paragrafo di spiegazione, un comando, un elenco — che nascevano
-entrambe vuote e si raggiungevano solo da un disclosure chiuso in mezzo ai filtri della Libreria.
-Non sono due funzioni diverse: sono la stessa materia — ciò che hai scritto — interrogata oppure
-vista da lontano. Da qui la fusione.
+**Una voce di navigazione (§5), non tre pagine dietro un cassetto.** Ricerca semantica e sintesi
+tematica non sono due funzioni diverse: sono la stessa materia — ciò che hai scritto — interrogata
+oppure vista da lontano. Stanno quindi in una pagina sola, raggiungibile dalla barra.
 
-Quel lavoro era di **collocazione**: tre pagine orfane sono diventate raggiungibili. Non aveva
-toccato cosa succede dentro Quaderni una volta arrivati, che restava il minimo indispensabile — un
-campo, e sotto o i temi o i risultati di una domanda. Il ridisegno del **25 agosto 2026** riprende
-in mano il contenuto.
-
-### Il difetto da cui si parte
+### Il difetto da evitare
 
 La pagina non conteneva nulla di proprio. Aveva un campo che interrogava i propri scritti e una
 sintesi che li riassumeva; gli scritti veri vivevano solo dentro la scheda del libro. Era
@@ -1763,7 +1698,7 @@ appena posto una domanda non lo vuole sopra la risposta.
 
 ### La carta di uno scritto
 
-Prima il titolo e l'autore in `t-meta` come collegamento alla scheda, poi il testo nel suo
+In alto il titolo e l'autore in `t-meta` come collegamento alla scheda, poi il testo nel suo
 trattamento tipografico normale (sentenza a misura stretta o appunto alla misura piena, §10), poi
 il piede.
 
@@ -1849,7 +1784,7 @@ che elenca anni in cui non si è scritto niente promette elenchi vuoti. Non sono
 altre pastiglie di proposito — altrimenti restringere per tipo farebbe sparire anni dal menù e non
 ci si potrebbe più tornare.
 
-**Il conteggio compare solo quando risponde a un gesto** (§7, emendamento 25 agosto 2026): con un
+**Il conteggio compare solo quando risponde a un gesto** (§7): con un
 filtro attivo, su una riga sua sotto le pastiglie. Senza filtri il totale sta nell'intestazione
 della regione, dove è una didascalia dell'elenco e non un comando fra i comandi.
 
@@ -1858,7 +1793,7 @@ vicini e poi si ferma: filtrare a valle darebbe zero risultati ogni volta che qu
 dell'anno sbagliato, e zero risultati qui si legge come "non hai scritto nulla al riguardo". La
 funzione cerca quindi i venti più vicini **fra quelli che passano il filtro**.
 
-**Una recensione non ha contrassegno spoiler** (è un attributo del solo Insight, PRD) né una data
+**Una recensione non ha contrassegno spoiler** (è un attributo del solo Insight, vedi AGENTS.md) né una data
 propria — si usa la sua data di creazione. Il filtro "spoiler" restringe quindi ai soli insight, e
 va detto invece di far sparire le recensioni in silenzio.
 
@@ -1972,25 +1907,13 @@ lettura conclusa, nessun deluso).
 
 ## 24. Comandi, campi e bersagli
 
-Sessione del 26 agosto 2026. Le sezioni precedenti dicono cosa fa ogni schermata; questa dice con
-quali oggetti, e vale su tutte. Dove una schermata la contraddica, vince questa.
+Le sezioni precedenti dicono cosa fa ogni schermata; questa dice con quali oggetti, e vale su
+tutte. Dove una schermata la contraddica, vince questa.
 
-### Il problema che c'era
-
-Non era brutto: era **plurale**. Sette grammatiche per due sole cose — premere e cercare.
-
-| Cosa | Dove | Quante versioni |
-|---|---|---|
-| Comando testuale leggero | Quaderni, Annali, Suggerimenti | **3** (`tocco-esteso …`, `min-h-11 … sm:min-h-0`, `self-start …`) |
-| Pastiglia | Scaffale, Quaderni, temi, Profilo, scrivi-pensiero | **5** (tre altezze, tre corpi, due modi di dire "accesa") |
-| Campo di ricerca | 5 pagine | **5** (`py-3`/`py-2.5`/`py-2`/`pb-1`, tre corpi, quattro larghezze massime) |
-| Campo data in riga | Segnalibro, transizioni | **2** riquadri scritti a mano, nessuno dei due con un'altezza |
-
-Il difetto vero non è la ripetizione — è che le copie **divergevano**, e le differenze non
-significavano niente. Due file di pastiglie sulla stessa pagina, alte una 30 e una 36. Un campo
-che si sposta di quattro pixel cambiando pagina. Un `variant="link"` che usava l'accento come
-testo — proprio ciò che §3 vieta — e che quindi nessuno usava, con la conseguenza che il comando
-leggero è stato riscritto a mano otto volte.
+Il difetto da cui difende non è la ripetizione: è che le copie **divergono**, e le differenze non
+significano niente. Due file di pastiglie sulla stessa pagina, alte una 30 e una 36. Un campo che
+si sposta di quattro pixel cambiando pagina. Un comando leggero riscritto a mano otto volte perché
+la variante offerta dal sistema usava l'accento come testo, cosa che §3 vieta.
 
 ### La scala dei comandi: cinque pesi, uno solo per gesto
 
@@ -2065,10 +1988,10 @@ dell'app.
 Questa è la regola che cambia di più il mobile, ed è il modo in cui Apple risolve la stessa cosa
 da sempre.
 
-Prima `pointer: coarse` imponeva `min-height: 44px` a tutto, pastiglie comprese. Su un pulsante è
-giusto — un pulsante *è* il suo riquadro. Su una pastiglia no: un'etichetta di 12px dentro una
-capsula alta 44 ci galleggia in mezzo, e sei in fila sono la fascia più pesante della pagina per i
-comandi più leggeri.
+`min-height: 44px` imposto a tutto da `pointer: coarse` è giusto su un pulsante — un pulsante *è*
+il suo riquadro — e sbagliato su una pastiglia: un'etichetta di 12px dentro una capsula alta 44 ci
+galleggia in mezzo, e sei in fila sono la fascia più pesante della pagina per i comandi più
+leggeri.
 
 `.bersaglio` (tokens.css) tiene il riquadro alla misura che il disegno vuole e allarga l'area
 sensibile a `--tap` con uno pseudo-elemento che non occupa flusso, **in entrambe le direzioni** —

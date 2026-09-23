@@ -64,10 +64,10 @@ class LibroDaScaffale(BaseModel):
     affordance di modifica" è il messaggio, non solo l'assenza di un
     comando (design §9)."""
     copertina_miniatura_url: str | None
-    """URL firmato, non il percorso interno: il bucket è privato (PRD
-    regola 6) e il percorso da solo non apre nulla. La firma dura sette
-    giorni ed è stabile tra le richieste, così il browser può davvero
-    metterla in cache (app/core/storage.py)."""
+    """URL firmato, non il percorso interno: il bucket è privato — nulla
+    è accessibile senza autenticazione — e il percorso da solo non apre
+    nulla. La firma dura sette giorni ed è stabile tra le richieste, così
+    il browser può davvero metterla in cache (app/core/storage.py)."""
     copertina_grande_url: str | None
     copertina_colore_dominante: str | None
     """Governa ombra e fondo del volume sullo scaffale (design §7).

@@ -1,114 +1,358 @@
 # AGENTS.md
 
 ## Cosa è questo progetto
-Montaigne: web app di tracciamento letture con visibilità privata/condivisa fra utenti collegati. L’ingresso resta a invito del Manutentore (ADR 0013), ma dal 24 agosto 2026 l’istanza non è più dimensionata su un gruppo chiuso di poche decine di persone: elenco membri e ricerca vanno pensati per migliaia di nomi (docs/prd.md, «Scala attesa» ed «Elenco dei membri»). Intento di prodotto in `docs/prd.md`; direzione visiva e ogni schermata in `docs/design-frontend.md`; razionale delle scelte tecniche in `docs/adr/`. Sono linee guida di riferimento, non vincoli assoluti: leggi il documento pertinente prima di lavorare su dati/permessi (prd.md) o su interfaccia (design-frontend.md), ma valutale con giudizio — se vedi un'architettura o una soluzione migliore, proponila invece di seguire la lettera del documento.
+Montaigne: web app dove un gruppo di lettori registra i libri letti e da leggere, ne traccia
+l'avanzamento, ci deposita recensioni e insight, e ne ricava metriche annuali, con visione
+reciproca delle librerie fra utenti collegati.
+
+**Scala e ingresso.** Istanza a invito del Manutentore (ADR 0013), cerchia ristretta, decine di
+persone. Nessuno può crearsi un account. Dove la scala entra nel codice entra come tetto
+esplicito, mai come assunzione che la tabella resterà piccola.
+
+**Attori.** *Utente*: gestisce la propria libreria e i propri contenuti, non tocca né legge quelli
+altrui se non condivisi. *Collegamento*: relazione reciproca, nata da richiesta accettata,
+interrompibile da entrambi senza notifica; dà visione di libreria, stati, avanzamenti, voti,
+metriche e contenuti condivisi, e nient'altro — nessun commento, reazione, messaggio, feed o
+notifica. *Manutentore*: opera interamente fuori dal prodotto (ADR 0007), non esiste alcuna
+funzione amministrativa né account privilegiato in-app.
+
+**Visibilità, due soli livelli.** *Condiviso* (i soli collegati con relazione attiva, default di
+recensioni e insight) e *privato* (solo il proprietario, unico stato possibile per le note di
+intenzione). Nessun livello rivolto agli autenticati in quanto tali. Nessun accesso senza
+autenticazione, nessuna indicizzazione, nessuna identità pubblica.
+
+**Entità portanti.** *Libro* — una scheda per opera, mai per edizione, dato condiviso da tutti,
+con autori, generi (elenco chiuso), lingua originale e anno di **prima pubblicazione**, mai
+dell'edizione. *Voce di libreria* — l'istanza personale di un Libro: stato, pagine adottate (il
+solo campo bibliografico correggibile dal singolo Utente), voto, recensione, insight, nota di
+intenzione, storico. *Lettura* — un passaggio attraverso il libro, più d'uno per Voce (rilettura);
+è **chiusa quando ha un esito**, e la chiusura può non avere data. *Avanzamento* — la pagina
+raggiunta a una data: le pagine di un periodo sono la somma degli **incrementi** datati in quel
+periodo, mai delle pagine raggiunte. *Metrica* — aggregato per anno solare, calcolato a ogni
+richiesta e mai conservato (ADR 0004).
+
+**Funzioni assistite.** Quelle su soli dati bibliografici (classificazione generi, riconduzione
+autori, deduplicazione) sono sempre attive. Quelle che toccano contenuti dell'Utente stanno dietro
+un consenso revocabile, la cui revoca spegne le funzioni e cancella gli indici semantici (ADR
+0008). Le note di intenzione non escono mai, in nessuno stato del consenso.
+
+**Fonti.** Google Books primaria, Open Library ripiego e record canonico, Wikidata arricchimento.
+Interrogate sempre dal backend, mai dal browser: i risultati di Google dipendono dall'IP del
+server e la scheda nasce una volta per tutti (ADR 0001).
+
+Documentazione di riferimento: `docs/design-frontend.md` per la direzione visiva e ogni schermata,
+`docs/adr/` per il razionale delle scelte tecniche. Sono guide, non vincoli assoluti: se vedi una
+soluzione migliore, proponila invece di seguire la lettera del documento. Una decisione in
+`docs/adr/` porta però un perché documentato: per ribaltarla, motivalo esplicitamente.
 
 ## Dove sta cosa
-- `frontend/` — Next.js (App Router, TS). `src/app/` pagine; `src/lib/supabase/{client,server,proxy}.ts` client browser/server/refresh-sessione; `src/proxy.ts` (Next 16: sostituisce `middleware.ts`); `src/lib/light.ts` calcola lato server la palette del momento — quattro ancoraggi (alba/giorno/tramonto/notte) interpolati in OKLCH sul fuso CET fisso, mai nel browser (docs/design-frontend.md §3); `src/styles/tokens.css` è l'unica sorgente di colori/ombre/raggi/tipografia, generata in parte da `pnpm tokens` (`tokens.anchors.css`, non si modifica a mano); `public/sw.js` è il service worker dell'app installata — serve `/senza-rete` quando la rete manca e non mette MAI in cache dati di lettura (docs/adr/0019), `public/icone/` sono le icone del manifesto, generate da `scripts/build-icone.mts` e versionate. `vercel.json` esiste per una riga sola — `regions: ["fra1"]` — e JSON non ammette commenti, quindi il perché sta qui: il rendering lato server di ogni pagina protetta chiama il backend due o tre volte in fila, e il backend sta a Amsterdam (`backend/fly.toml`, `primary_region = "ams"`). Con la regione predefinita di Vercel (`iad1`, Washington) ognuna di quelle chiamate attraversava l'Atlantico due volte. Francoforte è a una decina di millisecondi da Amsterdam. **Il file non basta da solo:** la regione delle funzioni si imposta anche in Project Settings → Functions su Vercel, e se le due divergono vince l'impostazione del progetto — vanno tenute uguali. `preferredRegion` non è la via: in Next 16 è deprecato e su Vercel accetta solo `auto`/`global`/`home`.
-- `backend/` — FastAPI a strati: `app/routers` (HTTP) → `app/services` (orchestrazione) → `app/repositories` (accesso dati grezzo); `app/schemas` (contratti Pydantic); `app/models` (vuoto, nessuna entità implementata); `app/core` (settings, client Supabase, spazio file copertine, rate limit); `app/cataloghi` (client di sola lettura verso Google Books/Open Library/Wikidata/Wikipedia, ciascuno usato solo dove è la fonte migliore — vedi i docstring dei singoli moduli; più `trasporto.py`, che tiene i client HTTP verso le fonti aperti per tutta la vita del processo — uno per fonte, mai dentro un `async with`, perché richiuderli a ogni chiamata rifaceva handshake TCP e TLS dentro il tempo di risposta; più il fornitore di modelli, diviso in tre: `openai_client.py` il trasporto, `llm.py` le funzioni bibliografiche che non inviano mai contenuto di un Utente, `llm_personale.py` quelle che inviano contenuti del solo richiedente — la separazione rende verificabile a colpo d'occhio la regola 19 del PRD, docs/adr/0018, non toglierla); `app/lavori` (coda dei lavori in secondo piano su tabella Postgres, `FOR UPDATE SKIP LOCKED`, docs/adr/0016 — un tipo nuovo richiede sia una migrazione che estenda `chk_lavoro_tipo` sia una voce in `registro.GESTORI`). `tests/` pytest.
 
-  Gotcha non ovvi da conoscere prima di toccare quest'area:
-  - Cancellazione dell'intera Voce (issue #33): `voci_service.cancella` chiama `voce_repository.delete`, una singola `DELETE` sulla riga `voce_di_libreria` con l'identità dell'utente (RLS `voce_di_libreria_delete_owner`, già esistente). Nessuna migrazione è servita: ogni tabella figlia aveva già `ON DELETE CASCADE` verso `voce_di_libreria(id, utente_id)`, transitiva fino a `indice_semantico` via `insight`/`recensione` — la stessa cascata già collaudata da `fondi_libro` (fusione di schede duplicate) e da `me_service.elimina_account` sotto.
-  - **«Aperta» non è «senza data di fine»** (migrazione `20260827160000`). Dalla lettura registrata a posteriori — «L'ho già letto», che chiude una Lettura sul giorno, sulla sola annata o su niente — una Lettura può essere CONCLUSA con `data_fine` nulla. L'unico predicato valido per «aperta» è quindi `esito is null`, in SQL come in Python come in TypeScript. Fino a ieri i due erano equivalenti per CHECK e mezzo schema usava il primo per dire il secondo: la migrazione ha riemesso anche `fondi_libro` e `cerca_libri`, che non c'entrano con la novità, solo per questo. L'anno di chiusura è sempre `coalesce(anno_fine, extract(year from data_fine))`, e `data_inizio` è nullo per queste Letture — le metriche di durata e «a cavallo d'anno» le saltano invece di dedurre un inizio. Le loro pagine entrano nel totale dell'anno leggendo `pagine_adottate` in `metriche_service`, MAI scrivendo un avanzamento con una data inventata.
-  - Cancellazione dell'account (issue #8): `me_service.elimina_account` cancella prima `public.utente` con l'identità dell'utente (RLS, la cascata dello schema travolge tutti i dati applicativi), poi chiama l'Auth Admin API (`get_service_client().auth.admin.delete_user`) per rimuovere la riga in `auth.users`. Se il secondo passo fallisce dopo che il primo è già riuscito, i dati applicativi sono comunque spariti (regole 26/27 del PRD soddisfatte) ma resta un residuo in `auth.users` senza alcun retry automatico: richiede pulizia manuale del Manutentore (ADR 0007). Scelta di semplicità per una scala di poche persone, non un bug nascosto.
-  - `GET /voci` e il dedup di `POST /voci` filtrano esplicitamente per `utente_id`, non solo RLS: necessario da quando un collegato può leggere le stesse righe.
-  - Il gating dello spoiler (regola 10 del PRD) vive nel service layer (`insight_service._senza_spoiler`), non nella RLS — per questo è testato da pytest, non dagli script SQL. La regola protegge da uno spoiler *altrui*, non da un proprio testo: `GET /voci/{id}` lo applica solo quando chi guarda non è il proprietario (`voci_service.dettaglio` confronta `richiedente_id` con `voce.utente_id`), e `GET /ricerca/semantica` non lo applica mai, perché lì ogni risultato è già garantito del richiedente.
-  - Scheda di un libro che non si ha in libreria (`GET /schede/{fonte}/{id}`, `app/services/scheda_pubblica_service.py`, design-frontend.md §13): **guardare non fa nascere una scheda**. Il ramo `google` legge il volume e si ferma lì — la catena di risoluzione dell'identità (oltre dieci secondi, più i lavori in coda) resta dietro l'aggiunta, dove ADR 0002 la mette. Due conseguenze da non "correggere" per distrazione: `google_books.per_identificativo` DEVE continuare a riempire la cache `_per_volume`, altrimenti si può guardare un libro e poi non riuscire ad aggiungerlo (`POST /libri` ricompone l'opera solo da lì); e l'anno che esce da quel ramo è quello dell'edizione (`anno_di_edizione: true`), mai passato al modello come anno di prima pubblicazione. Il parere di quella carta (`POST /schede/{fonte}/{id}/parere`) non si salva: `artefatto_generato` esige un `voce_id` per `preview_personalizzata` (CHECK di schema, regola 23), e senza Voce non c'è niente a cui legarlo — `preview_service.parere` genera il testo, `preview_service.genera` è l'unica che scrive.
-  - La ricerca locale (`public.cerca_libri`, migrazione `20260827100000`) corrisponde per PAROLE, non per sottostringa unica: si spezza ciò che è stato digitato e un libro passa se le contiene TUTTE, indifferentemente da titolo canonico, variante di titolo o nome d'autore — è ciò che fa funzionare «eco nome della rosa», che prima dava zero risultati locali e riproponeva la stessa opera fra gli esterni, cioè invitava a duplicare una scheda esistente. Il confronto avviene su `libro.testo_ricerca`, una colonna **denormalizzata** con dentro tutti quei campi già normalizzati, indicizzata GIN trigram (misurato: 0,5 ms per parola su 20.000 libri contro i 3 ms della scansione). La colonna non si scrive mai a mano: la mantengono cinque trigger, su `libro`, `variante_titolo`, `libro_autore`, `autore` e `autore_nome_variante` — tutte e cinque cambiano dopo la nascita della scheda (Wikidata scrive varianti in secondo piano, la riconduzione assistita rinomina autori), e un trigger che manca non rompe nulla di visibile: rende solo irraggiungibile un libro per una parola che dovrebbe trovarlo. Quando nessun libro ha tutte le parole si ripiega su `word_similarity` per perdonare un refuso, con rango 4 perché non scavalchi mai una corrispondenza vera; quel ramo non usa l'indice, ed è una scelta documentata nella migrazione.
-  - Presentarsi alle fonti esterne è una condizione d'uso, non cortesia: `app/cataloghi/agente.py` è l'unica sorgente del `User-Agent`, con il contatto da `CONTATTO_OPERATORE`. La policy Wikimedia esige un contatto dentro le parentesi e blocca senza preavviso chi non lo dà — a volte con un errore generico che si legge come guasto della fonte; Open Library dà 3 richieste al secondo a chi si identifica e 1 a chi resta anonimo, e la catena di risoluzione ne fa più di una di fila. Non reintrodurre la stringa scritta a mano nei singoli client: era in quattro file e mancava proprio in Open Library.
-  - I `503 backendFailed` di Google Books sono endemici e arrivano a RAFFICHE, non isolati: misurato dal vivo, finestre con il 40-65% di fallimenti per una decina di secondi alternate a finestre con zero su ottanta richieste. Da qui il retry di `google_books._get` (quattro tentativi con attesa crescente e jitter, ~2,3 s complessivi) e quello del frontend sopra di esso. Due cose da non "semplificare": gli alternativi di `opera_per_identificativi` si raccolgono con `return_exceptions=True` e si lasciano cadere se non rispondono — aggiungono identificativi al riconoscimento, non lo decidono, e propagarli faceva fallire l'INTERA aggiunta per un volume secondario; e `lib/api/ricerca.ts` ritenta i 503 anche sull'aggiunta, non solo sulla ricerca, perché l'aggiunta fa più chiamate a Google della ricerca e quindi incontra la raffica più spesso.
-  - Il consenso all'elaborazione assistita si legge in un punto solo (`app/services/consenso.py::esigi_consenso`); risposta 409 `consenso_revocato`, mai 403 — è una funzione spenta, non un permesso mancante.
-  - `GET /utenti` non restituisce più una lista piatta ma tre gruppi (`richieste_ricevute`, `collegati`, `altri`) e **nessun conteggio totale dei membri**: su un'istanza non più chiusa il numero di iscritti non è un dato che l'elenco debba dare, e infatti non viene calcolato — non aggiungerlo "per comodità del frontend". Solo `altri` ha un tetto (`utenti_service.LIMITE_ELENCO`, 25) e la fetta arriva dalla funzione SQL `cerca_membri`, che esclude chi ha già una relazione **prima** del `LIMIT` (altrimenti venticinque righe già collegate darebbero una fetta vuota pur esistendo altri membri). I due gruppi che nascono da una relazione restano sempre completi: una richiesta nascosta da un tetto non si potrebbe più accettare, un collegamento nascosto renderebbe irraggiungibile una libreria. `MembroResponse.collegamento_id` esiste perché le rotte di `/collegamenti` lavorano sull'id della relazione, non su quello della persona: senza, Lettori mostrerebbe accetta/rifiuta/ritira/interrompi senza poterli eseguire.
-  - La ricerca per nome utente vive in `cerca_membri`: sottostringa più somiglianza trigram (`pg_trgm`, soglia 0.3 — il default di `pg_trgm.similarity_threshold`, passata come parametro e non letta dalla GUC perché una soglia che dipende dalla sessione non è riproducibile in un test). L'ordinamento mette prima esatto, prefisso, sottostringa, e solo per ultima la somiglianza: il nome utente è un identificatore, non una frase, e la tolleranza serve a perdonare una lettera sbagliata, non a proporre persone diverse. Sotto `utenti_service.MIN_QUERY` (2) l'anagrafica non viene interrogata affatto. Il filtro sui gruppi propri (`utenti_service._corrisponde`) è invece sola sottostringa, deliberatamente: i nomi dei propri collegati si conoscono.
-  - `cerca_semantico` filtra anche per distanza coseno (`p_soglia_massima`, default 0.65): senza soglia un corpus piccolo restituirebbe sempre tutti i vettori indicizzati. Valore empirico, non definitivo — se in uso reale taglia risultati veri o ne lascia passare troppi, si rivede nel commento della RPC. I filtri di tipo/spoiler/anno/Voce/contenuti entrano **dentro** la RPC, mai applicati a valle: la funzione tiene i venti più vicini e poi si ferma, quindi filtrare dopo darebbe zero risultati ogni volta che quei venti sono tutti dell'anno sbagliato — e zero risultati in quella pagina si legge come «non hai scritto nulla al riguardo».
-  - Il corpus dei Quaderni (`/scritti`, migrazione `20260825170000_quaderni_corpus.sql`) è la vista `public.scritto` — insight e recensioni sotto una forma sola, `security_invoker` — più quattro funzioni: `elenco_scritti`, `sfaccettature_scritti`, `pensiero_che_torna`, `vicini_a`. Tre cose non ovvie: (1) **`GET /scritti` e `GET /scritti/che-torna` non rispondono mai 409** — sono l'unica parte delle funzioni personali che il consenso non governa, perché i propri scritti esistono comunque e solo il modo di interrogarli si spegne (design-frontend.md §5); lo stato arriva nel corpo (`indici_spenti`). (2) A indici spenti il conteggio dei vicini è `null` e **non `0`**: uno zero affermerebbe che quel pensiero non ha compagnia, cosa che in quel momento nessuno sa. (3) `vicini_a` **non chiama il fornitore** — il vettore di partenza è già in `indice_semantico` — ma esige il consenso lo stesso, perché la revoca cancella gli indici e non resta nulla da confrontare. Verifica SQL: `supabase/tests/verifica_quaderni.sql`.
-  - `pensiero_che_torna` non conserva nulla di ciò che ha già mostrato: la scelta è deterministica sul giorno (hash di `auth.uid()` più la data di Europa centrale, modulo il numero di candidati), quindi resta ferma per ventiquattr'ore senza una riga di stato da mantenere, da cancellare insieme all'account e da ricostruire alla revoca del consenso. `p_scarto` copre «mostrane un altro».
-  - Delle cinque funzioni assistite personali del PRD ne sono costruite quattro (ricerca semantica, preview, suggerimenti di lettura, sintesi tematica); resta l'acquisizione da foto, descritta in `docs/lavoro-rimandato.md`.
-  - Le metriche di lettura (issue #7, `app/services/metriche_service.py`) non hanno una migrazione propria: nessuna tabella nuova, sola aggregazione in Python su letture già leggibili via RLS. `metriche_repository.list_avanzamenti` legge SEMPRE l'intera storia degli Avanzamenti di un utente, mai filtrata per l'anno richiesto: l'incremento di un Avanzamento datato nell'anno dipende dalla pagina di quello precedente, che può essere dell'anno prima (PRD, entità Avanzamento) — filtrare la query per anno produrrebbe un conteggio pagine sbagliato a ogni Lettura a cavallo di capodanno.
-  - **Sessione del 28 agosto 2026: l'istanza torna a cerchia ristretta.** Il PRD del 24 agosto aveva alzato la scala a migliaia di membri; il 28 agosto la decisione è stata ribaltata (istanza a invito, decine di persone) e diverse scelte tarate su quello scenario sono state riconvertite in prestazioni. Ciò che ne è uscito, e che non va "corretto" per distrazione tornando ai valori di prima:
-    - `worker._lotto` è 3 (`WORKER_LOTTO`) e il lotto si svolge con `asyncio.gather`, non con un `for`. Serve alla latenza di un singolo gesto, non al throughput: aggiungere un libro accoda sette-otto lavori quasi tutti fatti di attesa di rete, e in serie quelle attese si sommavano. `return_exceptions=True` non è pigrizia — un `gather` che propaga subito NON ferma le coroutine fratelle, e il ciclo chiuderebbe la connessione mentre una la sta ancora usando. Non alzarlo senza alzare la memoria in `fly.toml`: la conversione di una copertina tiene l'immagine decompressa in RAM, e ce ne sono 512MB.
-    - I tre limiti di `app/core/rate_limit.py` sono saliti a 600/120/60 al minuto. Restano, e restano per IP, per l'unica ragione che vale ancora: un ciclo impazzito brucia una quota esterna in minuti. Non sono un tetto di spesa (PRD regola 19), sono un fusibile.
-    - `GET /utenti` porta `elenco_completo`: vero quando la risposta contiene già ogni membro, e allora la ricerca per nome resta nel browser (`components/lettori/elenco-lettori.tsx`) invece di partire a ogni pausa nella digitazione. Il servizio chiede a `cerca_membri` una riga IN PIÙ del tetto e la scarta: è la sentinella che dice se il tetto ha tagliato. Un `count="exact"` avrebbe risposto alla stessa domanda e a una in più che non va data — quanti sono gli iscritti. `utenti_service.LIMITE_ELENCO` (200) deve restare sotto il tetto della funzione SQL (`cerca_membri`, migrazione `20260828100000`: 500): un tetto SQL più basso della richiesta non limita, **falsifica** — il servizio leggerebbe "meno del tetto" come "ci sono tutti" e il frontend smetterebbe di cercare le persone troncate via.
-    - `GET /health` non tocca più il database: il controllo di Fly (`fly.toml`, uno al minuto) non guarda quel campo, e `database.ping` apre una connessione NUOVA a ogni chiamata. La raggiungibilità di Postgres si chiede con `GET /health?database=1`, a mano.
-    - Restano invariati per decisione esplicita, non per dimenticanza: la macchina sempre accesa (`min_machines_running = 1`) e i suoi 512MB — spegnerla risparmierebbe ~2 $/mese e ricomprerebbe il picco di latenza tolto il 27 agosto; scendere a 256MB risparmierebbe ~1 $/mese esponendo all'OOM kill, che qui significa lavori orfani per dieci minuti. E `MODELLO` in `openai_client.py` resta `gpt-4o-mini` per tutte le funzioni, bibliografiche e personali insieme.
-- `supabase/migrations/` — unica fonte di verità dello schema, un file per migrazione. Nessun ORM/Alembic. `supabase/seed.sql` — dati di sviluppo (libri seminati con riferimenti esterni reali, generi/etichette dell'elenco chiuso), applicato in automatico da `supabase db reset --local`, mai in produzione. `supabase/tests/verifica_*.sql` — sei script di verifica, transazionali con `ROLLBACK` finale e fixture proprie (nessuna dipendenza dal seed o dagli account di test), eseguiti in CI (job `supabase`) oltre che a mano: `verifica_ciclo_di_lettura`, `verifica_catalogo_e_copertine`, `verifica_recensioni_insight`, `verifica_consenso_e_indici`, `verifica_quaderni`, `verifica_superficie_data_api`. `supabase/tests/dati_*.sql` invece semina (non verifica) dati di prova per schermate specifiche, non gira in CI. Vedi "Comandi" sotto.
+### `frontend/` — Next.js 16 (App Router, TS)
+- `src/app/` pagine · `src/lib/supabase/{client,server,proxy}.ts` client browser/server/sessione ·
+  `src/proxy.ts` (Next 16 sostituisce `middleware.ts`).
+- `src/lib/light.ts` — palette del momento, calcolata **lato server** interpolando quattro
+  ancoraggi in OKLCH sul fuso CET (design-frontend.md §3). Mai nel browser.
+- `src/styles/tokens.css` — unica sorgente di colori/ombre/raggi/tipografia.
+  `tokens.anchors.css` è generato da `npm run tokens`, non si modifica a mano.
+- `public/sw.js` — service worker: serve `/senza-rete` quando la rete manca, non mette MAI in
+  cache dati di lettura (ADR 0019). `public/icone/` generate da `scripts/build-icone.mts`.
+- `vercel.json` esiste per una riga sola, `regions: ["fra1"]`: il backend sta ad Amsterdam
+  (`backend/fly.toml`, `primary_region = "ams"`) e ogni pagina protetta lo chiama due o tre volte
+  in fila. La regione va tenuta uguale anche in Project Settings → Functions su Vercel, che in caso
+  di divergenza vince. `preferredRegion` non è la via: in Next 16 è deprecato.
+- **`frontend/AGENTS.md` e `frontend/CLAUDE.md` non sono documentazione di progetto**: li scrive
+  `next dev` (`node_modules/next/dist/server/lib/generate-agent-files.js`) e li ricrea se
+  cancellati. Contengono solo l'avviso di Next: questa versione ha rotture rispetto ai modelli
+  addestrati, quindi prima di scrivere codice Next consulta `node_modules/next/dist/docs/`.
+
+### `backend/` — FastAPI a strati
+`app/routers` (HTTP) → `app/services` (orchestrazione) → `app/repositories` (accesso dati).
+`app/schemas` contratti Pydantic · `app/models` vuoto · `app/core` settings, client Supabase,
+spazio copertine, rate limit.
+
+- `app/cataloghi/` — client di sola lettura verso Google Books / Open Library / Wikidata /
+  Wikipedia, ciascuno usato dove è la fonte migliore (vedi i docstring dei moduli).
+  `trasporto.py` tiene un client HTTP per fonte aperto per tutta la vita del processo, mai dentro
+  un `async with`. `agente.py` è l'unica sorgente del `User-Agent`: presentarsi è una condizione
+  d'uso, non cortesia — Wikimedia blocca senza preavviso chi non dà un contatto, Open Library dà
+  3 req/s a chi si identifica e 1 a chi resta anonimo.
+- Fornitore di modelli in tre moduli: `openai_client.py` trasporto, `llm.py` funzioni
+  bibliografiche (mai contenuti di un Utente), `llm_personale.py` funzioni che inviano contenuti
+  del solo richiedente. La separazione rende verificabile a colpo d'occhio la regola 19 del PRD
+  (ADR 0018): non toglierla.
+- `app/lavori/` — coda su tabella Postgres, `FOR UPDATE SKIP LOCKED` (ADR 0016). Un tipo nuovo
+  richiede **sia** una migrazione che estenda `chk_lavoro_tipo` **sia** una voce in
+  `registro.GESTORI`; un lavoro accodato senza gestore fallisce subito e non ritenta.
+- `tests/` pytest.
+
+### `supabase/`
+- `migrations/` — unica fonte di verità dello schema, un file per migrazione. Nessun ORM.
+- `seed.sql` — dati di sviluppo, applicato da `supabase db reset --local`, mai in produzione.
+- `tests/verifica_*.sql` — sei script transazionali (`ROLLBACK` finale) con fixture proprie,
+  eseguiti in CI: `verifica_ciclo_di_lettura`, `verifica_catalogo_e_copertine`,
+  `verifica_recensioni_insight`, `verifica_consenso_e_indici`, `verifica_quaderni`,
+  `verifica_superficie_data_api`.
+- `tests/dati_*.sql` — seminano dati di prova per schermate specifiche, non girano in CI.
+- `manutenzione/semina/` — popolamento del catalogo, con il suo runbook (`COME_PROCEDERE.md`).
+
+## Gotcha non ovvi
+Regole che non si deducono dal codice guardandolo da vicino, e che si violano per distrazione.
+
+**«Aperta» non è «senza data di fine».** Una Lettura registrata a posteriori può essere CONCLUSA
+con `data_fine` nulla. L'unico predicato valido per «aperta» è `esito is null`, in SQL come in
+Python come in TypeScript. L'anno di chiusura è sempre
+`coalesce(anno_fine, extract(year from data_fine))`; `data_inizio` è nullo per queste Letture, e
+le metriche di durata le saltano invece di dedurre un inizio. Le loro pagine entrano nel totale
+dell'anno leggendo `pagine_adottate` in `metriche_service`, MAI scrivendo un avanzamento con una
+data inventata.
+
+**Metriche.** `metriche_repository.list_avanzamenti` legge SEMPRE l'intera storia degli
+Avanzamenti, mai filtrata per l'anno richiesto: l'incremento di un Avanzamento dipende dalla
+pagina del precedente, che può essere dell'anno prima. Filtrare per anno sbaglia il conteggio a
+ogni lettura a cavallo di capodanno.
+
+**Proprietà delle righe.** `GET /voci` e il dedup di `POST /voci` filtrano esplicitamente per
+`utente_id`, non solo RLS: un collegato può leggere le stesse righe.
+
+**Spoiler.** Il gating (regola 10 del PRD) vive nel service layer (`insight_service._senza_spoiler`),
+non nella RLS — per questo è testato da pytest, non dagli script SQL. Protegge da uno spoiler
+*altrui*: `GET /voci/{id}` lo applica solo quando chi guarda non è il proprietario, e
+`GET /ricerca/semantica` non lo applica mai, perché lì ogni risultato è già del richiedente.
+
+**Consenso.** Si legge in un punto solo (`app/services/consenso.py::esigi_consenso`); risposta
+409 `consenso_revocato`, mai 403 — è una funzione spenta, non un permesso mancante.
+Eccezione: `GET /scritti` e `GET /scritti/che-torna` non rispondono mai 409, perché i propri
+scritti esistono comunque e solo il modo di interrogarli si spegne; lo stato arriva nel corpo
+(`indici_spenti`). A indici spenti il conteggio dei vicini è `null` e **non `0`**.
+
+**Scheda di un libro che non si ha in libreria** (`GET /schede/{fonte}/{id}`): guardare non fa
+nascere una scheda. Il ramo `google` legge il volume e si ferma lì; la catena di risoluzione resta
+dietro l'aggiunta (ADR 0002). Due conseguenze: `google_books.per_identificativo` DEVE continuare a
+riempire la cache `_per_volume`, altrimenti si guarda un libro e poi non lo si può aggiungere; e
+l'anno che esce da quel ramo è quello dell'edizione (`anno_di_edizione: true`), mai passato al
+modello come anno di prima pubblicazione. Il parere su quella carta non si salva: manca la Voce a
+cui legarlo.
+
+**Ricerca locale** (`public.cerca_libri`). Corrisponde per PAROLE, non per sottostringa unica: un
+libro passa se le contiene tutte, indifferentemente da titolo canonico, variante o autore — è ciò
+che fa funzionare «eco nome della rosa». Il confronto avviene su `libro.testo_ricerca`, colonna
+denormalizzata con indice GIN trigram, mantenuta da cinque trigger (`libro`, `variante_titolo`,
+`libro_autore`, `autore`, `autore_nome_variante`). Un trigger che manca non rompe nulla di
+visibile: rende solo irraggiungibile un libro per una parola che dovrebbe trovarlo.
+
+**Google Books dà `503 backendFailed` a raffiche**, non isolati (misurato: finestre con 40-65% di
+fallimenti per una decina di secondi). Da qui il retry di `google_books._get` e quello del
+frontend sopra. Due cose da non semplificare: gli alternativi di `opera_per_identificativi` si
+raccolgono con `return_exceptions=True` e si lasciano cadere — aggiungono identificativi al
+riconoscimento, non lo decidono, e propagarli faceva fallire l'INTERA aggiunta; e
+`lib/api/ricerca.ts` ritenta i 503 anche sull'aggiunta, che chiama Google più della ricerca.
+
+**Elenco membri** (`GET /utenti`). Tre gruppi (`richieste_ricevute`, `collegati`, `altri`) e
+**nessun conteggio totale dei membri**: non viene calcolato, non aggiungerlo. Solo `altri` ha un
+tetto (`utenti_service.LIMITE_ELENCO`, 200) e la fetta arriva da `cerca_membri`, che esclude chi ha
+già una relazione **prima** del `LIMIT`. I due gruppi che nascono da una relazione restano sempre
+completi: una richiesta nascosta da un tetto non si potrebbe più accettare, un collegamento
+nascosto renderebbe irraggiungibile una libreria. `LIMITE_ELENCO` deve restare **sotto** il tetto
+di `cerca_membri` (500): un tetto SQL più basso non limita, falsifica — il servizio leggerebbe
+«meno del tetto» come «ci sono tutti». `elenco_completo` dice se la ricerca per nome può restare
+nel browser; nasce chiedendo una riga in più del tetto e scartandola.
+
+**Ricerca per nome utente** (`cerca_membri`): sottostringa più somiglianza trigram, soglia 0.3
+passata come parametro (non letta dalla GUC: una soglia che dipende dalla sessione non è
+riproducibile in un test). Ordine: esatto, prefisso, sottostringa, e solo per ultima la
+somiglianza — il nome utente è un identificatore, non una frase. Sotto `MIN_QUERY` (2)
+l'anagrafica non viene interrogata affatto. Il filtro sui gruppi propri
+(`utenti_service._corrisponde`) è sola sottostringa, deliberatamente.
+
+**Ricerca semantica.** `cerca_semantico` filtra per distanza coseno (`p_soglia_massima`, default
+0.65): senza soglia un corpus piccolo restituirebbe sempre tutti i vettori. I filtri di
+tipo/spoiler/anno/Voce/contenuti entrano **dentro** la RPC, mai a valle: la funzione tiene i venti
+più vicini e poi si ferma, quindi filtrare dopo darebbe zero risultati ogni volta che quei venti
+sono dell'anno sbagliato.
+
+**Quaderni** (`/scritti`): vista `public.scritto` (`security_invoker`) più `elenco_scritti`,
+`sfaccettature_scritti`, `pensiero_che_torna`, `vicini_a`. `vicini_a` non chiama il fornitore — il
+vettore è già in `indice_semantico` — ma esige il consenso lo stesso, perché la revoca cancella gli
+indici. `pensiero_che_torna` non conserva stato: la scelta è deterministica sul giorno (hash di
+`auth.uid()` più la data CET), quindi resta ferma 24h senza una riga da mantenere e da cancellare
+con l'account.
+
+**Cancellazioni.** `voci_service.cancella` è una singola `DELETE` sulla riga `voce_di_libreria`:
+ogni tabella figlia ha già `ON DELETE CASCADE` verso `(id, utente_id)`, transitiva fino a
+`indice_semantico`. `me_service.elimina_account` cancella prima `public.utente` con l'identità
+dell'utente (la cascata travolge i dati applicativi), poi chiama l'Auth Admin API per `auth.users`.
+Se il secondo passo fallisce resta un residuo in `auth.users` senza retry: pulizia manuale del
+Manutentore (ADR 0007). Scelta di semplicità, non un bug.
+
+**Worker.** `worker._lotto` è 3 e il lotto si svolge con `asyncio.gather`, non con un `for`: serve
+alla latenza di un singolo gesto (aggiungere un libro accoda sette-otto lavori quasi tutti di
+attesa di rete). `return_exceptions=True` non è pigrizia — un `gather` che propaga subito non ferma
+le coroutine fratelle, e il ciclo chiuderebbe la connessione mentre una la sta usando. Non alzarlo
+senza alzare la memoria in `fly.toml`: la conversione di una copertina tiene l'immagine
+decompressa in RAM, e ce ne sono 512MB.
+
+**`GET /health` non tocca il database.** Il controllo di Fly non guarda quel campo e
+`database.ping` apre una connessione nuova ogni volta. Per la raggiungibilità di Postgres:
+`GET /health?database=1`, a mano.
+
+**Funzioni assistite personali.** Delle cinque del PRD ne sono costruite quattro (ricerca
+semantica, preview, suggerimenti di lettura, sintesi tematica); resta l'acquisizione da foto —
+vedi `docs/lavoro-rimandato.md`.
 
 ## Comandi
-Frontend (`cd frontend`): `npm run dev` · `npm run build` · `npm run lint` · `npm run type-check` · `npm run tokens` (rigenera `src/styles/tokens.anchors.css` da `src/lib/light.ts`, gira anche come `prebuild`) · `npm run check:contrast` (verifica AA su tutto l'anno, va in CI) · `npm run icone` (rigenera `public/icone/` dal marchio; vuole Chrome installato in locale, non gira nel build né in CI, i PNG sono versionati)
 
-Backend (`cd backend`, venv attivo): `pip install -e ".[dev]"` · `uvicorn app.main:app --reload` · `pytest` · `ruff check . && ruff format --check .` · `mypy app`
+**Frontend** (`cd frontend`): `npm run dev` · `build` · `lint` · `type-check` ·
+`tokens` (rigenera `tokens.anchors.css`, gira anche come `prebuild`) · `check:contrast` (AA su
+tutto l'anno) · `check:messaggi` (catalogo e codice allineati, IT/EN in parità) ·
+`icone` (vuole Chrome in locale, non gira in CI, i PNG sono versionati).
 
-Supabase locale: prima di `supabase start` serve una chiave di firma JWT (docs/adr/0012), altrimenti l'avvio fallisce — `supabase gen signing-key --algorithm ES256` scrive/aggiunge a `supabase/signing_keys.json` (mai committato). Poi `supabase status` per URL/chiavi da mettere in `.env`/`.env.local` (copiati da `.env.example`, mai valori reali committati). Migrazioni: `supabase migration new <nome>` · `supabase migration up --local` · `supabase db reset --local` (riapplica tutto da zero e riesegue `supabase/seed.sql`, utile per verificare che una migrazione nuova parta pulita, ma cancella anche ogni account/dato di test creato a mano — vedi "Account di test locali" sotto).
+**Backend** (`cd backend`, venv attivo): `pip install -e ".[dev]"` · `uvicorn app.main:app --reload` ·
+`pytest` · `ruff check . && ruff format --check .` · `mypy app`.
 
-Deploy: l'integrazione GitHub di Supabase applica da sola le migrazioni nuove di `supabase/migrations/` al progetto hosted a ogni merge su `main` (working directory ".", perché `supabase/` sta alla radice del repo) — non serve più applicarle a mano. Le sei verifiche girano già in CI (job `supabase`) a ogni push/PR, prima che una migrazione arrivi a toccare i dati veri; restano comunque utili anche a mano durante lo sviluppo di una migrazione, prima di aprire la PR: `supabase db reset --local` e poi tutti e sei gli script, ciascuno con `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/<nome>.sql` (`DATABASE_URL` da `supabase status`; `-v ON_ERROR_STOP=1` è essenziale — senza, psql continua dopo un fallimento invece di fermarsi al primo). Vanno eseguiti tutti e sei anche quando la modifica ne riguarda uno: una migrazione in un'area può invalidare in silenzio le fixture di uno script su un'altra, e senza rieseguirli tutti l'incoerenza resta invisibile fino alla prossima PR.
+**Supabase locale.** Prima di `supabase start` serve una chiave di firma JWT (ADR 0012):
+`supabase gen signing-key --algorithm ES256` scrive in `supabase/signing_keys.json` (mai
+committato). Poi `supabase status` per URL e chiavi da mettere in `.env`/`.env.local` (copiati da
+`.env.example`). Migrazioni: `supabase migration new <nome>` · `migration up --local` ·
+`db reset --local` (riapplica tutto e riesegue `seed.sql`; cancella ogni account di test creato a
+mano).
 
-CI: `.github/workflows/ci.yml`, 4 job — frontend (lint, type-check), backend (lint, type-check, test), Supabase (le sei verifiche SQL sopra, contro un'istanza locale avviata nel job), Semgrep (`p/default`, diff-aware sulle PR).
+**Verifiche SQL a mano**, durante lo sviluppo di una migrazione:
+`psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/<nome>.sql` per tutti e sei gli script,
+anche quando la modifica ne riguarda uno solo: una migrazione in un'area può invalidare in
+silenzio le fixture di un'altra. `-v ON_ERROR_STOP=1` è essenziale, senza psql prosegue dopo un
+fallimento.
 
-Autenticazione: `app/core/security.py` espone `get_current_user`, la dependency che verifica il JWT di sessione (chiavi di firma asimmetriche via JWKS, docs/adr/0012) e va usata da ogni route che serve dati di un utente — vedi `app/routers/me.py` per il pattern di riferimento.
+**CI** (`.github/workflows/ci.yml`), 4 job: frontend (lint, type-check, tokens, contrast,
+messaggi), backend (lint, type-check, test), supabase (le sei verifiche contro un'istanza avviata
+nel job), semgrep (`p/default`, diff-aware sulle PR).
+
+**Deploy.** Le migrazioni le applica da sola l'integrazione GitHub di Supabase a ogni merge su
+`main`. Il backend **no**: `cd backend && fly deploy`, a mano.
+
+**Autenticazione.** `app/core/security.py` espone `get_current_user`, che verifica il JWT via JWKS
+(ADR 0012) e va usata da ogni route che serve dati di un utente — pattern di riferimento in
+`app/routers/me.py`.
 
 ## Account di test locali
-Due account già completati sull'istanza Supabase locale, riusabili per qualunque verifica manuale — non crearne di nuovi salvo che serva più di un utente contemporaneamente (in quel caso, aggiungerli qui con le loro credenziali). Un `supabase db reset --local` li cancella: vanno ricreati (invito via Admin API o Studio, docs/adr/0013) prima di riusarli.
+Due account sull'istanza Supabase locale, riusabili per qualunque verifica manuale. Un
+`supabase db reset --local` li cancella: vanno ricreati (invito via Admin API o Studio, ADR 0013).
 
 | | Email | Password | Nome utente |
 |---|---|---|---|
 | Account 1 | `prova@montaigne.test` | `Provaprova123` | `prova` |
 | Account 2 | `prova2@montaigne.test` | `provaprova123` | `marta` |
 
-Le due password non sono più uguali (25 agosto 2026): `config.toml` chiede `lower_upper_letters_digits`
-(riga `password_requirements`), e la vecchia `provaprova123`, tutta minuscolo, non la rispetta più —
-GoTrue non rivalida però le password già impostate al login, quindi l'Account 2 continua a entrare con
-quella vecchia finché nessuno gliela cambia. L'Account 1 è stato reimpostato (verifica manuale di un
-bug di interfaccia) e ha dovuto prendere una maiuscola per passare l'Admin API. Se un reset tocca anche
-l'Account 2, la nuova password gli serve comunque: aggiornare questa riga.
+Le due password differiscono perché `config.toml` chiede `lower_upper_letters_digits` e GoTrue non
+rivalida le password già impostate: l'Account 2 entra ancora con la vecchia finché nessuno gliela
+cambia, l'Account 1 è stato reimpostato e ha dovuto prendere una maiuscola. Se un reset tocca
+anche l'Account 2, aggiornare questa riga.
 
-I due sono **collegati fra loro con relazione attiva**, e `marta` ha una libreria popolata
-apposta per guardare gli Annali di un collegato con dei numeri veri: quindici letture concluse
-nel 2026 sparse da gennaio ad agosto, due abbandoni, una lettura a cavallo del capodanno, due
-libri senza genere e due senza pagine adottate, voti su tutti. Ha anche sei opere in comune con
-`prova`, per la striscia "letti da tutti e due". Lo script che li genera sta in
-`supabase/tests/dati_collegato.sql`: si riapplica dopo un `db reset --local`, dopo aver
-ricreato i due account.
+I due sono **collegati con relazione attiva** e `marta` ha una libreria popolata per guardare gli
+Annali di un collegato con numeri veri (quindici letture concluse, due abbandoni, una a cavallo
+del capodanno, libri senza genere e senza pagine, sei opere in comune con `prova`). Script:
+`supabase/tests/dati_collegato.sql`, da riapplicare dopo un reset e dopo aver ricreato i due
+account.
 
-Per «I titoli che tornano» (design-frontend.md §13, ridisegno del 25 agosto 2026, funzione
-`public.libri_popolari`) c'è un terzo script, `supabase/tests/dati_popolari.sql`: dieci lettori
-che **non sono account utilizzabili** (nessuna password, mai pensati per un login) e possiedono
-solo delle `voce_di_libreria`, che è tutto ciò che quella funzione legge. Si guardano restando
-`prova` o `marta` e aprendo «Aggiungi un libro». Si riapplica dopo un `db reset --local`, senza
-bisogno di ricreare nulla prima (lo script crea da sé i suoi dieci utenti).
+Per «I titoli che tornano» (design-frontend.md §13, `public.libri_popolari`) c'è
+`supabase/tests/dati_popolari.sql`: dieci lettori che **non sono account utilizzabili** (nessuna
+password) e possiedono solo `voce_di_libreria`, che è tutto ciò che quella funzione legge. Crea da
+sé i suoi utenti, non richiede nulla prima.
 
 ## Sistema di design (frontend)
-`src/styles/tokens.css` è l'unico posto in cui esistono colori, ombre, raggi e scale tipografiche: nessun componente scrive mai un colore a mano. Le tre regole che si violano più facilmente per distrazione (dettaglio completo in `docs/design-frontend.md`):
-- Tre piani soli — `surface-0` (stanza, mai testo), `surface-1` (carta), `surface-2` (oggetto sollevato). Non esiste un piano 3.
-- Un solo accento (`accent`, solo riempimento; `accent-strong` per testo/icone) e un solo rosso (`alert`, **due usi in tutta l'app e non uno di più**: il contatore delle richieste accanto a Lettori, e il bordo della zona di cancellazione dell'account — `.zona-pericolo` in `tokens.css`). Mai sugli errori, che sono testo; mai sui nastri, che hanno un rosso proprio; mai su un pulsante, quello della cancellazione compreso; e mai come **testo**, perché su `surface-1` tiene 4.57:1, sette centesimi sopra la soglia AA del corpo. Entrambi gli accostamenti sono verificati su tutto l'anno da `npm run check:contrast`.
-- `.zona-pericolo` sta in `tokens.css` e non come utility scritta sul componente per una ragione di cascata: `.plane-1` è fuori da ogni `@layer`, le utility di Tailwind stanno in `@layer utilities`, e il CSS senza layer vince. Un `border-alert` scritto in linea avrebbe perso in silenzio contro il bordo di `.plane-1` — lo stesso inciampo che per mesi ha fatto vincere `.t-label` su `text-ink`.
-- Mai il layout e mai `box-shadow`: il salto di piano passa da uno pseudo-elemento a cui si anima `opacity` (`.liftable`, definita in `tokens.css` e composta da `.volume`). `transition-colors` è ammessa — `color`/`background-color` passano dal paint, non dal layout. Le durate vengono dai token `--dur-*`, mai scritte a mano. Tutto dietro `prefers-reduced-motion`.
-- Il tocco non si risolve componente per componente: una regola in `tokens.css` dietro `@media (pointer: coarse)` porta ogni bersaglio a `--tap` (44px). La densità del desktop resta quella del design doc.
-- Le classi tipografiche (`.t-*`) stanno in `@layer components`: fuori da un layer batterebbero le utility di Tailwind, e per mesi `.t-label`/`.t-meta` hanno vinto in silenzio su `text-ink`.
-- Le testate di pagina hanno **due** scale, non tre, e portano il corpo dentro la classe: `.t-page` (44/56) per una parola fissa dell'interfaccia, `.t-contenuto` (34/46) per una stringa di lunghezza ignota (nome di un collegato, titolo di un libro). Non si scrive più `text-[44px] sm:text-[56px]` sul componente. Su Fraunces l'asse `opsz` segue il corpo via `--t-opsz` — su Literata no, e lì è deliberato (design-frontend.md §4). Per un titolo che è un numero si usa `.t-page-num` e **mai** `.t-num`: quella porta con sé `font-family: var(--font-ui)` ed è definita più in basso nello stesso layer, quindi il titolo uscirebbe in Inter Tight.
-- Sotto i 640px ogni pagina con un titolo monta `TestataPagina`, che aggiunge `.barra-titolo`: la barra che raccoglie la parola quando il titolo grande esce dallo schermo. È ciò che permette alla Libreria di non avere un titolo senza restare anonima allo scorrimento (design-frontend.md §7/§8). Una rotta nuova con un titolo passa da lì, non da un `<h1>` scritto a mano.
+Dettaglio completo in `docs/design-frontend.md`. `src/styles/tokens.css` è l'unico posto in cui
+esistono colori, ombre, raggi e scale tipografiche: nessun componente scrive mai un colore a mano.
+Le regole che si violano più facilmente:
 
-La luce ha un comando a tre stati nel Profilo — "Segui l'ora" (predefinito) / "Giorno" / "Notte" — in un cookie `httpOnly` letto dal layout radice. I due valori fissi coincidono col nome dell'ancoraggio che fissano (`PreferenzaLuce` in `src/lib/light.ts` è un sottoinsieme di `Anchor`), non un vocabolario a sé: si chiamavano "chiara"/"scura", che costringeva a tradurli mentalmente negli ancoraggi "giorno"/"notte" a ogni lettura di `risolviLuce`. Il calcolo resta lato server e solo al cambio pagina: `src/lib/light.ts` interpola quattro ancoraggi (alba/giorno/tramonto/notte), e una preferenza esplicita ne fissa uno senza interpolare. Mai `localStorage`, mai uno script anti-lampeggio. Primitivi di interfaccia: `@base-ui/react` (ADR-0014, non Radix nonostante la lettera del design doc), generati come codice proprio in `src/components/ui/` dalla CLI `shadcn`, mai l'estetica di shadcn/ui presa così com'è.
+- **Tre piani soli**: `surface-0` (stanza, mai testo), `surface-1` (carta), `surface-2` (oggetto
+  sollevato). Non esiste un piano 3.
+- **Un solo accento** (`accent` per il riempimento, `accent-strong` per testo e icone) e **un solo
+  rosso** (`alert`), con due usi in tutta l'app e non uno di più: il contatore delle richieste
+  accanto a Lettori e il bordo della zona di cancellazione dell'account (`.zona-pericolo`). Mai
+  sugli errori, che sono testo; mai sui nastri, che hanno un rosso proprio; mai su un pulsante; e
+  mai come testo, perché su `surface-1` tiene 4.57:1. Verificato da `npm run check:contrast`.
+- **Cascata.** `.zona-pericolo` e `.plane-1` stanno in `tokens.css` fuori da ogni `@layer`, e il
+  CSS senza layer vince sulle utility di Tailwind: un `border-alert` scritto in linea perderebbe
+  in silenzio. Per lo stesso motivo le classi tipografiche `.t-*` stanno in `@layer components`,
+  altrimenti batterebbero `text-ink`.
+- **Mai animare il layout, mai `box-shadow`**: il salto di piano passa da uno pseudo-elemento a cui
+  si anima `opacity` (`.liftable`, composta da `.volume`). `transition-colors` è ammessa. Le durate
+  vengono dai token `--dur-*`. Tutto dietro `prefers-reduced-motion`.
+- **Il tocco** si risolve con una regola in `tokens.css` dietro `@media (pointer: coarse)` che
+  porta ogni bersaglio a `--tap` (44px), non componente per componente.
+- **Testate di pagina, due scale e non tre**, col corpo dentro la classe: `.t-page` (44/56) per una
+  parola fissa dell'interfaccia, `.t-contenuto` (34/46) per una stringa di lunghezza ignota. Per un
+  titolo che è un numero si usa `.t-page-num` e **mai** `.t-num`, che porta con sé
+  `font-family: var(--font-ui)`.
+- **Sotto i 640px** ogni pagina con un titolo monta `TestataPagina`, che aggiunge `.barra-titolo`:
+  la barra che raccoglie la parola quando il titolo grande esce dallo schermo. Una rotta nuova con
+  un titolo passa da lì, non da un `<h1>` scritto a mano.
+- **Primitivi**: `@base-ui/react` (ADR 0014, non Radix nonostante la lettera del design doc),
+  generati come codice proprio in `src/components/ui/` dalla CLI `shadcn`, mai l'estetica di
+  shadcn/ui presa così com'è.
 
-Scrittura: mai "con successo"/"per favore"/punti esclamativi/"ops"; gli errori sono testo (mai un riquadro rosso), verbo prima nei comandi, nessun modale. **Un errore ha per soggetto la cosa, non un "non è stato possibile" senza soggetto, e dice il passo successivo** ("La recensione non è stata salvata. Il testo è ancora qui."). Mai vocabolario da idraulica a schermo: nessun "backend", nessuno stato HTTP, nessun nome di variabile d'ambiente. L'apostrofo è sempre quello tipografico (`’`).
+**La luce** ha un comando a tre stati nel Profilo — «Segui l'ora» (predefinito) / «Giorno» /
+«Notte» — in un cookie `httpOnly` letto dal layout radice. I due valori fissi coincidono col nome
+dell'ancoraggio che fissano (`PreferenzaLuce` è un sottoinsieme di `Anchor`). Il calcolo resta lato
+server e solo al cambio pagina. Mai `localStorage`, mai uno script anti-lampeggio.
 
-Tre canali di messaggi e non di più: `ui/messaggio.tsx` in linea accanto al comando (il caso normale), il toast per le scritture il cui bersaglio può essere già scorso via, `ErrorState`/`EmptyState` per una regione intera. Il toast porta "Riprova" quando riprovare può funzionare (`riprovabile()`): se il bersaglio è scorso via, dire di riprovare senza offrire dove significa mandare a ritrovare la riga a mano. Mai un quarto canale — un `<p>` scritto a mano non ha regione `aria-live`, ed è così che l'errore diventa invisibile a chi non guarda lo schermo.
+### Scrittura e messaggi
+Mai «con successo» / «per favore» / punti esclamativi / «ops»; gli errori sono testo, mai un
+riquadro rosso; verbo prima nei comandi; nessun modale. **Un errore ha per soggetto la cosa**, non
+un «non è stato possibile» senza soggetto, **e dice il passo successivo** («La recensione non è
+stata salvata. Il testo è ancora qui.»). Mai vocabolario da idraulica a schermo: nessun «backend»,
+nessuno stato HTTP, nessun nome di variabile d'ambiente. L'apostrofo è sempre quello tipografico
+(`’`).
 
-**Nessuna frase d'errore vive nel codice.** `lib/api` classifica e non scrive: ogni esito non-ok porta un `ErroreApi` (`lib/api/errore.ts`) con un *genere* — `rete`, `server`, `configurazione`, `sessione`, `limite`, `assenza`, `regola` — e, dove serve, il `codice` che nomina il caso. La frase la compone `spiega()`/`useAvvisa()` (`lib/messaggi-errore.ts`) unendo due clausole del catalogo: `errori.<dominio>` dice cosa non è successo e la sa il chiamante, `rimedi.<genere>` dice il passo successivo e lo sa il trasporto. Dove esiste una `rassicurazioni.<dominio>` ("Il testo è ancora qui.") prende il posto del rimedio: a chi ha appena scritto trecento parole serve più quella. Un'assenza e una regola saltano la composizione e usano la propria frase intera (`assenze.*`, `regole.*`), perché nominano una causa che il dominio non conosce.
+**Tre canali e non di più**: `ui/messaggio.tsx` in linea accanto al comando (il caso normale), il
+toast per le scritture il cui bersaglio può essere già scorso via, `ErrorState`/`EmptyState` per
+una regione intera. Il toast porta «Riprova» quando riprovare può funzionare (`riprovabile()`). Mai
+un quarto canale: un `<p>` scritto a mano non ha regione `aria-live`, ed è così che l'errore
+diventa invisibile a chi non guarda lo schermo.
 
-Il perché, che è la parte da non rifare: prima ogni fetcher restituiva `{ status: "error", message: string }` con la frase dentro. Tre stringhe coprivano 93 punti — "Il server non risponde…", "Il server ha risposto male…", "L'app non è configurata…" — quindi il soggetto era il server e non la cosa, e nessuna delle tre stava nel catalogo. Peggio: diciassette `onError` facevano `error instanceof Error ? error.message : t("errori.…")`, e il ramo tradotto non si raggiungeva mai, perché `mutationFn` lancia sempre un `Error`. Le frasi curate del catalogo erano codice morto e a schermo arrivava la stringa di trasporto, in italiano anche in inglese. `npm run check:messaggi` (in CI) impedisce che il catalogo e il codice tornino a divergere: chiave usata e assente, chiave presente e mai usata, `error_code` del backend senza frase, e le due lingue fuori parità.
+**Nessuna frase d'errore vive nel codice.** `lib/api` classifica e non scrive: ogni esito non-ok
+porta un `ErroreApi` (`lib/api/errore.ts`) con un *genere* — `rete`, `server`, `configurazione`,
+`sessione`, `limite`, `assenza`, `regola` — e, dove serve, il `codice` che nomina il caso. La frase
+la compone `spiega()`/`useAvvisa()` (`lib/messaggi-errore.ts`) unendo due clausole del catalogo:
+`errori.<dominio>` dice cosa non è successo e la sa il chiamante, `rimedi.<genere>` dice il passo
+successivo e lo sa il trasporto. Dove esiste una `rassicurazioni.<dominio>` prende il posto del
+rimedio. Assenze e regole saltano la composizione e usano la propria frase intera.
+`npm run check:messaggi` (in CI) impedisce che catalogo e codice divergano.
 
-Mobile e desktop pari importanza, mobile come riferimento nei casi di dubbio. Interfaccia bilingue IT/EN prevista dal PRD, ora costruita (issue #34) ma non estesa a tutta l'interfaccia: `next-intl` risolve la lingua da `Accept-Language` a ogni richiesta (nessun selettore, nessun cookie — `src/lib/lingua.ts`/`src/i18n/request.ts`), e i cataloghi `frontend/messages/{it,en}.json` coprono ora **tutto il perimetro dei messaggi** e non più le sole quattro categorie iniziali: `errori`/`rassicurazioni`/`rimedi` (le due clausole da comporre), `regole` (una frase per `error_code`, del backend o di una validazione del client), `assenze`, `accesso` (le stringhe del fornitore di autenticazione, tradotte da `lib/errori-auth.ts`, che restituisce una chiave e non una frase), `sessione`, `titoli`, `avvisi`, `conferme`, `attesa`. Il backend continua a mandare `detail.message`, ma il frontend **non lo mostra mai**: legge `error_code`, che è il contratto stabile (lo dice già `app/routers/avanzamenti.py`), e sceglie la frase dal catalogo — così i messaggi non vanno localizzati due volte, in due runtime. Il backend allinea la stessa intestazione per scegliere fra le varianti di titolo/descrizione/etichetta di genere già salvate nelle due lingue (`backend/app/core/lingua.py`, iniettato nei router con `Depends`) — mai una preferenza indipendente. Il resto delle stringhe (comandi, etichette, intestazioni) resta inline in italiano: perimetro deliberato, non debito dimenticato — vedi `docs/lavoro-rimandato.md`.
+**Bilingue IT/EN.** `next-intl` risolve la lingua da `Accept-Language` a ogni richiesta — nessun
+selettore, nessun cookie (`src/lib/lingua.ts`, `src/i18n/request.ts`). I cataloghi
+`frontend/messages/{it,en}.json` coprono tutto il perimetro dei messaggi: `errori`,
+`rassicurazioni`, `rimedi`, `regole`, `assenze`, `accesso`, `sessione`, `titoli`, `avvisi`,
+`conferme`, `attesa`. Il backend manda `detail.message`, ma il frontend **non lo mostra mai**:
+legge `error_code`, che è il contratto stabile, e sceglie la frase dal catalogo. Il backend usa la
+stessa intestazione per scegliere fra le varianti già salvate nelle due lingue
+(`backend/app/core/lingua.py`), mai una preferenza indipendente. Comandi, etichette e intestazioni
+restano inline in italiano: perimetro deliberato, vedi `docs/lavoro-rimandato.md`.
+
+Mobile e desktop hanno pari importanza, con il mobile come riferimento nei casi di dubbio.
 
 ## Vincoli non negoziabili
-- L'identità utente arriva SEMPRE da una dipendenza che verifica il token, MAI dal body o dalla query string.
+- L'identità utente arriva SEMPRE da una dipendenza che verifica il token, MAI dal body o dalla
+  query string.
 - Nessun modello di input contiene id, user_id, owner_id o campi di ruolo: li assegna il server.
-- Ogni tabella con dati di utenti ha RLS attiva con policy esplicite per SELECT/INSERT/UPDATE/DELETE basate su `auth.uid()`. Dove non è applicabile (dato di sistema condiviso, scrittura solo da `service_role`) va dichiarato in un commento SQL accanto alla tabella, mai omesso in silenzio — vedi `supabase/migrations/` per i precedenti.
-- La RLS è la seconda difesa, non la prima: dalla migrazione `20260827090000_privilegi_espliciti_su_public.sql` una tabella nuova di `public` nasce **senza alcun privilegio** per `anon`, `authenticated` e `service_role`, quindi ogni migrazione che ne crea una deve concedere esplicitamente ad `authenticated` ciò che le serve (`grant select ... to authenticated`) — altrimenti la tabella è inaccessibile dal client e la funzione non parte. Prima quei privilegi arrivavano dall'auto-esposizione della Data API, il cui default è cambiato fra CLI 2.115 e 2.116: era la causa del job `supabase` che passava in locale e falliva in CI. `supabase/config.toml` ora fissa `auto_expose_new_tables = false` perché locale e CI ricostruiscano lo stesso database, ma è la migrazione a garantirlo anche sul progetto hosted. `anon` e `service_role` non vanno riaperti: nulla di `public` è raggiungibile senza autenticazione (ADR 0006) e il back end scrive come `postgres` su connessione diretta (ADR 0016).
-- `utente_id` denormalizzata su una tabella figlia non basta da sola come garanzia di proprietà: se la riga discende da un'altra riga già di proprietà di un utente (una Lettura da una Voce, un Avanzamento da una Lettura, ...), il vincolo è una chiave esterna composita verso `(id, utente_id)` del genitore — non una FK singola sull'id più un controllo RLS indipendente sulla colonna denormalizzata.
-- Nessun segreto nel codice: sempre variabili d'ambiente (`.env.example` documenta le chiavi, mai i valori).
+- Ogni tabella con dati di utenti ha RLS attiva con policy esplicite per SELECT/INSERT/UPDATE/DELETE
+  basate su `auth.uid()`. Dove non è applicabile (dato di sistema condiviso, scrittura solo da
+  `service_role`) va dichiarato in un commento SQL accanto alla tabella, mai omesso in silenzio.
+- La RLS è la seconda difesa, non la prima: una tabella nuova di `public` nasce **senza alcun
+  privilegio** (migrazione `20260827090000`), quindi ogni migrazione che ne crea una deve concedere
+  esplicitamente ad `authenticated` ciò che le serve. `anon` e `service_role` non vanno riaperti:
+  nulla di `public` è raggiungibile senza autenticazione (ADR 0006) e il backend scrive come
+  `postgres` su connessione diretta (ADR 0016).
+- `utente_id` denormalizzata su una tabella figlia non basta come garanzia di proprietà: se la riga
+  discende da un'altra già di proprietà di un utente, il vincolo è una chiave esterna **composita**
+  verso `(id, utente_id)` del genitore.
+- Nessun segreto nel codice: sempre variabili d'ambiente (`.env.example` documenta le chiavi, mai
+  i valori).
 - Validazione lato server sempre, anche se il client valida già.
-- Le asserzioni dei test sono corrette: se un test fallisce, correggi l'implementazione, non il test. Se ritieni un'asserzione sbagliata, chiedi.
-- Una decisione in `docs/adr/` porta un perché documentato: se proponi di ribaltarla, motivalo esplicitamente invece di cambiarla in silenzio.
-- Giorno/anno/"futuro" si valutano nel fuso `Europe/Rome`, mai nel fuso di sessione del server (Supabase/Postgres di default: UTC).
-- Nessun comando git che cambia lo stato del repository (`commit`, `push`, `branch`, `checkout -b`, merge, rebase, ecc.) senza il consenso esplicito dell'utente prima di eseguirlo, anche a lavoro finito e verificato.
-- A fine implementazione, se per verificare il lavoro sono stati avviati processi locali (`uvicorn`, `next dev`, `supabase start`, ecc.), vanno spenti prima di chiudere il task — non lasciarli in background.
+- Le asserzioni dei test sono corrette: se un test fallisce, correggi l'implementazione, non il
+  test. Se ritieni un'asserzione sbagliata, chiedi.
+- Giorno, anno e «futuro» si valutano nel fuso `Europe/Rome`, mai nel fuso di sessione del server
+  (Postgres di default: UTC).
+- Nessun comando git che cambia lo stato del repository (`commit`, `push`, `branch`, `checkout -b`,
+  merge, rebase) senza il consenso esplicito dell'utente, anche a lavoro finito e verificato.
+- A fine implementazione, i processi locali avviati per verificare (`uvicorn`, `next dev`,
+  `supabase start`) vanno spenti prima di chiudere il task.

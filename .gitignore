@@ -53,3 +53,10 @@ supabase/signing_keys.json
 
 # --- Logs ---
 *.log
+
+# AGENTS.md/CLAUDE.md di frontend/: li rigenera `next dev` a ogni avvio
+# (node_modules/next/dist/server/lib/generate-agent-files.js) e contengono
+# solo il suo avviso, non documentazione di progetto. Quella sta in ./AGENTS.md,
+# che riporta la sola regola operativa del blocco.
+frontend/AGENTS.md
+frontend/CLAUDE.md

@@ -9,74 +9,55 @@ Registrare un avanzamento o cambiare stato con un tocco lungo (mobile) senza apr
 libro. Con la copertina vera lo spazio libero sul volume è ridotto rispetto al vecchio dorso, il
 gesto va ridisegnato da zero. Oggi il volume è solo un link alla scheda.
 
-## Nessuna difesa dalle richieste indesiderate (istanza aperta)
+## Nessuna difesa dalle richieste indesiderate
 
-**Decisione consapevole di non costruire, non una svista.** Aprendo l'istanza oltre il gruppo
-chiuso (24 agosto 2026) è caduta la motivazione che il PRD dava all'assenza di un blocco:
-"non esiste blocco, coerentemente con un gruppo chiuso e a invito". Fra persone invitate dalla
-stessa persona era una scelta proporzionata; fra sconosciuti no.
+**Decisione consapevole di non costruire, non una svista.** Fra persone invitate dalla stessa
+persona un blocco è un'arma sproporzionata, ed è per questo che non c'è.
 
-Quello che oggi manca, in concreto: un rifiuto non lascia traccia visibile a chi ha chiesto e la
+Quello che manca, in concreto: un rifiuto non lascia traccia visibile a chi ha chiesto e la
 richiesta è reinviabile senza limite, quindi nulla impedisce a qualcuno di rimandarla
-indefinitamente. Chi la subisce non ha alcun comando da usare — né un blocco, né un silenziamento,
-né un limite temporale al reinvio — e la richiesta ricompare in cima a Lettori ogni volta.
+indefinitamente. Chi la subisce non ha alcun comando da usare — né blocco, né silenziamento, né
+limite temporale al reinvio — e la richiesta ricompare in cima a Lettori ogni volta.
 
 Le tre strade valutate, in ordine di peso:
 
 1. **Blocco per utente.** Una tabella con RLS, un endpoint, una riga nel profilo. Il bloccato non
    può reinviare, non trova più l'altro nella ricerca e sparisce dal suo elenco; nessuna notifica,
-   coerente con "chi viene rimosso non riceve alcun avviso". È lo standard di ogni prodotto sociale
-   pubblico e la sola difesa reale.
-2. **Limite temporale al reinvio.** Nessuna entità nuova: dopo un rifiuto la stessa persona non può
-   reinviare per un periodo, applicato lato server. Molto più leggero, ma non ferma chi insiste nel
-   tempo e non toglie il proprio nome dalla sua ricerca.
+   coerente con "chi viene rimosso non riceve alcun avviso". È la sola difesa reale.
+2. **Limite temporale al reinvio.** Nessuna entità nuova: dopo un rifiuto la stessa persona non
+   può reinviare per un periodo, applicato lato server. Molto più leggero, ma non ferma chi
+   insiste nel tempo e non toglie il proprio nome dalla sua ricerca.
 3. **Niente**, che è dove siamo.
 
-Va affrontata prima che l'istanza abbia utenti che non si conoscono fra loro. Il PRD è stato
-corretto in modo da non giustificare più l'assenza con la chiusura del gruppo: la frase mentiva
-sullo stato del prodotto, e una motivazione sbagliata è peggio di una lacuna dichiarata.
+Va affrontata se l'istanza smette di essere una cerchia di persone che si conoscono fra loro.
 
 ## L'app installata: due cose lasciate fuori
 
-Montaigne è installabile e ha una pagina propria quando la rete manca (docs/adr/0019). Restano
-fuori due cose, entrambe per scelta:
+Montaigne è installabile e ha una pagina propria quando la rete manca (ADR 0019). Restano fuori
+due cose, entrambe per scelta:
 
 - **Nessun invito a installare su iOS.** Su Android il browser offre "installa" da sé, appena il
   manifesto è valido; Safari no, l'unica via è "Condividi → Aggiungi a Home" e nessun sito può
   aprirla o suggerirla se non con un cartellino scritto a mano. Costruirlo vuol dire decidere dove
   vive, quando compare e come si congeda per sempre — cioè un pezzo di prodotto che
-  `docs/design-frontend.md` non descrive. Finché non lo descrive, chi vuole l'icona sul telefono
-  la aggiunge come si aggiunge quella di qualunque sito.
+  `docs/design-frontend.md` non descrive.
 - **La rete che cade a metà sessione.** Oggi una navigazione o un salvataggio falliti mentre l'app
   è già aperta danno il messaggio d'errore del catalogo, che è onesto ma è tutto. Next 16 offre
   `experimental.useOffline`: tiene la richiesta in sospeso e la ripete quando la connessione
-  torna, e un `useOffline()` per dirlo a schermo. È sperimentale — quando non lo sarà più, vale la
+  torna, più un `useOffline()` per dirlo a schermo. Quando non sarà più sperimentale, vale la
   prova.
 
-La rotta si chiama `/senza-rete`, in italiano come le altre pagine pubbliche: rientra nella
-rinomina complessiva tracciata in [#41](https://github.com/filippo-pivetta/libreria/issues/41),
-non è un'eccezione nuova.
+## Interfaccia bilingue: il perimetro che resta
 
-## Chiuso nella sessione UI
-
-- Interfaccia bilingue (#34): le stringhe sono state estratte in `frontend/src/messaggi/it.ts`
-  con chiavi stabili — restava il framework e l'inglese. Completato in una sessione successiva
-  (23 agosto 2026): `next-intl`, cataloghi `frontend/messages/{it,en}.json`, backend allineato
-  sulla stessa `Accept-Language` (`backend/app/core/lingua.py`). Il resto (estrazione completa,
-  numeri non ancora sensibili alla lingua, contenuto assistito) è tracciato in #40.
-  **Tutti i messaggi d'errore sono rientrati nel catalogo** in una sessione successiva: erano
-  la parte più esposta di #40, perché 93 occorrenze di tre frasi vivevano dentro `lib/api` e
-  restavano in italiano anche con `Accept-Language: en` — e nascondevano le frasi tradotte, che
-  non si raggiungevano mai. Ora `lib/api` classifica (`ErroreApi`) e la frase si compone dal
-  catalogo; il backend manda `error_code`, non prosa da mostrare. Resta a #40 il perimetro che
-  §19 dichiara deliberato: comandi, etichette e intestazioni, ancora inline in italiano.
-- Il comando sulla luce, la barra di navigazione in fondo su mobile, i tre canali di
-  messaggi e la riscrittura degli errori: vedi `docs/design-frontend.md` §3, §5, §8, §19.
+I messaggi (errori, rassicurazioni, rimedi, regole, assenze, accesso, sessione, titoli, avvisi,
+conferme, attesa) sono tutti nel catalogo `frontend/messages/{it,en}.json`. Comandi, etichette e
+intestazioni restano inline in italiano: perimetro deliberato, non debito dimenticato. Insieme ai
+numeri non ancora sensibili alla lingua e al contenuto assistito, è tracciato in
+[#40](https://github.com/filippo-pivetta/libreria/issues/40).
 
 ## Issue aperte per lavoro non ancora costruito
 
 - Acquisizione di una citazione da foto — [#32](https://github.com/filippo-pivetta/libreria/issues/32)
-- Cancellazione della Voce di libreria intera — [#33](https://github.com/filippo-pivetta/libreria/issues/33)
 - Rito di apertura (View Transitions) — [#35](https://github.com/filippo-pivetta/libreria/issues/35)
 - Interfaccia bilingue, il resto del lavoro dopo il framework — [#40](https://github.com/filippo-pivetta/libreria/issues/40)
 - URL delle pagine tutte in inglese, oggi miste con l'italiano — [#41](https://github.com/filippo-pivetta/libreria/issues/41)

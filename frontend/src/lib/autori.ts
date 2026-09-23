@@ -13,7 +13,7 @@ export function nomiAutori(autori: Autore[]): string {
  * alfabetico per autore, stabile"). Semplificazione nota: un cognome
  * composto (es. "García Márquez") si tronca all'ultimo token soltanto;
  * un ordinamento corretto per cognome richiederebbe un campo separato
- * che il modello dell'Autore non porta ancora (docs/prd.md, ADR 0005:
+ * che il modello dell'Autore non porta ancora (ADR 0005:
  * l'identità dell'autore è un nome canonico intero, non nome+cognome).
  */
 export function chiaveOrdinamentoAutore(autori: Autore[]): string {

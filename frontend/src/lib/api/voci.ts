@@ -44,9 +44,9 @@ export type Libro = {
    * doc §9). */
   generi: Genere[];
   /** URL firmato, non il percorso interno: il bucket delle copertine è
-   * privato (PRD regola 6) e un percorso da solo non apre nulla. La firma
-   * dura sette giorni ed è stabile tra le richieste, così il browser può
-   * davvero metterla in cache. */
+   * privato e un percorso da solo non apre nulla. La firma dura sette
+   * giorni ed è stabile tra le richieste, così il browser può davvero
+   * metterla in cache. */
   copertinaMiniaturaUrl: string | null;
   copertinaGrandeUrl: string | null;
   /** Colore dominante estratto dalla copertina, per ombra e fondo del

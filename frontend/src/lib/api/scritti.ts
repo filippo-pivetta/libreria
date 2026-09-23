@@ -92,7 +92,6 @@ export function toScritto(body: ScrittoBody): Scritto {
  * altro quando chiedi. */
 export type FiltriScritti = {
   tipo?: TipoContenuto | null;
-  soloSpoiler?: boolean;
   anno?: number | null;
   /** Elenchi e non valori singoli: `voceIds` regge il menù "ogni libro",
    * che ne passa uno, ma anche la lente di un tema quando deve ricadere
@@ -105,7 +104,6 @@ export type FiltriScritti = {
 export function parametriFiltri(filtri: FiltriScritti): URLSearchParams {
   const params = new URLSearchParams();
   if (filtri.tipo) params.set("tipo", filtri.tipo);
-  if (filtri.soloSpoiler) params.set("solo_spoiler", "true");
   if (filtri.anno != null) params.set("anno", String(filtri.anno));
   for (const voceId of filtri.voceIds ?? []) params.append("voce_id", voceId);
   for (const contenutoId of filtri.contenutoIds ?? []) params.append("contenuto_id", contenutoId);

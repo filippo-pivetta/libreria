@@ -8,7 +8,7 @@ Il manifesto (`frontend/src/app/manifest.ts`) c'era da tempo, ma l'app non era i
 
 Rendere installabile un'applicazione, però, non è solo aggiungere due immagini: cambia il modo in cui la si apre. Un'app lanciata dalla schermata home non ha barra degli indirizzi né pulsante "ricarica". Se al primo avvio manca la rete, quello che si vede è la pagina d'errore del browser — il dinosauro di Chrome, un foglio bianco su iOS — dentro una finestra da cui non si esce se non chiudendola. Con la barra degli indirizzi quella schermata è un fastidio; senza, è l'app che sembra rotta.
 
-Nel frattempo `docs/prd.md` mette il "funzionamento offline" tra le cose fuori perimetro, insieme alle app native e agli obiettivi di lettura. La domanda che questo ADR risolve non è quindi "installabile sì o no", ma dove passa il confine fra rendere l'app installabile e cominciare a farla funzionare senza rete.
+Il "funzionamento offline" è fuori perimetro, insieme alle app native e agli obiettivi di lettura. La domanda che questo ADR risolve non è quindi "installabile sì o no", ma dove passa il confine fra rendere l'app installabile e cominciare a farla funzionare senza rete.
 
 ## Decisione
 Montaigne diventa installabile — manifesto completo, tre icone generate dal marchio (`frontend/scripts/build-icone.mts`, `npm run icone`) — e registra un service worker (`frontend/public/sw.js`) il cui unico compito è **avere una pagina da mostrare quando la rete non c'è**: `/senza-rete`, due righe e un collegamento, con le parole e la luce del resto dell'app.
