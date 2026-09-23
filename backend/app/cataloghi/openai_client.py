@@ -25,7 +25,7 @@ from typing import Any
 
 import httpx
 
-from app.cataloghi import agente
+from app.cataloghi import agente, trasporto
 from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.core.config import get_settings
 
@@ -53,18 +53,36 @@ in blocco di tutti gli indici, non una riga di configurazione."""
 _TIMEOUT = httpx.Timeout(20.0)
 
 
+def _cliente() -> httpx.AsyncClient:
+    """Il client condiviso verso OpenAI (app/cataloghi/trasporto.py).
+
+    La chiave NON vive qui: resta l'header della singola richiesta in
+    `_posta`, come già fa il pool verso PostgREST con il token di
+    sessione (`app/core/supabase.py`). Un client condiviso che portasse
+    l'autorizzazione tra le proprie intestazioni predefinite sarebbe un
+    segreto tenuto in un oggetto di processo senza bisogno.
+    """
+    return trasporto.cliente(
+        "openai",
+        lambda: httpx.AsyncClient(
+            timeout=_TIMEOUT,
+            headers=agente.intestazioni(),
+            limits=trasporto.LIMITI,
+        ),
+    )
+
+
 async def _posta(url: str, corpo: dict[str, Any]) -> Any:
     settings = get_settings()
     if not settings.openai_api_key:
         raise FonteNonRaggiungibileError(FONTE, "OPENAI_API_KEY non configurata.")
 
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=agente.intestazioni()) as client:
-            risposta = await client.post(
-                url,
-                headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-                json=corpo,
-            )
+        risposta = await _cliente().post(
+            url,
+            headers={"Authorization": f"Bearer {settings.openai_api_key}"},
+            json=corpo,
+        )
     except httpx.HTTPError as errore:
         raise FonteNonRaggiungibileError.da_httpx(FONTE, errore) from errore
 

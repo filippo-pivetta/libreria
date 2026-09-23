@@ -36,7 +36,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     )
 
     def _candidati() -> list[llm.OperaPerConfronto]:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             righe = catalogo_repository.candidati_deduplicazione(connessione, libro_id)
         return [
             llm.OperaPerConfronto(
@@ -69,7 +69,7 @@ async def esegui(payload: dict[str, Any]) -> None:
         return
 
     def _proponi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             catalogo_repository.proponi_fusione_libro(
                 connessione, libro_id, decisione.libro_id_candidato, decisione.motivo
             )

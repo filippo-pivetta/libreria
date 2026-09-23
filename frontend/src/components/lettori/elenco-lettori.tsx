@@ -91,7 +91,17 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
     };
   }, []);
 
+  // Su un'istanza a cerchia ristretta il server manda già tutti i nomi in
+  // una volta (`elenco_completo`, utenti_service.LIMITE_ELENCO): allora la
+  // ricerca è un filtro su ciò che è già in pagina, istantaneo e senza
+  // rete, invece di una richiesta per ogni pausa nella digitazione. Il
+  // valore si legge da `elencoIniziale` e non da `data` perché è ciò che
+  // il server ha reso per QUESTA pagina, e non deve cambiare sotto i piedi
+  // dell'effetto mentre si scrive.
+  const ricercaLocale = elencoIniziale.elencoCompleto;
+
   useEffect(() => {
+    if (ricercaLocale) return;
     const termine = ricerca.trim();
     // Sotto il minimo non si interroga l'anagrafica, e il campo svuotato
     // torna subito all'elenco senza aspettare il ritardo.
@@ -99,7 +109,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
     if (prossima === ricercaAttiva) return;
     const handle = setTimeout(() => setRicercaAttiva(prossima), ATTESA_DIGITAZIONE_MS);
     return () => clearTimeout(handle);
-  }, [ricerca, ricercaAttiva]);
+  }, [ricerca, ricercaAttiva, ricercaLocale]);
 
   const { data, isPending, isError, error, refetch, isFetching } = useQuery({
     queryKey: ["utenti", ricercaAttiva],
@@ -231,18 +241,28 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
     );
   }
 
-  const cercando = ricercaAttiva !== "";
+  // Il filtro locale, quando è lui a lavorare. Sottostringa e basta:
+  // la tolleranza agli errori di battitura vive nella funzione SQL e
+  // serve a ritrovare un nome che non si conosce bene — fra una decina
+  // di persone che si conoscono non ha niente da perdonare.
+  const termineLocale = ricercaLocale ? ricerca.trim().toLocaleLowerCase() : "";
+  const passa = (membro: Membro) =>
+    termineLocale === "" || membro.nomeUtente.toLocaleLowerCase().includes(termineLocale);
+
+  const richiesteRicevute = data.richiesteRicevute.filter(passa);
+  const collegati = data.collegati.filter(passa);
+  const altri = data.altri.filter(passa);
+
+  const cercando = ricercaAttiva !== "" || termineLocale !== "";
   const vuoto =
-    data.richiesteRicevute.length === 0 &&
-    data.collegati.length === 0 &&
-    data.altri.length === 0;
+    richiesteRicevute.length === 0 && collegati.length === 0 && altri.length === 0;
 
   return (
     <div className="flex flex-col gap-8">
-      {data.richiesteRicevute.length > 0 && (
+      {richiesteRicevute.length > 0 && (
         <Sezione titolo="Ti hanno chiesto il collegamento">
           <Carta>
-            {data.richiesteRicevute.map((membro) => (
+            {richiesteRicevute.map((membro) => (
               <Riga key={membro.id} membro={membro} errore={errore}>
                 <Button
                   size="sm"
@@ -289,10 +309,10 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
             segnaposto="Nome di un lettore"
             className="min-w-0 flex-1 sm:max-w-sm sm:flex-none"
           />
-          {data.collegati.length > 0 && (
+          {collegati.length > 0 && (
             <span className="t-meta t-num shrink-0 sm:ml-auto">
-              {data.collegati.length}{" "}
-              {data.collegati.length === 1 ? "collegato" : "collegati"}
+              {collegati.length}{" "}
+              {collegati.length === 1 ? "collegato" : "collegati"}
             </span>
           )}
         </div>
@@ -308,7 +328,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
             usa. `ghost` per entrare, `secondary` per uscire: essere in una
             modalità si dichiara con un riempimento, e `surface-2` è il
             piano di ciò che è sollevato. */}
-        {data.collegati.length > 0 && (
+        {collegati.length > 0 && (
           <div className="flex items-center justify-between gap-4">
             <p className="t-label">I tuoi collegamenti</p>
             <Button
@@ -325,9 +345,9 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
           </div>
         )}
 
-        {data.collegati.length > 0 && (
+        {collegati.length > 0 && (
           <Carta>
-            {data.collegati.map((membro) => {
+            {collegati.map((membro) => {
               const id = membro.collegamentoId!;
               if (inInterruzione.has(id)) {
                 return (
@@ -379,13 +399,13 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
           </Carta>
         )}
 
-        {data.altri.length > 0 && (
+        {altri.length > 0 && (
           <div className="flex flex-col gap-2">
-            {data.collegati.length > 0 && (
+            {collegati.length > 0 && (
               <p className="t-label pt-2">{cercando ? "Non collegati" : "Altri lettori"}</p>
             )}
             <Carta>
-              {data.altri.map((membro) =>
+              {altri.map((membro) =>
                 membro.statoRelazione === "in_attesa" ? (
                   <Riga key={membro.id} membro={membro} errore={errore}>
                     <span className="t-meta">Richiesta inviata</span>
@@ -429,7 +449,7 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
           </div>
         )}
 
-        {!cercando && data.altri.length > 0 && (
+        {!cercando && altri.length > 0 && (
           <p className="t-meta max-w-md">
             Gli ultimi arrivati. Se cerchi qualcuno in particolare, chiamalo per nome.
           </p>

@@ -53,7 +53,7 @@ def db(monkeypatch: pytest.MonkeyPatch) -> _Db:
             return None
 
     for modulo in (indicizzazione_semantica, ricostruzione_indici):
-        monkeypatch.setattr(modulo.database, "apri_connessione", _Connessione)
+        monkeypatch.setattr(modulo.database, "connessione_dal_pool", _Connessione)
 
     monkeypatch.setattr(indicizzazione_repository, "consenso_attivo", lambda c, u: finto.consenso)
     monkeypatch.setattr(

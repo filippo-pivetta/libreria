@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ToastProvider } from "@/providers/toast-provider";
 import { fontVariables } from "@/lib/fonts";
+import { RegistraServiceWorker } from "@/components/layout/registra-service-worker";
 import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
@@ -98,6 +99,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <a href="#contenuto" className="skip-link">
           Vai al contenuto
         </a>
+        {/* Non disegna niente: installa il service worker che dà all'app
+        aperta dalla schermata home una pagina propria quando la rete manca
+        (public/sw.js). Qui e non nell'area protetta perché deve valere anche
+        sul login. */}
+        <RegistraServiceWorker />
         <NextIntlClientProvider>
           <QueryProvider>
             <ToastProvider>{children}</ToastProvider>

@@ -24,7 +24,7 @@ def _run(coro: Any) -> Any:
 @pytest.fixture
 def scritture(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     registro: dict[str, Any] = {"proposte": []}
-    monkeypatch.setattr(modulo.database, "apri_connessione", lambda: _ConnessioneContesto())
+    monkeypatch.setattr(modulo.database, "connessione_dal_pool", lambda: _ConnessioneContesto())
     monkeypatch.setattr(
         modulo.catalogo_repository,
         "proponi_fusione_libro",

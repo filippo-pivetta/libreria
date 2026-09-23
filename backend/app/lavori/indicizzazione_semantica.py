@@ -36,7 +36,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     contenuto_id = UUID(str(payload["contenuto_id"]))
 
     def _leggi() -> tuple[bool | None, str | None]:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             consenso = indicizzazione_repository.consenso_attivo(connessione, utente_id)
             if consenso is not True:
                 return consenso, None
@@ -69,7 +69,7 @@ async def esegui(payload: dict[str, Any]) -> None:
         raise ErroreTransitorio(errore.motivo) from errore
 
     def _scrivi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             # Riletto qui dentro: fra la chiamata al fornitore e la
             # scrittura passano secondi, ed è la finestra in cui una
             # revoca può cadere.

@@ -36,6 +36,27 @@ Va affrontata prima che l'istanza abbia utenti che non si conoscono fra loro. Il
 corretto in modo da non giustificare più l'assenza con la chiusura del gruppo: la frase mentiva
 sullo stato del prodotto, e una motivazione sbagliata è peggio di una lacuna dichiarata.
 
+## L'app installata: due cose lasciate fuori
+
+Montaigne è installabile e ha una pagina propria quando la rete manca (docs/adr/0019). Restano
+fuori due cose, entrambe per scelta:
+
+- **Nessun invito a installare su iOS.** Su Android il browser offre "installa" da sé, appena il
+  manifesto è valido; Safari no, l'unica via è "Condividi → Aggiungi a Home" e nessun sito può
+  aprirla o suggerirla se non con un cartellino scritto a mano. Costruirlo vuol dire decidere dove
+  vive, quando compare e come si congeda per sempre — cioè un pezzo di prodotto che
+  `docs/design-frontend.md` non descrive. Finché non lo descrive, chi vuole l'icona sul telefono
+  la aggiunge come si aggiunge quella di qualunque sito.
+- **La rete che cade a metà sessione.** Oggi una navigazione o un salvataggio falliti mentre l'app
+  è già aperta danno il messaggio d'errore del catalogo, che è onesto ma è tutto. Next 16 offre
+  `experimental.useOffline`: tiene la richiesta in sospeso e la ripete quando la connessione
+  torna, e un `useOffline()` per dirlo a schermo. È sperimentale — quando non lo sarà più, vale la
+  prova.
+
+La rotta si chiama `/senza-rete`, in italiano come le altre pagine pubbliche: rientra nella
+rinomina complessiva tracciata in [#41](https://github.com/filippo-pivetta/libreria/issues/41),
+non è un'eccezione nuova.
+
 ## Chiuso nella sessione UI
 
 - Interfaccia bilingue (#34): le stringhe sono state estratte in `frontend/src/messaggi/it.ts`

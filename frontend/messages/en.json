@@ -131,6 +131,11 @@
     "aggiungo": "Adding…",
     "controlloInvito": "Checking the invite…"
   },
+  "senzaRete": {
+    "titolo": "No connection.",
+    "spiegazione": "Your library lives on the server, and right now it can’t be reached. Try again once you’re back online.",
+    "riprova": "Try again"
+  },
   "titoli": {
     "nonTrovata": "Not found",
     "nonTrovato": "Not found",

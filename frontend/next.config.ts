@@ -25,6 +25,30 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
       },
+      {
+        // Il service worker dell'app installata (public/sw.js) è l'unico
+        // file che non deve MAI arrivare dalla cache: è il pezzo di codice
+        // che decide cosa viene servito a tutti gli altri, e una sua copia
+        // vecchia continuerebbe a servire un guscio vecchio finché qualcuno
+        // non svuota la cache a mano — su un telefono, mesi. `no-store`
+        // insieme a `updateViaCache: "none"` nella registrazione (vedi
+        // src/components/layout/registra-service-worker.tsx) fa sì che una
+        // versione nuova venga vista al primo avvio.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
+      {
+        // Le icone dell'app cambiano solo se cambia il marchio, e il loro
+        // nome resta lo stesso: per questo una settimana e non un anno, e
+        // niente `immutable`. Con `immutable` un marchio nuovo resterebbe
+        // invisibile per un anno su ogni telefono che ha già l'app
+        // installata, senza alcun modo di forzarlo dal server.
+        source: "/icone/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800" }],
+      },
     ];
   },
 };

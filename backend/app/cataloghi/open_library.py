@@ -34,12 +34,27 @@ from typing import Any
 
 import httpx
 
-from app.cataloghi import agente
+from app.cataloghi import agente, trasporto
 from app.cataloghi.errori import FonteNonRaggiungibileError
 
 _URL = "https://openlibrary.org/search.json"
 _TIMEOUT = httpx.Timeout(8.0)
 _FONTE = "open_library"
+
+
+def _cliente() -> httpx.AsyncClient:
+    """Il client condiviso verso questa fonte: uno per processo, tenuto
+    aperto, mai dentro un `async with` (app/cataloghi/trasporto.py).
+
+    Le intestazioni contano: Open Library dà 3 richieste al secondo a
+    chi si identifica e 1 a chi resta anonimo (vedi `agente`)."""
+    return trasporto.cliente(
+        "open_library",
+        lambda: httpx.AsyncClient(
+            timeout=_TIMEOUT, headers=agente.intestazioni(), limits=trasporto.LIMITI
+        ),
+    )
+
 
 _CAMPI = (
     "key,title,author_name,first_publish_year,number_of_pages_median,"
@@ -105,10 +120,9 @@ async def _interroga(query: str, limite: int) -> list[OperaOL]:
     # blocking" — mentre una sola aggiunta interroga Open Library più
     # volte di fila (un ISBN dopo l'altro, poi la ricerca per testo).
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT, headers=agente.intestazioni()) as client:
-            risposta = await client.get(
-                _URL, params={"q": query, "fields": _CAMPI, "limit": str(limite)}
-            )
+        risposta = await _cliente().get(
+            _URL, params={"q": query, "fields": _CAMPI, "limit": str(limite)}
+        )
     except httpx.HTTPError as errore:
         raise FonteNonRaggiungibileError.da_httpx(_FONTE, errore) from errore
 

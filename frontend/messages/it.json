@@ -131,6 +131,11 @@
     "aggiungo": "Aggiungo…",
     "controlloInvito": "Controllo l’invito…"
   },
+  "senzaRete": {
+    "titolo": "Senza connessione.",
+    "spiegazione": "La tua libreria sta sul server, e in questo momento non si raggiunge. Riprova quando la connessione torna.",
+    "riprova": "Riprova"
+  },
   "titoli": {
     "nonTrovata": "Non trovata",
     "nonTrovato": "Non trovato",

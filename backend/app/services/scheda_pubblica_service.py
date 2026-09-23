@@ -160,7 +160,7 @@ async def _da_google(
 
 
 def _libro_per_riferimenti(riferimenti: list[tuple[str, str]]) -> UUID | None:
-    with database.apri_connessione() as connessione:
+    with database.connessione_dal_pool() as connessione:
         return catalogo_repository.libro_per_riferimenti(connessione, riferimenti)
 
 

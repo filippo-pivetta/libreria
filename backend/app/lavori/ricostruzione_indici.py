@@ -37,7 +37,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     utente_id = UUID(str(payload["utente_id"]))
 
     def _leggi() -> tuple[bool | None, list[tuple[str, UUID, str]]]:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             consenso = indicizzazione_repository.consenso_attivo(connessione, utente_id)
             if consenso is not True:
                 return consenso, []
@@ -70,7 +70,7 @@ async def esegui(payload: dict[str, Any]) -> None:
         def _scrivi(
             lotto: list[tuple[str, UUID, str]] = lotto, vettori: list[list[float]] = vettori
         ) -> bool:
-            with database.apri_connessione() as connessione:
+            with database.connessione_dal_pool() as connessione:
                 if indicizzazione_repository.consenso_attivo(connessione, utente_id) is not True:
                     return False
                 for (tipo, contenuto_id, _), vettore in zip(lotto, vettori, strict=True):
@@ -87,7 +87,7 @@ async def esegui(payload: dict[str, Any]) -> None:
             return
 
     def _concludi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             if indicizzazione_repository.consenso_attivo(connessione, utente_id) is True:
                 indicizzazione_repository.imposta_indici_stato(
                     connessione, utente_id, INDICI_PRONTI
@@ -108,7 +108,7 @@ async def su_fallimento(payload: dict[str, Any], errore: str) -> None:
     utente_id = UUID(str(payload["utente_id"]))
 
     def _scrivi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             indicizzazione_repository.imposta_indici_stato(connessione, utente_id, INDICI_SPENTI)
 
     await run_in_threadpool(_scrivi)

@@ -33,6 +33,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Montaigne",
     short_name: "Montaigne",
     description: "Le tue letture, in una stanza sola.",
+    // `id` fissa l'identità dell'applicazione installata, che altrimenti
+    // sarebbe `start_url`: il giorno che la pagina d'ingresso cambiasse,
+    // il browser tratterebbe l'app come una seconda app e chi ce l'ha già
+    // sulla schermata home si ritroverebbe due Montaigne.
+    id: "/",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -40,6 +45,38 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "it",
     theme_color: colore,
     background_color: colore,
-    icons: [{ src: "/favicon.ico", sizes: "any", type: "image/x-icon" }],
+    // Le tre icone che rendono l'app installabile davvero (issue PWA):
+    // finora ce n'era una sola, `/favicon.ico`, e Chrome non offre
+    // "installa" senza un PNG da 192 e uno da 512 — il manifesto c'era ma
+    // il pulsante non compariva mai.
+    //
+    // La terza, "maskable", non è un doppione della seconda: Android non
+    // disegna l'icona così com'è, la ritaglia nella forma decisa dal
+    // lanciatore (cerchio, goccia, squircle). Su un'icona con gli angoli
+    // già arrotondati e trasparenti quel ritaglio taglia due volte e la M
+    // resta in un'unghia in mezzo al vuoto; la versione mascherabile ha
+    // invece il fondo che arriva al bordo e la lettera dentro la zona
+    // sicura (il cerchio centrale all'80% del lato).
+    //
+    // `purpose: "any"` va dichiarato: senza, un'icona vale per entrambi
+    // gli usi e alcuni lanciatori sceglierebbero quella sbagliata.
+    // Generate da `npm run icone` (frontend/scripts/build-icone.mts), non
+    // disegnate a mano.
+    icons: [
+      { src: "/icone/icona-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icone/icona-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      {
+        src: "/icone/icona-mascherabile-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      // `sizes` dice le due misure che il file contiene davvero, non "any":
+      // Chrome apre l'.ico, misura, e con "any" registra a console un
+      // "Resource size is not correct - typo in the Manifest?" a ogni
+      // caricamento di pagina. È l'icona piccola, quella delle scorciatoie
+      // sul desktop; l'installazione vera la reggono i due PNG sopra.
+      { src: "/favicon.ico", sizes: "16x16 32x32", type: "image/x-icon" },
+    ],
   };
 }

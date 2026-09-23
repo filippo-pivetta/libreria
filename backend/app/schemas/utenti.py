@@ -48,13 +48,24 @@ class ElencoMembriResponse(BaseModel):
 
     `altri` è l'unico gruppo con un tetto (utenti_service.LIMITE_ELENCO) e
     porta in cima le richieste inviate. Non esiste alcun campo di
-    conteggio totale: su un'istanza pubblica quanti siano gli iscritti non
-    è un'informazione che l'elenco membri debba dare.
+    conteggio totale: quanti siano gli iscritti non è un'informazione che
+    l'elenco membri debba dare.
     """
 
     richieste_ricevute: list[MembroResponse]
     collegati: list[MembroResponse]
     altri: list[MembroResponse]
+    elenco_completo: bool = False
+    """True quando questi tre gruppi contengono già ogni membro, e chi
+    guarda può quindi cercare fra i nomi senza una nuova richiesta.
+
+    Non è un conteggio travestito: dice "c'è tutto" o "manca qualcosa",
+    mai quanti siano. Con una ricerca attiva è sempre False — si sta
+    guardando un sottoinsieme per definizione.
+
+    Il default è False perché il caso prudente è quello: un client che
+    non conosce questo campo, o una risposta in cui manca, continua a
+    interrogare il server come ha sempre fatto."""
 
 
 class LibreriaCollegatoResponse(BaseModel):

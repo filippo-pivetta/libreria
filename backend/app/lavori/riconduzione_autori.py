@@ -38,7 +38,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     cognome_nuovo = cognome(nome_variante)
 
     def _candidati() -> list[llm.CandidatoAutore]:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             tutti = catalogo_repository.tutti_autori(connessione)
             corrispondenti = [
                 (id_, nome)
@@ -84,7 +84,7 @@ async def esegui(payload: dict[str, Any]) -> None:
         return
 
     def _fondi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             catalogo_repository.fondi_autore(
                 connessione,
                 decisione.autore_id_canonico,

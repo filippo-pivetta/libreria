@@ -144,7 +144,7 @@ def _accoda_ricostruzione(utente_id: UUID) -> None:
     SELECT (docs/adr/0016): l'accodamento passa dalla connessione diretta,
     come già fa la nascita di una scheda in `POST /libri`.
     `uq_lavoro_pendente` rende l'operazione idempotente su doppio clic."""
-    with database.apri_connessione() as connessione:
+    with database.connessione_dal_pool() as connessione:
         lavoro_repository.accoda(
             connessione, "ricostruzione_indici", str(utente_id), {"utente_id": str(utente_id)}
         )

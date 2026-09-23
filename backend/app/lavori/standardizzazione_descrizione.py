@@ -39,7 +39,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     lingua = str(payload["lingua"])
 
     def _leggi() -> tuple[str | None, str, list[str], int | None, list[str]]:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             testo = catalogo_repository.leggi_descrizione(connessione, libro_id, lingua)
             titolo, autori, anno, generi = catalogo_repository.contesto_bibliografico(
                 connessione, libro_id
@@ -76,7 +76,7 @@ async def esegui(payload: dict[str, Any]) -> None:
         raise ErroreTransitorio(errore.motivo) from errore
 
     def _scrivi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             catalogo_repository.scrivi_descrizione_riformulata(
                 connessione, libro_id, lingua, testo_riformulato
             )

@@ -38,7 +38,7 @@ async def esegui(payload: dict[str, Any]) -> None:
     necessita: dict[str, bool] = dict(payload.get("necessita") or {})
 
     def _leggi_generi_ammessi() -> list[tuple[str, str]]:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             return catalogo_repository.generi_ammessi(connessione)
 
     # Solo se il genere è fra ciò che manca: quando il lavoro è stato
@@ -76,7 +76,7 @@ async def esegui(payload: dict[str, Any]) -> None:
         )
 
     def _scrivi() -> None:
-        with database.apri_connessione() as connessione:
+        with database.connessione_dal_pool() as connessione:
             catalogo_repository.scrivi_arricchimento_bibliografico(
                 connessione,
                 libro_id,

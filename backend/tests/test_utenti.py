@@ -94,9 +94,10 @@ def test_get_utenti_returns_three_groups(
     assert body["collegati"][0]["stato_relazione"] == "attiva"
     assert body["collegati"][0]["richiesta_ricevuta"] is False
     assert body["collegati"][0]["collegamento_id"] == "00000000-0000-0000-0000-0000000000c1"
-    # Nessun conteggio totale dei membri: su un'istanza pubblica quanti
-    # siano gli iscritti non è un'informazione che l'elenco debba dare.
-    assert set(body) == {"richieste_ricevute", "collegati", "altri"}
+    # Nessun conteggio totale dei membri: quanti siano gli iscritti non è
+    # un'informazione che l'elenco debba dare. `elenco_completo` non lo è:
+    # è un booleano, dice "c'è tutto" o "manca qualcosa" e mai quanti.
+    assert set(body) == {"richieste_ricevute", "collegati", "altri", "elenco_completo"}
 
 
 def test_get_utenti_passa_la_ricerca_al_servizio(
@@ -371,7 +372,7 @@ def test_elenco_divide_in_tre_gruppi(servizio_isolato: dict[str, Any]) -> None:
 
 
 def test_elenco_non_espone_alcun_totale(servizio_isolato: dict[str, Any]) -> None:
-    assert set(_elenco()) == {"richieste_ricevute", "collegati", "altri"}
+    assert set(_elenco()) == {"richieste_ricevute", "collegati", "altri", "elenco_completo"}
 
 
 def test_ricerca_troppo_corta_non_interroga_l_anagrafica(
@@ -399,7 +400,9 @@ def test_ricerca_filtra_anche_i_propri_collegati(servizio_isolato: dict[str, Any
 
     assert [m["nome_utente"] for m in risultato["collegati"]] == ["chiara"]
     assert servizio_isolato["chiamate"][0]["query"] == "CHI"
-    assert servizio_isolato["chiamate"][0]["limite"] == utenti_service.LIMITE_ELENCO
+    # Una riga in più del tetto: è la sentinella che dice se il tetto ha
+    # tagliato qualcosa (vedi `test_elenco_completo_*` sotto).
+    assert servizio_isolato["chiamate"][0]["limite"] == utenti_service.LIMITE_ELENCO + 1
     assert servizio_isolato["chiamate"][0]["soglia"] == utenti_service.SOGLIA_SOMIGLIANZA
 
 
@@ -408,3 +411,53 @@ def test_ricerca_di_soli_spazi_vale_come_nessuna_ricerca(
 ) -> None:
     _elenco(cerca="   ")
     assert servizio_isolato["chiamate"][0]["query"] is None
+
+
+def _sconosciuti(quanti: int) -> list[dict[str, Any]]:
+    return [
+        {"id": f"00000000-0000-0000-0000-{i:012d}", "nome_utente": f"lettore{i}"}
+        for i in range(quanti)
+    ]
+
+
+def test_elenco_completo_quando_ci_stanno_tutti(servizio_isolato: dict[str, Any]) -> None:
+    """Il caso normale di un'istanza a cerchia ristretta: chi riceve la
+    risposta ha davanti tutti i nomi, e la ricerca può restare nel
+    browser invece di diventare una richiesta per ogni battuta."""
+    servizio_isolato["sconosciuti"] = _sconosciuti(12)
+
+    risultato = _elenco()
+
+    assert risultato["elenco_completo"] is True
+    assert len(risultato["altri"]) == 12
+
+
+def test_elenco_incompleto_quando_il_tetto_taglia(servizio_isolato: dict[str, Any]) -> None:
+    """La riga in più non deve mai uscire: serve solo a sapere che c'era."""
+    servizio_isolato["sconosciuti"] = _sconosciuti(utenti_service.LIMITE_ELENCO + 1)
+
+    risultato = _elenco()
+
+    assert risultato["elenco_completo"] is False
+    assert len(risultato["altri"]) == utenti_service.LIMITE_ELENCO
+
+
+def test_una_ricerca_non_e_mai_un_elenco_completo(servizio_isolato: dict[str, Any]) -> None:
+    """Con una ricerca attiva si sta guardando un sottoinsieme: dichiararlo
+    completo farebbe credere a chi lo riceve di poter smettere di chiedere."""
+    servizio_isolato["sconosciuti"] = _sconosciuti(3)
+
+    risultato = _elenco(cerca="lettore")
+
+    assert risultato["elenco_completo"] is False
+
+
+def test_ricerca_troppo_corta_non_dichiara_l_elenco_completo(
+    servizio_isolato: dict[str, Any],
+) -> None:
+    """L'anagrafica non viene interrogata affatto: non si è visto niente,
+    quindi non si può dire di aver visto tutto."""
+    risultato = _elenco(cerca="l")
+
+    assert servizio_isolato["chiamate"] == []
+    assert risultato["elenco_completo"] is False

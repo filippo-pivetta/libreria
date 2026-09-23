@@ -20,6 +20,19 @@ export const config = {
     // di avvio. Non allarga la superficie esposta: il manifesto contiene
     // il nome dell'app, la descrizione e due colori, nessun dato di
     // lettura e nessun file conservato dal sistema.
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    //
+    // sw.js e senza-rete escluse per la stessa ragione delle due sopra,
+    // entrambe imposte dall'app installata (public/sw.js):
+    //
+    // - il file del service worker viene richiesto dal browser fuori dal
+    //   contesto della pagina; passando di qui, chi non ha sessione ne
+    //   riceverebbe un redirect al login, e la registrazione fallirebbe
+    //   perché al posto di JavaScript arriva HTML;
+    // - /senza-rete è la pagina che il service worker serve quando il
+    //   server non si raggiunge: farla dipendere da una sessione che quel
+    //   server dovrebbe validare è una contraddizione, e la copia messa in
+    //   cache durante l'installazione sarebbe la pagina di login. Non
+    //   contiene dati: due righe e un collegamento a "/".
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|manifest.webmanifest|sw.js|senza-rete|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
