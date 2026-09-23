@@ -159,6 +159,7 @@ export function Scaffale({
   if (isError) {
     return (
       <ErrorState
+        regione
         message={spiega("libreriaNonCaricata", erroreDi(error))}
         onRetry={() => void refetch()}
       />

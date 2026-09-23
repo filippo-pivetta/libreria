@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { me } from "@/lib/dati/profilo";
 import { preferenzaLuce } from "@/lib/luce-richiesta";
 import { ErrorState } from "@/components/states/error-state";
+import { RiprovaRotta } from "@/components/states/riprova-rotta";
 import { ScheletroElenco } from "@/components/states/scheletri";
 import { TestataPagina } from "@/components/layout/testata-pagina";
 import { SezioneImpostazioni } from "@/components/profilo/sezione-impostazioni";
@@ -52,13 +53,23 @@ async function Impostazioni() {
 
   if (profilo.status !== "ok") {
     const t = await getTranslations();
+    // Un account incompleto non è un guasto e non si riprova: ha una
+    // frase propria e nessun comando. Tutto il resto sì.
+    //
+    // `profiloNonCaricato` e non `libreriaNonCaricata`: qui non è la
+    // libreria a non essere arrivata, ed è la prima clausola — quella che
+    // nomina la cosa (§19) — a doverlo dire. Dal Profilo si leggeva "La
+    // libreria non è arrivata" su una pagina che di libri non ne mostra.
+    const incompleto = profilo.status === "not_provisioned";
     return (
       <ErrorState
+        regione
         message={
-          profilo.status === "not_provisioned"
+          incompleto
             ? t("assenze.accountIncompleto")
-            : await messaggioErrore("libreriaNonCaricata", profilo.errore)
+            : await messaggioErrore("profiloNonCaricato", profilo.errore)
         }
+        azione={incompleto ? undefined : <RiprovaRotta />}
       />
     );
   }

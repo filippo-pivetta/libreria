@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { vociMie } from "@/lib/dati/letture";
 import { ErrorState } from "@/components/states/error-state";
+import { RiprovaRotta } from "@/components/states/riprova-rotta";
 import { ScheletroScaffale } from "@/components/states/scheletri";
 import { Scaffale } from "@/components/libreria/scaffale";
 import { messaggioErrore } from "@/lib/messaggi-errore-server";
@@ -27,7 +28,18 @@ async function ScaffaleDellaLibreria() {
   const result = await vociMie();
 
   if (result.status === "error") {
-    return <ErrorState message={await messaggioErrore("libreriaNonCaricata", result.errore)} />;
+    // Regione, non riga: qui non è fallito un comando accanto a cui
+    // mettere una frase — è mancato il contenuto della pagina, e senza
+    // carta sotto restavano due righe nude in mezzo alla stanza vuota.
+    // E con un comando vero: la frase dice "riprova", e finché non c'era
+    // niente da premere lo diceva a vuoto (vedi `RiprovaRotta`).
+    return (
+      <ErrorState
+        regione
+        message={await messaggioErrore("libreriaNonCaricata", result.errore)}
+        azione={<RiprovaRotta />}
+      />
+    );
   }
 
   return <Scaffale vociIniziali={result.data} />;
