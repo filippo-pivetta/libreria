@@ -289,10 +289,13 @@ export function Scaffale({
             a capo: cinque etichette impilate rubavano una riga intera allo
             scaffale. Ora la riga è tutta loro — il conteggio che le stava in
             coda è uscito di qui — quindi il nastro usa l'intera larghezza.
-            `-ml-4 pl-4` fa sì che la prima pastiglia non resti incollata al
-            bordo dello schermo mentre si scorre indietro. */}
+
+            `.nastro-pastiglie` (tokens.css) al posto della fila di classi
+            scritta a mano: era la stessa, copiata in tre componenti, e con
+            lei si copiava il difetto che faceva scorrere il nastro anche in
+            verticale. Il perché sta tutto lì. */}
         <div
-          className="-ml-4 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pb-0 sm:pl-0"
+          className="nastro-pastiglie flex-1"
           role="group"
           aria-label="Filtra per stato"
         >

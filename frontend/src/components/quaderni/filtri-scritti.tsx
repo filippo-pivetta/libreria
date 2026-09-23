@@ -81,10 +81,11 @@ export function FiltriScrittiBarra({
   return (
     // Scorre in orizzontale sotto i 640px invece di andare a capo, come
     // la riga dello scaffale: sei etichette impilate ruberebbero due
-    // righe al corpus. `-ml-4 pl-4` tiene la prima staccata dal bordo
-    // dello schermo mentre si scorre indietro.
+    // righe al corpus. La meccanica del nastro — e il perché del padding
+    // verticale, che non è decorativo — sta in `.nastro-pastiglie`
+    // (tokens.css).
     <div
-      className="-ml-4 flex min-w-0 gap-2 overflow-x-auto pb-1 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pb-0 sm:pl-0"
+      className="nastro-pastiglie"
       role="group"
       aria-label="Filtra i tuoi scritti"
     >

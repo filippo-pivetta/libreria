@@ -189,7 +189,7 @@ export function Temi({
           erano la stessa riga con `overflow-x-auto`, quindi tutto ciò che
           stava dopo l'ultima pastiglia usciva dallo schermo con lei. */}
       <div className="flex min-w-0 items-center gap-2">
-        <div className="-ml-4 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pb-0 sm:pl-0">
+        <div className="nastro-pastiglie flex-1 items-center">
           <span className="t-label shrink-0 pr-1">Temi</span>
 
           {temi.map((tema, indice) => {

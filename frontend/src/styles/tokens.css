@@ -585,6 +585,69 @@
   min-height: var(--tap);
 }
 
+/* IL NASTRO DI PASTIGLIE — e perché scorreva anche in verticale.
+
+   Sotto i 640px le file di pastiglie (i filtri dello scaffale, i filtri dei
+   Quaderni, i temi) scorrono in orizzontale invece di andare a capo. Erano
+   tre copie della stessa riga di classi scritte a mano nei tre componenti, e
+   tutte e tre portavano lo stesso difetto.
+
+   `overflow-x: auto` da solo NON lascia l'altro asse visibile: la regola CSS
+   sui valori calcolati di `overflow` dice che se un asse non è `visible`,
+   l'altro smette di esserlo davvero e si comporta come `auto`. È la stessa
+   bugia già annotata su `.reading-band` più sotto, e qui aveva un effetto
+   visibile: `.bersaglio::before` — lo pseudo-elemento che porta a 44px l'area
+   sensibile di una pastiglia alta 30 — deborda di 7px sopra e 7px sotto il
+   riquadro. Quei 7px in basso diventavano corsa di scorrimento verticale
+   dentro un nastro che doveva scorrere solo in orizzontale: la fila si
+   spostava su e giù di qualche pixel sotto il dito, e in mezzo a uno
+   scorrimento orizzontale quel movimento si legge come un guasto.
+
+   (Il `padding-bottom: 4px` che c'era prima non era una svista: bastava
+   all'anello di fuoco, 2px di contorno più 2px di scostamento. Non sapeva
+   dello pseudo-elemento, che è più alto.)
+
+   Rimedio: lo stesso di `.reading-band`, cioè quello che il difetto chiede —
+   padding abbastanza largo da contenere ciò che deborda, e un margine
+   negativo uguale e contrario perché il nastro non sposti nulla intorno a sé.
+   Otto pixel coprono sia i 7 dello pseudo-elemento sia i 4 dell'anello.
+   `padding-left` senza il suo negativo a destra è voluto e viene da prima:
+   tiene la prima pastiglia staccata dal bordo dello schermo mentre si scorre
+   indietro.
+
+   Sopra i 640px non c'è nastro: le pastiglie vanno a capo e l'overflow torna
+   visibile, quindi padding e margini se ne vanno con lui.
+
+   ATTENZIONE alla cascata, che qui è la solita di questo file: questa regola
+   sta fuori da ogni `@layer` e le utility di Tailwind stanno in
+   `@layer utilities`, quindi il CSS senza layer VINCE. Un `gap-3`, un `px-2`
+   o un `overflow-visible` scritti sullo stesso elemento perderebbero in
+   silenzio contro le righe qui sotto — lo stesso inciampo che per mesi ha
+   fatto vincere `.t-label` su `text-ink`. Ciò che questa classe non tocca
+   (`flex-1`, `items-center`, i colori) si scrive tranquillamente sul
+   componente. */
+.nastro-pastiglie {
+  display: flex;
+  min-width: 0;
+  gap: var(--sp2);
+  overflow-x: auto;
+  padding: var(--sp2) 0 var(--sp2) var(--sp4);
+  margin: calc(var(--sp2) * -1) 0 calc(var(--sp2) * -1) calc(var(--sp4) * -1);
+  scrollbar-width: none;
+}
+.nastro-pastiglie::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .nastro-pastiglie {
+    flex-wrap: wrap;
+    overflow: visible;
+    padding: 0;
+    margin: 0;
+  }
+}
+
 @media (pointer: coarse) {
   :root {
     --stella: 2.5rem;
