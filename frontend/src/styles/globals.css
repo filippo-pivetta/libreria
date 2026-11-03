@@ -13,6 +13,11 @@
 @layer base {
   html {
     height: 100%;
+    /* Spazio della barra di scorrimento sempre riservato: senza, la pagina
+       si restringe (e "scatta") quando il contenuto passa da corto a lungo,
+       per esempio filtrando la Libreria. Senza effetto dove le barre sono
+       sovrapposte al contenuto (telefoni, macOS di default). */
+    scrollbar-gutter: stable;
   }
 
   html,

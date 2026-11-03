@@ -53,7 +53,7 @@ const STATI: { valore: StatoVoce; etichetta: string }[] = [
  *   1. il campo, che sale in cima e prende la riga che il titolo lasciava
  *      libera, con l'azione primaria accanto. "La tua libreria" non c'è più:
  *      lo dice la voce accesa in barra, e su telefono la linguetta in fondo;
- *   2. le pastiglie, ADDITIVE invece che a sottrazione, col conteggio in fondo
+ *   2. le pastiglie, una sola accesa alla volta, col conteggio in fondo
  *      alla stessa riga — che è esattamente ciò che le pastiglie decidono;
  *   3. lo scaffale, che finalmente ha anche lui un'intestazione: prima ce
  *      l'aveva solo la fascia in cima.
@@ -78,8 +78,8 @@ export function Scaffale({
   const t = useTranslations();
   const spiega = useMessaggioErrore();
   const [filtroTesto, setFiltroTesto] = useState("");
-  // Additivo: l'insieme vuoto vuole dire "tutti", non "nessuno".
-  const [statiInclusi, setStatiInclusi] = useState<Set<StatoVoce>>(() => new Set());
+  // Uno stato alla volta: `null` vuol dire "tutti".
+  const [statoScelto, setStatoScelto] = useState<StatoVoce | null>(null);
   const [containerRef, larghezza] = useContainerWidth<HTMLDivElement>();
   const [sondaRef, misure] = useMisureScaffale();
 
@@ -125,24 +125,17 @@ export function Scaffale({
   const filtrate = useMemo(() => {
     const testo = filtroTesto.trim().toLowerCase();
     return data.filter((voce) => {
-      if (statiInclusi.size > 0 && !statiInclusi.has(voce.stato)) return false;
+      if (statoScelto !== null && voce.stato !== statoScelto) return false;
       if (!testo) return true;
       const dentroTitolo = voce.libro.titoloCanonico.toLowerCase().includes(testo);
       const dentroAutore = nomiAutori(voce.libro.autori).toLowerCase().includes(testo);
       return dentroTitolo || dentroAutore;
     });
-  }, [data, filtroTesto, statiInclusi]);
+  }, [data, filtroTesto, statoScelto]);
 
-  function toggleStato(stato: StatoVoce) {
-    setStatiInclusi((precedente) => {
-      const successivo = new Set(precedente);
-      if (successivo.has(stato)) {
-        successivo.delete(stato);
-      } else {
-        successivo.add(stato);
-      }
-      return successivo;
-    });
+  // Toccare la pastiglia già accesa torna a "Tutti".
+  function scegliStato(stato: StatoVoce) {
+    setStatoScelto((precedente) => (precedente === stato ? null : stato));
   }
 
   if (isPending) {
@@ -268,14 +261,17 @@ export function Scaffale({
         )}
       </div>
 
-      {/* 2. LE PASTIGLIE, ADDITIVE.
+      {/* 2. LE PASTIGLIE, UNA ALLA VOLTA.
 
           Erano cinque e nascevano tutte accese: si spegneva per escludere.
           Cinque bersagli accesi che nessuno ha toccato dicono "cinque filtri
           applicati" quando non ne è applicato nessuno, e `aria-pressed`
           raccontava all'assistente vocale l'inverso di quel che l'Utente
           crede di fare. Ora nessuna nasce accesa, "Tutti" è lo stato di
-          partenza dichiarato invece che dedotto, e le accese si sommano.
+          partenza dichiarato invece che dedotto.
+
+          Una sola accesa alla volta (novembre 2026): sceglierne una spegne
+          la precedente, ritoccarla torna a "Tutti".
 
           Il conteggio non sta più in coda a questa riga (emendamento 25
           agosto 2026): un numero perenne in mezzo ai comandi si legge come
@@ -299,22 +295,22 @@ export function Scaffale({
         >
           <button
             type="button"
-            aria-pressed={statiInclusi.size === 0}
-            onClick={() => setStatiInclusi(new Set())}
+            aria-pressed={statoScelto === null}
+            onClick={() => setStatoScelto(null)}
             {...attributiPastiglia}
-            className={pastigliaVariants({ taglia: "filtro", acceso: statiInclusi.size === 0 })}
+            className={pastigliaVariants({ taglia: "filtro", acceso: statoScelto === null })}
           >
             Tutti
           </button>
           {STATI.map(({ valore, etichetta }) => {
-            const attivo = statiInclusi.has(valore);
+            const attivo = statoScelto === valore;
             const ribbon = RIBBON[valore];
             return (
               <button
                 key={valore}
                 type="button"
                 aria-pressed={attivo}
-                onClick={() => toggleStato(valore)}
+                onClick={() => scegliStato(valore)}
                 {...attributiPastiglia}
                 className={pastigliaVariants({ taglia: "filtro", acceso: attivo })}
               >
