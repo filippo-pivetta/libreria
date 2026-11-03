@@ -84,7 +84,7 @@ export type SintesiResult =
   | { status: "error"; errore: ErroreApi };
 
 function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }

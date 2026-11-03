@@ -1,13 +1,11 @@
-"use client";
-
 import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 
 import type { Risultato } from "@/lib/api/ricerca";
 import { Button } from "@/components/ui/button";
 import { Messaggio } from "@/components/ui/messaggio";
 import { percorsoScheda } from "@/lib/percorso-scheda";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 
 /**
  * Una riga dei risultati di ricerca.
@@ -162,8 +160,6 @@ function Copertina({ risultato }: { risultato: Risultato }) {
       style={colore ? { backgroundColor: colore } : undefined}
     >
       {risultato.copertinaUrl ? (
-        /* eslint-disable-next-line @next/next/no-img-element -- immagine
-           remota di un dominio esterno, non ottimizzabile da next/image */
         <img
           src={risultato.copertinaUrl}
           alt=""

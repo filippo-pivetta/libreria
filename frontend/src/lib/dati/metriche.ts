@@ -1,29 +1,21 @@
-import { cacheLife } from "next/cache";
+import { queryOptions } from "@tanstack/react-query";
 
-import {
-  getMetriche,
-  getMetricheCollegato,
-  type MetricheResult,
-  type MetricheCollegatoResult,
-} from "@/lib/api/metriche";
-import { contesto } from "@/lib/dati/sessione";
-import { DURATA_DATI_PERSONALI } from "@/lib/dati/durata";
+import { getAccessToken } from "@/lib/api/access-token";
+import { conUnSecondoTentativo } from "@/lib/dati/sessione";
+import { getMetriche, getMetricheCollegato } from "@/lib/api/metriche";
 
-/** Le proprie metriche. `anno` omesso: l'anno corrente in Europa
- * centrale, deciso dal backend — mai dedotto qui. */
-export async function metricheMie(anno?: number): Promise<MetricheResult> {
-  "use cache: private";
-  cacheLife(DURATA_DATI_PERSONALI);
-  const { accessToken, lingua } = await contesto();
-  return getMetriche(accessToken, anno, lingua);
+/** Le proprie metriche dell'anno corrente, che sceglie il backend (fuso
+ * Europa centrale). Il cambio d'anno lo gestisce `PaginaAnnali`. */
+export function metricheMie() {
+  return queryOptions({
+    queryKey: ["rotta", "metriche"],
+    queryFn: () => conUnSecondoTentativo(async () => getMetriche(await getAccessToken())),
+  });
 }
 
-export async function metricheCollegato(
-  utenteId: string,
-  anno?: number,
-): Promise<MetricheCollegatoResult> {
-  "use cache: private";
-  cacheLife(DURATA_DATI_PERSONALI);
-  const { accessToken, lingua } = await contesto();
-  return getMetricheCollegato(accessToken, utenteId, anno, lingua);
+export function metricheCollegato(utenteId: string) {
+  return queryOptions({
+    queryKey: ["rotta", "metriche-collegato", utenteId],
+    queryFn: () => conUnSecondoTentativo(async () => getMetricheCollegato(await getAccessToken(), utenteId)),
+  });
 }

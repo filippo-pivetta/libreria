@@ -44,7 +44,7 @@ export async function generaSuggerimenti(
   accessToken: string,
   nota?: string | null,
 ): Promise<SuggerimentiResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }

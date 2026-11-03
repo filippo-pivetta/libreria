@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 /*
  * Bug fixed on Aug 19, 2026: this reset used to live outside any @layer.
@@ -46,7 +47,7 @@
  * no component ever hand-writes a color. Imported after "tailwindcss" as
  * required by the design-token package.
  */
-@import "../styles/tokens.css";
+@import "./tokens.css";
 
 /* Ingresso di un toast d'errore (providers/toast-provider.tsx): solo
 transform/opacity, come impone tokens.css §6. Neutralizzata in automatico

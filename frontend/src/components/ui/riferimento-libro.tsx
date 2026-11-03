@@ -1,5 +1,3 @@
-"use client";
-
 
 import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import { IconaLibro } from "@/components/ui/icone";

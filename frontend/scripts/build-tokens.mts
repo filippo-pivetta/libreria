@@ -1,22 +1,25 @@
 /* =============================================================================
- * Genera src/styles/tokens.anchors.css da src/lib/light.ts.
+ * Genera da src/lib/light.ts:
+ *   - src/styles/tokens.anchors.css, i quattro ancoraggi come variabili CSS;
+ *   - public/manifest.webmanifest, il cui colore è il piano 0 del giorno.
  *
  * La palette ha una sorgente di verità sola, che è `ANCHORS` in light.ts. Il CSS
- * serve come fallback per l'idratazione e per lo sviluppo senza server: senza
+ * serve come fallback se lo script della luce non gira: senza
  * generazione, i due file diverge­rebbero in silenzio e il difetto si vedrebbe
  * solo in una fascia oraria che nessuno guarda.
  *
- * Uso:  pnpm tokens        (package.json: "tokens": "tsx scripts/build-tokens.mts")
+ * Uso:  npm run tokens        (package.json: "tokens": "tsx scripts/build-tokens.mts")
  * In CI: rigenerare e fallire se il file risulta modificato.
  * ========================================================================== */
 
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ANCHORS, type Anchor, type Palette } from "../src/lib/light.js";
+import { ANCHORS, themeColorHex, type Anchor, type Palette } from "../src/lib/light.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(here, "../src/styles/tokens.anchors.css");
+const MANIFESTO = resolve(here, "../public/manifest.webmanifest");
 
 const fmt = (x: { l: number; c: number; h: number; a?: number }) =>
   x.a !== undefined && x.a < 1
@@ -48,7 +51,7 @@ const css = `/* GENERATO DA scripts/build-tokens.mts. NON MODIFICARE A MANO.
 
    Il server calcola il valore INTERPOLATO fra i due ancoraggi adiacenti e lo
    inietta come style inline su <html>, che vince su questi blocchi. Restano
-   come fallback e come stato di partenza per l'idratazione.
+   come fallback se lo script della luce non gira.
 
    Non esistono un tema chiaro e un tema scuro: esiste una stanza che dal
    mattino alla notte si scurisce. Questi sono quattro momenti della stessa
@@ -62,14 +65,50 @@ ${order
   .join("\n\n")}
 `;
 
-const prev = existsSync(OUT) ? readFileSync(OUT, "utf8") : "";
-if (prev === css) {
-  console.log("tokens.anchors.css già aggiornato");
-} else {
-  writeFileSync(OUT, css, "utf8");
-  console.log(`scritto ${OUT}`);
-  if (process.env.CI) {
-    console.error("I token generati non erano aggiornati. Esegui `pnpm tokens` e committa.");
-    process.exit(1);
+/* Il manifesto dell'app installata. Il colore è quello del giorno e non
+   quello del momento: è un file statico, e il browser lo usa solo per lo
+   schermo di avvio, prima che lo script della luce abbia girato. */
+const colore = themeColorHex(ANCHORS.giorno);
+const manifesto =
+  JSON.stringify(
+    {
+      name: "Montaigne",
+      short_name: "Montaigne",
+      description: "Le tue letture, in una stanza sola.",
+      id: "/",
+      start_url: "/",
+      scope: "/",
+      display: "standalone",
+      orientation: "portrait",
+      lang: "it",
+      theme_color: colore,
+      background_color: colore,
+      icons: [
+        { src: "/icone/icona-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/icone/icona-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/icone/icona-mascherabile-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        { src: "/favicon.ico", sizes: "16x16 32x32", type: "image/x-icon" },
+      ],
+    },
+    null,
+    2,
+  ) + "\n";
+
+let cambiati = 0;
+for (const [percorso, contenuto] of [
+  [OUT, css],
+  [MANIFESTO, manifesto],
+] as const) {
+  const prev = existsSync(percorso) ? readFileSync(percorso, "utf8") : "";
+  if (prev === contenuto) {
+    console.log(`${percorso} già aggiornato`);
+  } else {
+    writeFileSync(percorso, contenuto, "utf8");
+    console.log(`scritto ${percorso}`);
+    cambiati++;
   }
+}
+if (cambiati > 0 && process.env.CI) {
+  console.error("I file generati non erano aggiornati. Esegui `npm run tokens` e committa.");
+  process.exit(1);
 }

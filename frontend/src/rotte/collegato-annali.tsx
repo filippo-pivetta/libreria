@@ -1,64 +1,52 @@
-import { Suspense } from "react";
-import { getTranslations } from "next-intl/server";
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router";
+import { useTranslations } from "use-intl";
 
 import { vociMie } from "@/lib/dati/letture";
 import { libreriaCollegato } from "@/lib/dati/membri";
-import { metricheMie, metricheCollegato as metricheDelCollegato } from "@/lib/dati/metriche";
+import { metricheMie, metricheCollegato } from "@/lib/dati/metriche";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 import { ErrorState } from "@/components/states/error-state";
+import { RiprovaRotta } from "@/components/states/riprova-rotta";
 import { ScheletroAnnali } from "@/components/states/scheletri";
 import { PaginaAnnaliCollegato } from "@/components/annali/pagina-annali-collegato";
-import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
- * Scheda "Annali" del contesto di un collegato (design doc §15, issue
- * #7): le sue metriche di lettura, calcolate sui suoi dati — la
- * visibilità è già garantita dalla RLS di collegamento (nessuna riga di
- * lettura è raggiungibile senza un collegamento attivo, issue #3), ma
- * `GET /utenti/{id}/metriche` resta comunque protetta esplicitamente
- * (403 `non_collegato` distinto da 404 utente inesistente), come
- * `GET /utenti/{id}/voci`.
+ * Scheda "Annali" del contesto di un collegato (design doc §15, issue #7): le
+ * sue metriche di lettura, calcolate sui suoi dati. `GET /utenti/{id}/metriche`
+ * resta protetta esplicitamente (403 `non_collegato` distinto da 404 utente
+ * inesistente), come `GET /utenti/{id}/voci`.
  *
- * Il layout di questa cartella ha già verificato l'accesso prima di
- * renderizzare questa pagina: quattro fetch in parallelo, non in
- * cascata — le due librerie servono solo ai libri in comune, le due
- * metriche alla scheda e all'affiancamento. Una di quelle quattro,
- * `libreriaCollegato`, è la stessa che il layout ha già risolto: passando
- * da `lib/dati` non è più una seconda andata di rete.
+ * Quattro letture in parallelo, non in cascata — le due librerie servono solo
+ * ai libri in comune, le due metriche alla scheda e all'affiancamento — e il
+ * loader della rotta le ha già fatte partire tutte e quattro.
  */
-export default function AnnaliCollegatoPage(props: PageProps<"/lettori/[id]/annali">) {
-  return (
-    <Suspense fallback={<ScheletroAnnali />}>
-      <AnnaliDelCollegato params={props.params} />
-    </Suspense>
-  );
-}
+export default function AnnaliCollegatoPage() {
+  const t = useTranslations();
+  const spiega = useMessaggioErrore();
+  const { id = "" } = useParams();
+  const propria = useQuery(vociMie());
+  const collegato = useQuery(libreriaCollegato(id));
+  const metrichePropria = useQuery(metricheMie());
+  const metricheSue = useQuery(metricheCollegato(id));
 
-async function AnnaliDelCollegato({
-  params,
-}: {
-  params: PageProps<"/lettori/[id]/annali">["params"];
-}) {
-  const { id } = await params;
-  const [propria, collegato, metrichePropria, metricheSue] = await Promise.all([
-    vociMie(),
-    libreriaCollegato(id),
-    metricheMie(),
-    metricheDelCollegato(id),
-  ]);
+  if (collegato.isPending || metricheSue.isPending || metrichePropria.isPending || propria.isPending) {
+    return <ScheletroAnnali />;
+  }
 
-  if (collegato.status !== "ok") {
-    // Corsa fra le richieste, non un errore di logica: il layout ha già
-    // verificato l'accesso (stesso trattamento di ../page.tsx).
-    const t = await getTranslations();
+  if (collegato.data?.status !== "ok") {
+    // Corsa fra le richieste, non un errore di logica: il guscio ha già
+    // verificato l'accesso (stesso trattamento di `rotte/collegato.tsx`).
     return <ErrorState message={t("assenze.libreriaIrraggiungibile")} />;
   }
-  if (metricheSue.status !== "ok") {
+  if (metricheSue.data?.status !== "ok") {
     return (
       <ErrorState
-        message={await messaggioErrore(
+        message={spiega(
           "metricheSueNonCaricate",
-          metricheSue.status === "error" ? metricheSue.errore : undefined,
+          metricheSue.data?.status === "error" ? metricheSue.data.errore : undefined,
         )}
+        azione={<RiprovaRotta riprova={metricheSue.refetch} />}
       />
     );
   }
@@ -66,11 +54,11 @@ async function AnnaliDelCollegato({
   return (
     <PaginaAnnaliCollegato
       utenteId={id}
-      nomeUtente={collegato.utente.nomeUtente}
-      metricheCollegatoIniziali={metricheSue.data}
-      metrichePropriaIniziale={metrichePropria.status === "ok" ? metrichePropria.data : null}
-      vociProprie={propria.status === "ok" ? propria.data : []}
-      vociCollegato={collegato.voci}
+      nomeUtente={collegato.data.utente.nomeUtente}
+      metricheCollegatoIniziali={metricheSue.data.data}
+      metrichePropriaIniziale={metrichePropria.data?.status === "ok" ? metrichePropria.data.data : null}
+      vociProprie={propria.data?.status === "ok" ? propria.data.data : []}
+      vociCollegato={collegato.data.voci}
     />
   );
 }

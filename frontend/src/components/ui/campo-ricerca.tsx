@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 
 import { IconaChiudi, IconaLente } from "@/components/ui/icone";

@@ -1,7 +1,5 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "@/components/ui/link";
+import { useLocation } from "react-router";
 
 import { iniziali } from "@/lib/iniziali";
 
@@ -30,7 +28,7 @@ export function PortaProfilo({
   userName: string;
   conNome?: boolean;
 }) {
-  const pathname = usePathname();
+  const pathname = useLocation().pathname;
   const attiva = pathname.startsWith("/profilo");
 
   return (

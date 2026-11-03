@@ -214,7 +214,7 @@
      È l'unica ragione per cui il piano 0 non è del tutto piatto.
 
      BUG TROVATO IL 26 AGOSTO 2026: "non si muove" era scritto, non vero.
-     `.plane-0-lit` sta sul contenitore di pagina (`app/(protected)/layout.tsx`,
+     `.plane-0-lit` sta sul contenitore di pagina (`rotte/area-pubblica.tsx`,
      `min-h-screen flex flex-col`), la cui altezza NON è il viewport ma
      quella del contenuto — cresce con la pagina. Le percentuali di un
      `radial-gradient` (posizione E raggio, quando espresso in %) sono
@@ -344,7 +344,7 @@
 
      I `--safe-*` valgono zero ovunque tranne dove il sistema dichiara un
      intaglio o un indicatore home. Richiedono `viewport-fit: cover`, che
-     sta in `generateViewport()` (app/layout.tsx): senza quello restano
+     sta nel meta viewport di `index.html`: senza quello restano
      zero anche su un iPhone.
      -------------------------------------------------------------------- */
   --tap: 44px;
@@ -1121,8 +1121,8 @@
 /* -----------------------------------------------------------------------------
    5. TIPOGRAFIA
    Tre famiglie, tre ruoli, nessuna sovrapposizione.
-   Le variabili --font-* sono popolate da next/font/local (subset latino,
-   nessuna richiesta a terzi in produzione).
+   Le variabili --font-* sono popolate da `styles/fonts.css` (subset
+   latino, nessuna richiesta a terzi in produzione).
 
      display  Fraunces      insegna, titoli di pagina, titoli dei libri
      read     Literata      insight, recensioni, note, ogni testo lungo

@@ -1,7 +1,5 @@
-"use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -25,7 +23,6 @@ import {
 import { Messaggio } from "@/components/ui/messaggio";
 import { SceltaLuce } from "@/components/profilo/scelta-luce";
 import { SignOutButton } from "@/components/layout/sign-out-button";
-import { type PreferenzaLuce } from "@/lib/light";
 import { ErroreApp, assenza, erroreDi, regola } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 
@@ -59,7 +56,6 @@ export function SezioneImpostazioni({
   nomeUtente,
   consensoIniziale,
   indiciStatoIniziale,
-  preferenzaLuce,
 }: {
   /** Serve solo a verificare lato client che la conferma digitata nella
    * cancellazione coincida: il confronto che conta è comunque rifatto
@@ -67,15 +63,12 @@ export function SezioneImpostazioni({
    * disabilitato. */
   nomeUtente: string;
   consensoIniziale: boolean;
-  /** Letta dal cookie nel layout radice e passata giù: il client non legge
-   * mai il cookie da sé, perché la palette la calcola il server. */
-  preferenzaLuce: PreferenzaLuce;
   /** Stato reale letto da `/me`: senza questo la sezione poteva solo
    * indovinare "in ricostruzione" dal booleano del consenso, senza mai
    * sapere se una ricostruzione precedente fosse davvero finita. */
   indiciStatoIniziale: IndiciStato;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const spiega = useMessaggioErrore();
   const [consenso, setConsenso] = useState(consensoIniziale);
@@ -174,7 +167,7 @@ export function SezioneImpostazioni({
       } catch {
         // ignorato deliberatamente
       }
-      router.push("/account-eliminato");
+      navigate("/account-eliminato");
     },
     onError: (err: unknown) => {
       setErroreCancellazione(
@@ -217,7 +210,7 @@ export function SezioneImpostazioni({
           La stanza si scurisce da sé, dal mattino alla notte. Se la preferisci ferma,
           scegli il giorno o la notte.
         </p>
-        <SceltaLuce iniziale={preferenzaLuce} />
+        <SceltaLuce />
       </section>
 
       {/* IL COMANDO PRIMA DEL TESTO.

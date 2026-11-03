@@ -1,0 +1,85 @@
+<!doctype html>
+<!--
+  La pagina che si vede quando la rete non c'è.
+
+  Non è raggiungibile navigando: la serve `public/sw.js` al posto di una
+  navigazione fallita. Un'app aperta dalla schermata home non ha barra degli
+  indirizzi, quindi senza service worker mostrerebbe la pagina d'errore del
+  browser dentro una finestra da cui non si esce.
+
+  Tre vincoli:
+  1. Niente dati. Nessuna sessione, nessuna chiamata: la copia in cache
+     sopravvive alla disconnessione e alla cancellazione dell'account
+     (docs/adr/0011).
+  2. Funziona senza JavaScript. È HTML scritto a mano più il CSS dell'app:
+     "Riprova" è un collegamento vero a `/`, e l'unico script (la lingua) può
+     mancare senza danni, l'italiano è già lì.
+  3. È una seconda pagina del build (`vite.config.ts`), quindi riceve lo stesso
+     script della luce inline di `index.html`: la stanza è quella dell'ora in cui
+     la si legge, non quella del momento in cui è finita in cache.
+
+  I testi vengono da `messages/{it,en}.json` → `senzaRete`: i segnaposto
+  `%it:…%` e `%en:…%` (seguiti dalla chiave) li riempie il build (`vite.config.ts`).
+-->
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#e7e1d8" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/src/styles/globals.css" />
+    <!-- Dichiarati qui e non solo nel CSS: `public/sw.js` mette al riparo i
+         file che trova nell'HTML di questa pagina, e senza i caratteri la si
+         vedrebbe in Times proprio quando è l'unica cosa che si vede. -->
+    <link rel="preload" href="/src/fonts/Fraunces-Variable-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/src/fonts/Literata-Variable-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/src/fonts/InterTight-Variable-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <title>Montaigne</title>
+  </head>
+  <body>
+    <div class="flex min-h-screen items-center justify-center p-4">
+      <div class="w-full max-w-sm">
+        <div
+          class="plane-1 grain flex flex-col gap-4 overflow-hidden py-4 text-sm text-ink"
+        >
+          <div class="flex flex-col gap-2 px-4 py-2 text-center">
+            <p class="font-ui text-sm font-medium text-ink" data-en="%en:senzaRete.titolo%">
+              %it:senzaRete.titolo%
+            </p>
+            <p
+              class="text-sm text-pretty text-ink-soft"
+              data-en="%en:senzaRete.spiegazione%"
+            >
+              %it:senzaRete.spiegazione%
+            </p>
+            <a
+              href="/"
+              class="mt-2 inline-flex h-8 items-center justify-center gap-1.5 self-center rounded-field border border-line-strong bg-surface-1 px-3 font-ui text-[0.8125rem] font-medium whitespace-nowrap text-ink transition-colors duration-(--dur-micro) hover:bg-surface-2"
+              data-en="%en:senzaRete.riprova%"
+            >
+              %it:senzaRete.riprova%
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Stessa regola di `src/lib/lingua.ts`: inglese solo se il browser lo
+      // preferisce all'italiano, altrimenti resta il testo già scritto.
+      (function () {
+        var lingue = navigator.languages || [navigator.language || ""];
+        for (var i = 0; i < lingue.length; i++) {
+          var codice = String(lingue[i]).split("-")[0].toLowerCase();
+          if (codice === "it") return;
+          if (codice === "en") {
+            document.documentElement.lang = "en";
+            var nodi = document.querySelectorAll("[data-en]");
+            for (var j = 0; j < nodi.length; j++) nodi[j].textContent = nodi[j].getAttribute("data-en");
+            return;
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

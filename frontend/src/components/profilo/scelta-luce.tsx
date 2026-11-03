@@ -1,10 +1,7 @@
-"use client";
-
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { type PreferenzaLuce } from "@/lib/light";
-import { impostaLuce } from "@/components/profilo/azione-luce";
+import { applicaLuce, leggiPreferenza, salvaPreferenza } from "@/lib/luce-browser";
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { Messaggio } from "@/components/ui/messaggio";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
@@ -30,34 +27,29 @@ const OPZIONI: { valore: PreferenzaLuce; etichetta: string }[] = [
  * opzioni, quella che nessuno deve scegliere per averla. Due collegati che non
  * toccano nulla continuano a vedere la stessa stanza alla stessa ora.
  *
- * **Ottimistico come ogni altro comando dell'app.** Il gruppo si muove subito,
- * poi `router.refresh()` fa ricalcolare al server la palette e il
- * `theme-color`. Se la scrittura non riesce, torna al valore precedente con
- * l'errore in testo — mai un riquadro rosso (§19).
+ * **Immediato.** La preferenza sta in `localStorage` e la palette si ricalcola
+ * nel browser (`lib/luce-browser.ts`), quindi la stanza cambia nell'istante del
+ * clic. Se il browser non conserva la scelta (dati del sito bloccati), il
+ * gruppo resta sul valore precedente con l'errore in testo — mai un riquadro
+ * rosso (§19).
  *
  * Un gruppo di radio e non tre pulsanti: sono tre valori mutuamente esclusivi
  * di una stessa proprietà, e le frecce della tastiera devono scorrerli.
  */
-export function SceltaLuce({ iniziale }: { iniziale: PreferenzaLuce }) {
+export function SceltaLuce() {
   const spiega = useMessaggioErrore();
-  const router = useRouter();
-  const [scelta, setScelta] = useState<PreferenzaLuce>(iniziale);
+  const [scelta, setScelta] = useState<PreferenzaLuce>(leggiPreferenza);
   const [errore, setErrore] = useState<string | null>(null);
-  const [inCorso, avvia] = useTransition();
 
   function cambia(valore: PreferenzaLuce) {
-    const precedente = scelta;
-    setScelta(valore);
     setErrore(null);
-    avvia(async () => {
-      try {
-        await impostaLuce(valore);
-        router.refresh();
-      } catch {
-        setScelta(precedente);
-        setErrore(spiega("luceNonCambiata"));
-      }
-    });
+    try {
+      salvaPreferenza(valore);
+      setScelta(valore);
+      applicaLuce(valore);
+    } catch {
+      setErrore(spiega("luceNonCambiata"));
+    }
   }
 
   return (
@@ -75,7 +67,6 @@ export function SceltaLuce({ iniziale }: { iniziale: PreferenzaLuce }) {
               type="button"
               role="radio"
               aria-checked={attiva}
-              disabled={inCorso}
               onClick={() => cambia(valore)}
               {...attributiPastiglia}
               className={pastigliaVariants({ taglia: "filtro", acceso: attiva })}

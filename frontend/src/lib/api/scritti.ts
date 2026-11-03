@@ -147,7 +147,7 @@ async function leggi<B, T>(
   percorso: string,
   trasforma: (body: B) => T,
 ): Promise<Esito<T> | { status: "consenso_revocato" }> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) return { status: "error", errore: ERRORE_CONFIGURAZIONE };
 
   let response: Response;

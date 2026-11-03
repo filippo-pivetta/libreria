@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { aggiungiVoce, type Voce } from "@/lib/api/voci";

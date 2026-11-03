@@ -1,8 +1,6 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 
 import { chiediParere, type FonteScheda } from "@/lib/api/schede";
 import { getAccessToken } from "@/lib/api/access-token";

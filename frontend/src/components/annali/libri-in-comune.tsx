@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { VoceConLibro } from "@/lib/api/voci";
 import { coloreDorso } from "@/lib/spine-color";
@@ -96,7 +94,7 @@ function VotoAffiancato({
  * due persone su un insieme di opere e non un ripiano di libri di uno
  * solo. L'insieme è l'intersezione dei `libro_id` fra le due librerie,
  * la stessa già calcolata per "N in comune" nell'intestazione
- * (`app/(protected)/lettori/[id]/page.tsx`).
+ * (`rotte/collegato.tsx`).
  *
  * ---------------------------------------------------------------------
  * PERCHÉ LA STRISCIA ERA STORTA
@@ -167,9 +165,6 @@ export function LibriInComune({
               <li key={collegato.libroId} className="w-32 min-w-0 shrink-0">
                 <div className="cover h-48 w-32" style={{ backgroundColor: colore }}>
                   {collegato.libro.copertinaMiniaturaUrl && (
-                    // <img> piano, non next/image: bucket privato e
-                    // firmato, come components/libreria/volume.tsx.
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       ref={(elemento) => {
                         if (elemento?.complete) elemento.setAttribute("data-loaded", "");

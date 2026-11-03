@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 

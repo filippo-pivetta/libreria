@@ -1,7 +1,7 @@
 """Test per la cancellazione self-service dell'account (issue #8, PRD
 regole 26-29): il cancello della conferma (`me_service.elimina_account`)
 e l'ordine dei due passi — cascata su `public.utente` con l'identità
-dell'utente, poi Auth Admin API con la chiave di servizio.
+dell'utente, poi Auth Admin API con la chiave segreta.
 
 Stesso doppio livello di test_metriche.py/test_consenso.py:
 - Router: isolato sia dalla verifica JWT (dependency override) sia dal

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,7 +7,7 @@ import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { IconaCoperto, IconaLucchetto } from "@/components/ui/icone";
 import { RiferimentoLibro } from "@/components/ui/riferimento-libro";
-import { useLocale } from "next-intl";
+import { useLocale } from "use-intl";
 
 /** Soglia fra i due trattamenti tipografici (design doc §10): sotto,
  * "sentenza" a misura stretta e senza troncamento; sopra, "appunto" alla

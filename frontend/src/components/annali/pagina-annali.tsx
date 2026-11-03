@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
@@ -31,9 +29,9 @@ function erroreDelRisultato(result: {
 }
 
 /**
- * Pagina Annali propria (design-frontend.md §14, issue #7). Fetch
- * iniziale lato server (`app/(protected)/annals/page.tsx`), idratato qui
- * in TanStack Query per il cambio d'anno — stesso pattern di
+ * Pagina Annali propria (design-frontend.md §14, issue #7). Il primo
+ * dato arriva dalla pagina (`rotte/annali.tsx`), e da qui si tiene la
+ * propria query per il cambio d'anno — stesso pattern di
  * `ElencoLettori`/`SezioneCollegamenti`: l'anno iniziale arriva già
  * risolto dal backend (PRD, anno corrente in Europa centrale), i cambi
  * successivi rifanno la richiesta con l'anno scelto.

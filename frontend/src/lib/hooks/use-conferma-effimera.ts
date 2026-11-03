@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Quanto resta a schermo una conferma. Un momento, non un messaggio da leggere. */

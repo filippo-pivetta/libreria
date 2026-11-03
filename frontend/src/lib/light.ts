@@ -2,16 +2,19 @@
  * Montaigne · calcolo della luce
  *
  * Il PRD fissa il fuso CET uguale per tutti gli Utenti, indipendentemente da
- * dove si trovino. Questo modulo gira SOLO lato server: calcolarlo nel browser
- * produrrebbe un mismatch di idratazione in Next.js, e due collegati devono
- * vedere la stessa stanza alla stessa ora.
+ * dove si trovino: due collegati devono vedere la stessa stanza alla stessa
+ * ora. Il calcolo gira nel browser (`lib/luce-browser.ts`, eseguito inline in
+ * `index.html` prima del primo disegno), ma l'ora è sempre quella di Roma,
+ * mai quella del fuso del telefono.
  *
  * Alba e tramonto vengono da una tabella a latitudine fissa (43°N, Italia
  * centrale), non dalla posizione dell'utente. È una decisione, non
  * un'approssimazione: la posizione dell'utente renderebbe la stanza diversa
  * per due persone che guardano la stessa libreria nello stesso momento.
  *
- * Il valore si aggiorna al cambio pagina, mai con un timer.
+ * Il valore si aggiorna al cambio pagina e al ritorno in primo piano, mai con
+ * un timer: un salto di luce mentre si sta scrivendo è ciò che `crossesNight`
+ * sotto esiste per tenere lontano dagli occhi.
  * ========================================================================== */
 
 export type Anchor = "alba" | "giorno" | "tramonto" | "notte";
@@ -192,7 +195,7 @@ function lerpColor(a: Oklch, b: Oklch, t: number): Oklch {
  * Quindi: dentro la famiglia chiara (alba, giorno, tramonto) si interpola;
  * attraversando il confine con `notte` si scatta all'ancoraggio più vicino.
  * Il salto non si vede mai in faccia all'utente, perché il valore si aggiorna
- * solo al cambio pagina e mai mentre si sta scrivendo.
+ * solo al cambio pagina o al ritorno in primo piano, mai mentre si sta scrivendo.
  */
 function crossesNight(a: Anchor, b: Anchor): boolean {
   return (a === "notte") !== (b === "notte");
@@ -267,7 +270,7 @@ export function currentPalette(d: Date = new Date()): Palette {
 /* -----------------------------------------------------------------------------
  * Serializzazione in variabili CSS, da iniettare come style inline su <html>.
  * Vince sui blocchi data-light di tokens.css, che restano come fallback e come
- * stato di partenza per l'idratazione.
+ * stato di partenza se lo script della luce non gira.
  * -------------------------------------------------------------------------- */
 
 const fmt = (x: Oklch) =>
@@ -344,15 +347,6 @@ export function paletteToCssVars(p: Palette): Record<string, string> {
 }
 
 /**
- * Ciò che va scritto su <html> dal layout del server.
- *
- * Non esiste un interruttore e non esistono due temi: c'è una stanza sola che
- * dal mattino alla notte si scurisce. `data-light` porta l'ancoraggio dominante
- * (serve ai pochi selettori che devono sapere se la stanza è scura: nastri,
- * bordo di luce, velatura delle copertine); `style` porta i valori interpolati,
- * che vincono sui blocchi di fallback in tokens.anchors.css.
- */
-/**
  * "giorno" e "notte" coincidono deliberatamente con due valori di `Anchor`
  * (sopra): fissare la preferenza non introduce un vocabolario suo, sceglie
  * uno dei due ancoraggi che il resto del file già conosce. Si chiamavano
@@ -362,10 +356,10 @@ export function paletteToCssVars(p: Palette): Record<string, string> {
  */
 export type PreferenzaLuce = "ora" | "giorno" | "notte";
 
-/** Il nome del cookie che porta la preferenza. Letto solo lato server. */
-export const COOKIE_LUCE = "mtg-luce";
+/** La chiave di `localStorage` che porta la preferenza (`lib/luce-browser.ts`). */
+export const CHIAVE_LUCE = "mtg-luce";
 
-export function preferenzaValida(valore: string | undefined): PreferenzaLuce {
+export function preferenzaValida(valore: string | null | undefined): PreferenzaLuce {
   return valore === "giorno" || valore === "notte" ? valore : "ora";
 }
 
@@ -392,35 +386,13 @@ export function risolviLuce(
 }
 
 /**
- * Ciò che va scritto su <html> dal layout del server.
+ * Ciò che va scritto su <html>.
  *
  * `data-light` porta l'ancoraggio dominante (serve ai pochi selettori che
  * devono sapere se la stanza è scura: nastri, bordo di luce, velatura delle
  * copertine); `style` porta i valori, che vincono sui blocchi di fallback in
  * tokens.anchors.css.
- *
- * **La preferenza (sessione UI).** Fino a qui non esisteva alcun comando e la
- * luce era solo una conseguenza dell'ora — con un costo che §3 nominava e
- * accettava: "chi ha una sensibilità alla luce non può forzare la stanza scura
- * di giorno". Ora la Torre porta un comando a tre stati e questa funzione lo
- * riceve. Resta invariato tutto il resto: il calcolo è lato server, il valore
- * cambia solo al cambio pagina, non c'è alcun timer nel browser, e due
- * collegati che non hanno espresso preferenze vedono la stessa stanza alla
- * stessa ora.
  */
-export function lightAttrs(
-  preferenza: PreferenzaLuce = "ora",
-  d: Date = new Date(),
-): {
-  "data-light": Anchor;
-  style: Record<string, string>;
-} {
-  return attributiLuce(risolviLuce(preferenza, d));
-}
-
-/** Gli stessi attributi, a partire da una luce già risolta: serve a chi
- * la risolve una volta sola per la richiesta (`lib/luce-richiesta.ts`) e
- * non vuole ricalcolarla per scriverla su `<html>`. */
 export function attributiLuce({ anchor, palette }: { anchor: Anchor; palette: Palette }): {
   "data-light": Anchor;
   style: Record<string, string>;

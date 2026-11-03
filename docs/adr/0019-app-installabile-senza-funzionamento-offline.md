@@ -1,7 +1,7 @@
 # 0019. App installabile, senza funzionamento offline
 
 Stato: accettata
-Data: 2026-08-28
+Data: 2026-08-28 · percorsi aggiornati da ADR 0020 (`/assets/`, `/senza-rete.html`, nessun Proxy)
 
 ## Contesto
 Il manifesto (`frontend/src/app/manifest.ts`) c'era da tempo, ma l'app non era installabile: dichiarava una sola icona, `favicon.ico`, e Chrome non offre "installa" senza un PNG da 192 e uno da 512. Il pulsante non è mai comparso a nessuno.

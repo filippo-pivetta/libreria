@@ -1,5 +1,3 @@
-"use client";
-
 import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import type { CSSProperties } from "react";
 
@@ -79,11 +77,7 @@ export function Volume({ voce, inFascia = false }: { voce: VoceConLibro; inFasci
           // --cover-w/--cover-h): l'opacità passa a 1 solo a caricamento
           // avvenuto, mai uno scatto di layout. Un errore di caricamento
           // ricade in silenzio sul segnaposto sottostante, già presente
-          // nel markup — nessuna icona di immagine rotta. `<img>` piano,
-          // non next/image: il dominio delle copertine non esiste ancora
-          // (pipeline non costruita, issue #4), non configurabile in
-          // anticipo senza saperlo.
-          // eslint-disable-next-line @next/next/no-img-element
+          // nel markup — nessuna icona di immagine rotta.
           <img
             // Ref e non solo onLoad: se il browser decodifica l'immagine
             // prima che React attacchi il listener — rete locale veloce,

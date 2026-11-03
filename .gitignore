@@ -13,19 +13,18 @@ Thumbs.db
 !.env.example
 !.env.*.example
 
-# --- Node / frontend (create-next-app also ships frontend/.gitignore) ---
+# --- Node / frontend ---
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .pnpm-debug.log*
-.next/
+dist/
 out/
 build/
 coverage/
 *.tsbuildinfo
-next-env.d.ts
 
 # --- Python / backend ---
 __pycache__/
@@ -54,9 +53,3 @@ supabase/signing_keys.json
 # --- Logs ---
 *.log
 
-# AGENTS.md/CLAUDE.md di frontend/: li rigenera `next dev` a ogni avvio
-# (node_modules/next/dist/server/lib/generate-agent-files.js) e contengono
-# solo il suo avviso, non documentazione di progetto. Quella sta in ./AGENTS.md,
-# che riporta la sola regola operativa del blocco.
-frontend/AGENTS.md
-frontend/CLAUDE.md

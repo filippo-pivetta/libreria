@@ -6,8 +6,8 @@
  * §18), e solo qui, perché senza dorsi non c'è colore in pagina.
  *
  * Inlineata come componente invece che importata come file `.svg`: questo
- * progetto non ha un loader SVGR configurato (next.config.ts), e
- * un'importazione come asset statico (`next/image`/`<img src>`) non
+ * progetto non ha un loader SVGR configurato (vite.config.ts), e
+ * un'importazione come asset statico (`<img src>`) non
  * erediterebbe `currentColor` — l'unico modo per colorarla con i token di
  * luce del tema, che cambiano lungo il giorno.
  */

@@ -79,6 +79,11 @@ raccogli(/\bassenza\("(\w+)"\)/g, "assenze.");
 raccogli(/\bregola\("(\w+)"\)/g, "regole.");
 // `traduciErroreAuth` restituisce chiavi, non frasi: sono i suoi letterali
 raccogli(/"(accesso\.\w+)"/g);
+// Le pagine HTML scritte a mano (`senza-rete.html`): i segnaposto che
+// `vite.config.ts` riempie dal catalogo.
+for (const f of readdirSync(".").filter((nome) => nome.endsWith(".html"))) {
+  for (const m of readFileSync(f, "utf8").matchAll(/%(?:it|en):([a-zA-Z0-9_.]+)%/g)) usate.add(m[1]);
+}
 
 // Le sezioni che il traduttore compone da sé, o che si risolvono da un
 // `error_code` del backend invece che da una chiamata scritta a mano.

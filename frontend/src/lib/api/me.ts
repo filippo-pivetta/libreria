@@ -1,11 +1,10 @@
 /**
  * Fetcher per /me sul backend FastAPI: il back end è l'unico a leggere o
  * scrivere dati applicativi (docs/adr/0001), il frontend non interroga
- * mai `utente`/`utente_privato` direttamente su Supabase. `getMe` è
- * pensata per un Server Component (usa il token già validato dal
- * layout); `completeAccount` gira invece lato client, subito dopo che
- * l'atterraggio dal link di invito ha stabilito la sessione nel browser
- * (docs/adr/0013) — non esiste ancora un giro server-side a quel punto.
+ * mai `utente`/`utente_privato` direttamente su Supabase. `getMe` la
+ * leggono la guardia dell'area protetta, la barra e il Profilo;
+ * `completeAccount` gira subito dopo che l'atterraggio dal link di invito
+ * ha stabilito la sessione nel browser (docs/adr/0013).
  */
 
 import type { ErroreApi } from "@/lib/api/errore";
@@ -41,7 +40,7 @@ type MeResponseBody = {
 };
 
 export async function getMe(accessToken: string): Promise<MeResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
@@ -85,7 +84,7 @@ export async function completeAccount(
   accessToken: string,
   nomeUtente: string,
 ): Promise<CompleteAccountResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
@@ -158,7 +157,7 @@ export async function aggiornaConsenso(
   accessToken: string,
   consenso: boolean,
 ): Promise<AggiornaConsensoResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
@@ -205,7 +204,7 @@ export async function eliminaAccount(
   accessToken: string,
   confermaNomeUtente: string,
 ): Promise<EliminaAccountResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
@@ -267,7 +266,7 @@ function _nomeFileDaHeader(header: string | null): string {
  * download per un dettaglio cosmetico.
  */
 export async function esportaLibriLetti(accessToken: string): Promise<EsportaLibriLettiResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }

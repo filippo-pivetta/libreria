@@ -83,7 +83,7 @@ def delete_utente(client: Client, utente_id: UUID) -> bool:
     migrazione 20260818115830): innesca la cascata dello schema su tutti i
     dati applicativi (issue #8, PRD regole 26/27). Non tocca `auth.users`,
     fuori dalla portata di un client con l'identità dell'utente — quel
-    passo vive in `me_service.elimina_account` con la chiave di servizio.
+    passo vive in `me_service.elimina_account` con la chiave segreta.
     `True` se una riga è stata cancellata davvero, non un no-op su un id
     già assente."""
     response = client.table("utente").delete().eq("id", str(utente_id)).execute()

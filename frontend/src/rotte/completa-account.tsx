@@ -1,9 +1,8 @@
-"use client";
-
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 
 import { createClient } from "@/lib/supabase/client";
+import { queryClient } from "@/lib/query-client";
 import { completeAccount, getMe } from "@/lib/api/me";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { ErrorState } from "@/components/states/error-state";
 import { LoadingState } from "@/components/states/loading-state";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 import { traduciErroreAuth } from "@/lib/errori-auth";
 
@@ -26,7 +25,7 @@ type Phase = "checking" | "no_session" | "form" | "submitting";
  * monti — qui si aspetta solo che l'inizializzazione sia finita.
  */
 export default function CompletaAccountPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const t = useTranslations();
   const spiega = useMessaggioErrore();
   const [phase, setPhase] = useState<Phase>("checking");
@@ -45,14 +44,12 @@ export default function CompletaAccountPage() {
     async function checkSession() {
       const supabase = createClient();
 
-      // Il client di @supabase/ssr forza flowType "pkce" (aspetta un
-      // ?code= in query string): il link di invito generato lato Admin —
-      // senza un client che avvii il flusso — produce invece un redirect
+      // Il link di invito generato lato Admin produce un redirect
       // "implicito", con i token nel frammento dell'URL
-      // (#access_token=...&refresh_token=...), verificato empiricamente
-      // contro l'istanza locale. Il rilevamento automatico del client
-      // (detectSessionInUrl) non lo consuma: va fatto a mano, una volta
-      // sola, prima di chiedere la sessione.
+      // (#access_token=...&refresh_token=...). Il client di supabase-js
+      // (flusso implicito, `detectSessionInUrl`) di norma lo consuma da sé
+      // all'avvio; se il frammento è ancora qui, lo si consuma a mano, una
+      // volta sola, prima di chiedere la sessione.
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
@@ -81,7 +78,7 @@ export default function CompletaAccountPage() {
       if (cancelled) return;
 
       if (me.status === "ok") {
-        router.replace("/");
+        navigate("/", { replace: true });
         return;
       }
 
@@ -162,8 +159,10 @@ export default function CompletaAccountPage() {
     switch (result.status) {
       case "ok":
       case "already_completed":
-        router.replace("/");
-        router.refresh();
+        // Il profilo in cache dice ancora "da completare": senza toglierlo,
+        // la guardia dell'area protetta rimanderebbe qui.
+        queryClient.removeQueries({ queryKey: ["rotta"] });
+        navigate("/", { replace: true });
         return;
       case "nome_utente_in_uso":
         setNomeUtenteError(t("regole.nome_utente_in_uso"));

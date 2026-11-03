@@ -1,7 +1,7 @@
 """Scritture su `indice_semantico` dai lavori in secondo piano, su
 connessione diretta a Postgres.
 
-Perché non PostgREST con la chiave di servizio: la tabella non ha (e non
+Perché non PostgREST con la chiave segreta: la tabella non ha (e non
 deve avere) alcuna policy di INSERT per `authenticated`, e `service_role`
 non ha comunque privilegi SQL sulle tabelle `public` — le stesse due
 ragioni indipendenti che valgono per `catalogo_repository`

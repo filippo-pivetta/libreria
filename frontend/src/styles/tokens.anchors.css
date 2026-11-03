@@ -3,7 +3,7 @@
 
    Il server calcola il valore INTERPOLATO fra i due ancoraggi adiacenti e lo
    inietta come style inline su <html>, che vince su questi blocchi. Restano
-   come fallback e come stato di partenza per l'idratazione.
+   come fallback se lo script della luce non gira.
 
    Non esistono un tema chiaro e un tema scuro: esiste una stanza che dal
    mattino alla notte si scurisce. Questi sono quattro momenti della stessa

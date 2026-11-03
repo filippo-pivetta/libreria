@@ -1,10 +1,8 @@
-"use client";
-
 import type { VoceDettaglio } from "@/lib/api/voci";
 import { formattaData, periodoLettura } from "@/lib/formato";
 import { SegnalibroAvanzamento } from "@/components/libro/segnalibro-avanzamento";
 import { TransizioniStato } from "@/components/libro/transizioni-stato";
-import { useLocale } from "next-intl";
+import { useLocale } from "use-intl";
 
 /**
  * La zona 2 della scheda: **dove sei**.

@@ -12,7 +12,7 @@
  * mostrerebbe la pagina d'errore del browser — un dinosauro, o un foglio
  * bianco — dentro una finestra da cui non si esce se non chiudendola.
  *
- * Qui invece serve la pagina `/senza-rete`, che è di Montaigne: dice cosa
+ * Qui invece serve la pagina `/senza-rete.html`, che è di Montaigne: dice cosa
  * manca, con le parole e la luce del resto dell'app.
  *
  * NIENTE DATI DI LETTURA IN CACHE. Mai. Non è una svista di
@@ -24,25 +24,26 @@
  * cancellazione dell'account e al passaggio del telefono a un'altra persona.
  * Perciò dalla cache passano solo tre categorie di cose, tutte impersonali:
  *
- *   1. i file statici del build (`/_next/static/…`), che hanno l'impronta
- *      del contenuto nel nome e quindi non diventano mai obsoleti;
+ *   1. i file statici del build (`/assets/…`), che hanno l'impronta del
+ *      contenuto nel nome e quindi non diventano mai obsoleti: è il codice
+ *      dell'app, e servirlo da qui rende immediato ogni avvio dopo il primo;
  *   2. le icone dell'app;
- *   3. la pagina `/senza-rete`, che non contiene nulla di nessuno.
+ *   3. la pagina `/senza-rete.html`, che non contiene nulla di nessuno.
  *
- * Tutto il resto — navigazioni, payload RSC, chiamate all'API, copertine —
- * attraversa il service worker senza lasciare traccia.
+ * Tutto il resto — documenti, chiamate all'API, copertine — attraversa il
+ * service worker senza lasciare traccia.
  * ========================================================================== */
 
 /* Cambiando questo numero si svuotano tutte le cache alla prossima attivazione
    (vedi `activate` sotto): è la via per invalidare a mano ciò che il nome col
    contenuto non invalida da sé. */
-const VERSIONE = "v1";
+const VERSIONE = "v2";
 
 const GUSCIO = `montaigne-guscio-${VERSIONE}`;
 const RIPARO = `montaigne-riparo-${VERSIONE}`;
 const MIE = new Set([GUSCIO, RIPARO]);
 
-const PAGINA_SENZA_RETE = "/senza-rete";
+const PAGINA_SENZA_RETE = "/senza-rete.html";
 
 const ICONE = [
   "/icone/icona-192.png",
@@ -96,7 +97,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/* Il riparo va tenuto allineato al deploy corrente: l'HTML di `/senza-rete`
+/* Il riparo va tenuto allineato al deploy corrente: l'HTML di `/senza-rete.html`
    rimanda a fogli di stile e caratteri con l'impronta del build nel nome, e
    dopo un deploy quei nomi non esistono più — la pagina si vedrebbe nuda,
    proprio nel momento in cui è l'unica cosa che si vede. Si rinfresca una
@@ -117,27 +118,21 @@ async function rinfrescaRiparo() {
 }
 
 /**
- * Scarica `/senza-rete` e la mette al riparo — insieme a ciò senza cui è una
+ * Scarica `/senza-rete.html` e la mette al riparo — insieme a ciò senza cui è una
  * pagina nuda.
  *
  * Il "insieme a" non è zelo. L'HTML della pagina rimanda al foglio di stile e
  * ai tre caratteri con l'impronta del build nel nome, e quei file di norma
- * arrivano dalla cache HTTP del browser anche senza rete (Next li serve
- * `immutable`) — ma quella cache il browser la svuota quando gli pare, di
+ * arrivano dalla cache HTTP del browser anche senza rete (`vercel.json` li
+ * serve `immutable`) — ma quella cache il browser la svuota quando gli pare, di
  * solito quando lo spazio sul telefono finisce, che è esattamente il tipo di
  * giornata in cui poi manca anche la rete. Senza, resterebbe il testo giusto
  * in Times su fondo bianco: l'unica schermata di Montaigne che non sembra
  * Montaigne, servita nel momento peggiore.
  *
- * Si prendono i `.css` e i `.woff2`, e si riconoscono dall'estensione, non
- * dalla cartella: in Next 16 il foglio di stile sta in
- * `/_next/static/chunks/`, insieme al JavaScript, e una regola scritta sulla
- * cartella (`/css/`, com'era in Next 15) non trova più niente senza dirlo.
- *
- * Il JavaScript invece si lascia fuori apposta: la pagina è scritta per
- * funzionare senza (vedi il commento in testa a
- * `src/app/(public)/senza-rete/page.tsx`), e precaricarlo vorrebbe dire
- * scaricare mezzo guscio dell'app a ogni installazione.
+ * Si prendono i `.css` e i `.woff2` sotto `/assets/`. La pagina non ha
+ * JavaScript proprio (lo script della luce e quello della lingua sono inline,
+ * vedi il commento in testa a `senza-rete.html`).
  */
 async function conservaRiparo() {
   const risposta = await fetch(new Request(PAGINA_SENZA_RETE, { cache: "reload" }));
@@ -148,14 +143,7 @@ async function conservaRiparo() {
 
   const guscio = await caches.open(GUSCIO);
   const percorsi = new Set();
-  // La barra rovesciata è esclusa perché l'HTML di Next contiene gli stessi
-  // percorsi anche dentro stringhe JSON, dove le virgolette sono sfuggite
-  // (`\"/_next/…\"`): senza escluderla, il percorso finiva in cache con una
-  // `\` in coda — che il parser di URL trasforma in `/`, quindi la voce non
-  // corrispondeva mai a nulla e non se ne accorgeva nessuno.
-  for (const [, percorso] of html.matchAll(
-    /["'(](\/_next\/static\/[^"'()?\s\\]+\.(?:css|woff2))/g,
-  )) {
+  for (const [, percorso] of html.matchAll(/["'(](\/assets\/[^"'()?\s\\]+\.(?:css|woff2))/g)) {
     percorsi.add(percorso);
   }
 
@@ -187,12 +175,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icone/")) {
+  if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icone/")) {
     event.respondWith(guscio(richiesta));
     return;
   }
 
-  // Tutto il resto — `?_rsc=`, API, dati — non passa di qui.
+  // Tutto il resto — API, dati, `version.json` — non passa di qui.
 });
 
 async function navigazione(event) {

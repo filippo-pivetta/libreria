@@ -1,7 +1,5 @@
 import { Quaderni } from "@/components/quaderni/quaderni";
 
-export const metadata = { title: "Quaderni" };
-
 /**
  * Quaderni (design doc §22): ciò che l'Utente ha scritto leggendo — ricerca
  * per significato nei propri insight e recensioni, e i temi che li
@@ -12,8 +10,8 @@ export const metadata = { title: "Quaderni" };
  * filtri della Libreria. Questa invece è una voce di navigazione: il perché
  * sta in `components/layout/protected-nav.tsx` e in §5.
  *
- * Nessun fetch iniziale lato server, stessa filosofia di `/aggiungi`: il
- * componente client interroga da sé (`GET /sintesi-tematica` a riposo,
+ * Nessuna lettura della pagina, stessa filosofia di `/aggiungi`: il
+ * componente interroga da sé (`GET /sintesi-tematica` a riposo,
  * `POST /ricerca/semantica` su domanda) e gestisce anche lo stato "nessuna
  * sintesi ancora generata".
  */
@@ -23,6 +21,7 @@ export default function QuaderniPage() {
   // Lettori e Profilo, la stessa testata a un'altezza diversa.
   return (
     <div className="flex flex-col gap-8">
+      <title>Quaderni</title>
       <Quaderni />
     </div>
   );

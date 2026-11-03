@@ -1,23 +1,14 @@
-import { cacheLife } from "next/cache";
+import { queryOptions } from "@tanstack/react-query";
 
-import { getScheda, type FonteScheda, type SchedaResult } from "@/lib/api/schede";
-import { contesto } from "@/lib/dati/sessione";
-import { DURATA_DATI_PERSONALI } from "@/lib/dati/durata";
+import { getAccessToken } from "@/lib/api/access-token";
+import { conUnSecondoTentativo } from "@/lib/dati/sessione";
+import { getScheda, type FonteScheda } from "@/lib/api/schede";
 
-/**
- * La scheda di un libro che non si ha in libreria (design-frontend.md §13).
- *
- * È l'unico dato di questo strato che non appartiene a chi guarda: la
- * carta di un'opera è la stessa per tutti. Resta comunque in cache
- * **privata** e non condivisa: la risposta porta anche se quel libro è
- * già in libreria di chi guarda (`voce`), quindi non è il dato
- * anonimo che sembra. Il ramo `google` di questa rotta può inoltre
- * costare più di dieci secondi al primo colpo, e riaprirla dopo averla
- * appena chiusa è un gesto frequente.
- */
-export async function scheda(fonte: FonteScheda, identificativo: string): Promise<SchedaResult> {
-  "use cache: private";
-  cacheLife(DURATA_DATI_PERSONALI);
-  const { accessToken, lingua } = await contesto();
-  return getScheda(accessToken, fonte, identificativo, lingua);
+/** La scheda di un libro che non si ha in libreria (`/book/:fonte/:id`).
+ * Guardarla non fa nascere una scheda nel catalogo (AGENTS.md). */
+export function scheda(fonte: FonteScheda, identificativo: string) {
+  return queryOptions({
+    queryKey: ["rotta", "scheda", fonte, identificativo],
+    queryFn: () => conUnSecondoTentativo(async () => getScheda(await getAccessToken(), fonte, identificativo)),
+  });
 }

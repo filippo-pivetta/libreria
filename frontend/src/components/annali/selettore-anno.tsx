@@ -1,5 +1,3 @@
-"use client";
-
 import { IconaFreccia } from "@/components/ui/icone";
 
 /** Quanti anni stanno nella finestra. Tre: quello scelto e i suoi due

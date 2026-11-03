@@ -1,5 +1,3 @@
-"use client";
-
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
@@ -21,7 +19,7 @@ import { useDebounced } from "@/lib/use-debounce";
 import { ErroreApp } from "@/lib/api/errore";
 import { erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 
 const LUNGHEZZA_MINIMA = 2;
 const CHIAVE_LOCALE = "ricerca-catalogo";

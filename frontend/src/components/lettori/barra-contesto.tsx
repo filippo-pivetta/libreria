@@ -1,8 +1,6 @@
-"use client";
-
 import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "@/components/ui/link";
+import { useLocation } from "react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { IconaFreccia } from "@/components/ui/icone";
@@ -65,7 +63,7 @@ export function BarraContesto({
   nomeUtente: string;
   sottotitolo?: string;
 }) {
-  const pathname = usePathname();
+  const pathname = useLocation().pathname;
   const schedaAnnali = pathname === `/lettori/${utenteId}/annali`;
 
   const [scorso, setScorso] = useState(false);

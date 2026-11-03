@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -55,7 +53,7 @@ export function EliminaVoce({
   haRecensione: boolean;
   haNotaIntenzione: boolean;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const spiega = useMessaggioErrore();
   const [passo, setPasso] = useState<Passo>("chiuso");
@@ -74,7 +72,7 @@ export function EliminaVoce({
     onMutate: () => setErrore(null),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["voci"] });
-      router.push("/");
+      navigate("/");
     },
     onError: (error: unknown) => {
       setErrore(

@@ -1,7 +1,6 @@
-"use client";
-
-import { useRef, useState, useSyncExternalStore, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 
 import { createClient } from "@/lib/supabase/client";
 import { QUOTES } from "@/lib/quotes";
@@ -9,44 +8,42 @@ import { traduciErroreAuth } from "@/lib/errori-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 import { Messaggio } from "@/components/ui/messaggio";
 
-// No real subscription: only here to satisfy useSyncExternalStore's signature.
-function noSubscription() {
-  return () => {};
+/** Dove tornare dopo l'accesso: solo un percorso interno, mai un URL
+ * esterno — `?da=//altro-sito` porterebbe fuori dall'app chi ha appena
+ * inserito la password. */
+function destinazioneSicura(da: string | null): string {
+  return da && da.startsWith("/") && !da.startsWith("//") ? da : "/";
 }
 
-/**
- * The quote is picked at random out of ten (fix of Aug 19, 2026).
- * useSyncExternalStore, not useEffect+setState: a Math.random() in the
- * initial render would give a different text on server and browser, and
- * Next.js would flag a hydration mismatch (design doc §3, same caution
- * already used for light). getServerSnapshot fixes the first quote for
- * the SSR render, getSnapshot picks one at random once in the browser.
- */
-function useRandomQuote(): number {
-  const index = useRef<number | undefined>(undefined);
-  return useSyncExternalStore(
-    noSubscription,
-    () => {
-      if (index.current === undefined) {
-        index.current = Math.floor(Math.random() * QUOTES.length);
-      }
-      return index.current;
+/** Chi ha già una sessione non vede il modulo: va dentro l'app. */
+function useSessioneEsistente() {
+  return useQuery({
+    queryKey: ["sessione-al-login"],
+    queryFn: async () => {
+      const {
+        data: { session },
+      } = await createClient().auth.getSession();
+      return Boolean(session);
     },
-    () => 0
-  );
+    staleTime: 0,
+    gcTime: 0,
+  });
 }
 
 export default function LoginPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const [parametri] = useSearchParams();
+  const sessione = useSessioneEsistente();
   const t = useTranslations();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const quoteIndex = useRandomQuote();
+  // La citazione, una a caso fra dieci, scelta una volta per visita.
+  const [quoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,11 +63,11 @@ export default function LoginPage() {
       return;
     }
 
-    // The Proxy (src/proxy.ts) refreshes the session on every request;
-    // the refresh here only kicks off the redirect the protected-area
-    // layout already handles.
-    router.replace("/");
-    router.refresh();
+    navigate(destinazioneSicura(parametri.get("da")), { replace: true });
+  }
+
+  if (sessione.data) {
+    return <Navigate to={destinazioneSicura(parametri.get("da"))} replace />;
   }
 
   return (

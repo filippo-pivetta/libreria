@@ -36,7 +36,7 @@
  *
  * Perché Chrome e non una libreria di rendering: i caratteri della repo sono
  * woff2 (`src/fonts/`), e woff2 è esattamente il formato che satori/resvg —
- * la via che Next offre con `next/og` — non sanno leggere. Chrome invece è
+ * le librerie di immagini più comuni — non sanno leggere. Chrome invece è
  * l'unico motore che disegna quella M esattamente come la disegna nell'app,
  * assi variabili compresi, ed è già sulla macchina di chi sviluppa.
  * ========================================================================== */

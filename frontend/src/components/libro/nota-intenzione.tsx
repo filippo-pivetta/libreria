@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 
 import { useConfermaEffimera } from "@/lib/hooks/use-conferma-effimera";
@@ -14,7 +12,7 @@ import { AzioniModulo } from "@/components/ui/azioni-modulo";
 import { IconaLucchetto } from "@/components/ui/icone";
 import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 
 /**
  * Nota di intenzione (design doc §9): solo il proprietario la vede, mai

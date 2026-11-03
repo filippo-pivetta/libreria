@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -21,7 +19,7 @@ import { Invito } from "@/components/ui/invito";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { InterruttoriScritto } from "@/components/ui/interruttori-scritto";
 import { IconaAltro, IconaCoperto, IconaLucchetto, IconaMatita } from "@/components/ui/icone";
-import { useLocale } from "next-intl";
+import { useLocale } from "use-intl";
 import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 

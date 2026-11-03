@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -8,7 +6,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import type { Lettura } from "@/lib/api/voci";
 import { periodoLettura } from "@/lib/formato";
 import { useToast } from "@/providers/toast-provider";
-import { useLocale } from "next-intl";
+import { useLocale } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { IconaAltro } from "@/components/ui/icone";

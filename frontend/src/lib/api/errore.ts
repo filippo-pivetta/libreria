@@ -30,7 +30,7 @@ export type GenereErrore =
   | "rete"
   /** Ha risposto, ma male: un 5xx, o un 4xx che nessuno ha previsto. */
   | "server"
-  /** Manca `NEXT_PUBLIC_API_BASE_URL`: un guasto d'installazione, non
+  /** Manca `VITE_API_BASE_URL`: un guasto d'installazione, non
    * d'uso. L'utente non può farci nulla se non dirlo a qualcuno. */
   | "configurazione"
   /** 401: il token non vale più. Distinto da `server` perché il rimedio

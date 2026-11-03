@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 
 import { useConfermaEffimera } from "@/lib/hooks/use-conferma-effimera";
@@ -9,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { correggiPagine } from "@/lib/api/voci";
 import { getAccessToken } from "@/lib/api/access-token";
 import { useToast } from "@/providers/toast-provider";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 import { IconaMatita } from "@/components/ui/icone";
 import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";

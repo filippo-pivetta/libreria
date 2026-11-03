@@ -1,8 +1,5 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
-import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getUtenti, MIN_RICERCA, type ElencoMembri, type Membro } from "@/lib/api/utenti";
@@ -69,7 +66,6 @@ const ATTESA_DIGITAZIONE_MS = 250;
  */
 export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri }) {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const spiega = useMessaggioErrore();
 
   const [ricerca, setRicerca] = useState("");
@@ -123,20 +119,17 @@ export function ElencoLettori({ elencoIniziale }: { elencoIniziale: ElencoMembri
       }
       return result.data;
     },
-    // L'elenco senza ricerca è quello che il server ha già reso: non si
+    // L'elenco senza ricerca è quello che la pagina ha già letto: non si
     // rifà una richiesta per mostrare ciò che è già in pagina.
     initialData: ricercaAttiva === "" ? elencoIniziale : undefined,
     placeholderData: (precedente) => precedente,
   });
 
   const invalida = () => {
+    // Il contatore delle richieste accanto a Lettori si aggiorna da sé:
+    // ogni mutazione riuscita segna come vecchie le chiavi `["rotta"]`,
+    // fra cui quella della barra (`lib/query-client.ts`).
     void queryClient.invalidateQueries({ queryKey: ["utenti"] });
-    // Il contatore delle richieste accanto a Lettori non vive in una
-    // query: lo rende il Server Component `(protected)/layout.tsx`, che
-    // chiama `getCollegamenti` a ogni navigazione. Invalidare una chiave
-    // `["collegamenti"]` non lo toccava — nessuna `useQuery` la legge —
-    // e il contatore restava indietro finché non si ricaricava la pagina.
-    router.refresh();
   };
 
   const accetta = useMutation({

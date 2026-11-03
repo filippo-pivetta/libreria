@@ -1,5 +1,3 @@
-"use client";
-
 import type { Visibilita } from "@/lib/api/insight";
 import { IconaCollegati, IconaCoperto, IconaLucchetto } from "@/components/ui/icone";
 import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";

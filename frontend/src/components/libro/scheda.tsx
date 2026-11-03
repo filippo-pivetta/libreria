@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -19,7 +17,7 @@ import { Recensione } from "@/components/libro/recensione";
 import { PreviewPersonalizzata } from "@/components/libro/preview-personalizzata";
 import { InsightLista } from "@/components/libro/insight-lista";
 import { EliminaVoce } from "@/components/libro/elimina-voce";
-import { useLocale } from "next-intl";
+import { useLocale } from "use-intl";
 import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 

@@ -1,11 +1,9 @@
-"use client";
-
 import type { VoceDettaglio } from "@/lib/api/voci";
 import { nomiAutori } from "@/lib/autori";
 import { formattaData } from "@/lib/formato";
 import { coloreDorso } from "@/lib/spine-color";
 import { PastigliaStato } from "@/components/ui/pastiglia-stato";
-import { useLocale } from "next-intl";
+import { useLocale } from "use-intl";
 
 /**
  * La zona 1 della scheda: **che cos'è, e che cos'è per te**.
@@ -51,10 +49,6 @@ export function TestataLibro({ voce, isOwner }: { voce: VoceDettaglio; isOwner: 
     <header className="grid grid-cols-[6.25rem_minmax(0,1fr)] items-start gap-4 border-b border-line pb-6 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-7 sm:pb-8">
       <div className="cover aspect-[2/3] w-full" style={{ backgroundColor: colore }}>
         {voce.libro.copertinaGrandeUrl && (
-          // <img> piano, non next/image: come sullo scaffale, il dominio
-          // delle copertine è privato e firmato, non configurabile in
-          // anticipo per l'ottimizzatore di Next.
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             ref={(elemento) => {
               if (elemento?.complete) elemento.setAttribute("data-loaded", "");

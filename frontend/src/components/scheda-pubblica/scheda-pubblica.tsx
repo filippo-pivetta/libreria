@@ -1,9 +1,7 @@
-"use client";
-
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "use-intl";
 
 import {
   getScheda,
@@ -108,11 +106,6 @@ export function SchedaPubblica({
       <header className="grid grid-cols-[6.25rem_minmax(0,1fr)] items-start gap-4 border-b border-line pb-6 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-7 sm:pb-8">
         <div className="cover aspect-[2/3] w-full" style={{ backgroundColor: colore }}>
           {scheda.copertinaUrl && (
-            /* <img> piano, non next/image: la miniatura di un libro non
-               ancora aggiunto è un'immagine remota di Google, e quella di
-               una scheda nostra è un indirizzo firmato — nessuno dei due
-               dominio configurabile in anticipo per l'ottimizzatore. */
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               ref={(elemento) => {
                 if (elemento?.complete) elemento.setAttribute("data-loaded", "");

@@ -3,17 +3,13 @@ import { RicercaLibri } from "@/components/ricerca/ricerca-libri";
 import { TitoliCheTornano } from "@/components/ricerca/titoli-che-tornano";
 import { Suggerimenti } from "@/components/suggerimenti/suggerimenti";
 
-export const metadata = { title: "Aggiungi un libro" };
-
 /**
  * Ricerca e aggiunta di un libro dai cataloghi (design doc §13).
  *
- * A differenza di ogni altra pagina di `(protected)/`, qui il Server
- * Component non fa alcun fetch iniziale e non idrata `initialData`: senza
- * un termine non c'è nulla da caricare per il catalogo, e la sessione la
- * verifica già il layout. La terza corsia (sotto) non cambia questo: legge
- * la sua classifica per conto suo, in un client component a parte, così il
- * campo in cima resta comunque la prima cosa pronta.
+ * A differenza delle altre pagine dell'area protetta, qui non c'è alcuna
+ * lettura della pagina: senza un termine non c'è nulla da caricare per il
+ * catalogo. La terza corsia (sotto) legge la sua classifica per conto suo,
+ * così il campo in cima resta comunque la prima cosa pronta.
  *
  * TRE CORSIE, un mestiere solo — trovare un libro nuovo — non tre funzioni
  * appiccicate (ridisegno del 25 agosto 2026, che ne ha aggiunta una terza
@@ -37,9 +33,10 @@ export const metadata = { title: "Aggiungi un libro" };
  */
 export default function AggiungiPage() {
   // Senza `py-4`: stesso doppione di Quaderni, stessa correzione — vedi
-  // il commento in quaderni/page.tsx.
+  // il commento in rotte/quaderni.tsx.
   return (
     <div className="flex flex-col gap-8">
+      <title>Aggiungi un libro</title>
       <TestataPagina titolo="Aggiungi un libro" />
       <RicercaLibri />
       <hr className="border-line" />

@@ -1,5 +1,3 @@
-"use client";
-
 import { Toggle } from "@base-ui/react/toggle";
 
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";

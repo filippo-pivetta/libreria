@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { IconaAltro } from "@/components/ui/icone";
 import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu";
 import { Messaggio } from "@/components/ui/messaggio";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 

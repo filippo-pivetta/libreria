@@ -1,5 +1,3 @@
-"use client";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { cancellaArtefatto } from "@/lib/api/preview";
@@ -13,7 +11,7 @@ import { Menu, MenuContenuto, MenuTrigger, MenuVoce } from "@/components/ui/menu
 import { Messaggio } from "@/components/ui/messaggio";
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 import { ERRORE_SERVER, ErroreApp, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 

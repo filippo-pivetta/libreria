@@ -163,8 +163,8 @@ export function ScheletroAnnali() {
         <Skeleton className="h-8 w-36" />
       </div>
       {/* La carta prima: quattro numeri e la fascia dei mesi. Lo
-          scheletro segue la forma vera, altrimenti il salto
-          all'idratazione è un salto di layout. */}
+          scheletro segue la forma vera, altrimenti l'arrivo dei
+          dati è un salto di layout. */}
       <div className="plane-1 grain p-6">
         <Skeleton className="h-2.5 w-24" />
         <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:gap-4">

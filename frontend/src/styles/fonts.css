@@ -1,0 +1,79 @@
+/* =============================================================================
+ * Montaigne · i tre caratteri
+ *
+ * Tre file variabili, sottoinsieme latino, serviti dal build con l'impronta del
+ * contenuto nel nome (cache di un anno). `index.html` li mette in `preload`.
+ *
+ * Le facce "Fallback" sono il carattere di sistema ridimensionato sulle
+ * metriche di quello vero (`size-adjust` e override di ascendenti e
+ * discendenti): mentre il file arriva il testo occupa già lo stesso spazio, e
+ * lo scambio non sposta la pagina. I valori sono quelli che calcolava
+ * `next/font` (`adjustFontFallback`), copiati dal suo ultimo build.
+ * ========================================================================== */
+
+/* Fraunces, assi opsz 9..144, wght 100..900, SOFT 0..100, WONK 0..1.
+   Serve il file con tutti gli assi perché il design usa SOFT sui titoli. */
+@font-face {
+  font-family: "fraunces";
+  src: url("../fonts/Fraunces-Variable-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Literata, assi opsz 7..72, wght 200..900. L'asse ottico è ciò che permette a
+   sentenza (19px) e appunto (15px) di essere lo stesso carattere con due voci
+   diverse: non sostituire con il file solo-wght.
+
+   Il corsivo non è caricato: nessuna regola lo usa. Il file è versionato in
+   `src/fonts`; il giorno che servirà basta una faccia `font-style: italic` qui. */
+@font-face {
+  font-family: "literata";
+  src: url("../fonts/Literata-Variable-latin.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Inter Tight, asse wght 100..900. Nessun corsivo: la UI non ne usa. */
+@font-face {
+  font-family: "interTight";
+  src: url("../fonts/InterTight-Variable-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "fraunces Fallback";
+  src: local("Times New Roman");
+  ascent-override: 76.84%;
+  descent-override: 20.04%;
+  line-gap-override: 0%;
+  size-adjust: 127.27%;
+}
+
+@font-face {
+  font-family: "literata Fallback";
+  src: local("Times New Roman");
+  ascent-override: 99.63%;
+  descent-override: 26.07%;
+  line-gap-override: 0%;
+  size-adjust: 118.14%;
+}
+
+@font-face {
+  font-family: "interTight Fallback";
+  src: local("Arial");
+  ascent-override: 99.65%;
+  descent-override: 24.81%;
+  line-gap-override: 0%;
+  size-adjust: 97.21%;
+}
+
+:root {
+  --font-fraunces: "fraunces", "fraunces Fallback", Georgia, "Times New Roman", serif;
+  --font-literata: "literata", "literata Fallback", Georgia, "Times New Roman", serif;
+  --font-inter-tight: "interTight", "interTight Fallback", system-ui, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+}

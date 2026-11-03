@@ -3,7 +3,7 @@
  *
  * Il design doc §6 è esplicito: "la stringa del fornitore di
  * autenticazione va tradotta, mai mostrata grezza". Non lo era:
- * `login/page.tsx` faceva `setError(signInError.message)` e sotto il campo
+ * `rotte/login.tsx` faceva `setError(signInError.message)` e sotto il campo
  * compariva, in inglese, "Invalid login credentials" — l'unica frase di
  * tutta l'app scritta da qualcun altro, in un'altra lingua, nel punto in
  * cui l'utente entra.

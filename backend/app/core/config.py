@@ -16,10 +16,14 @@ class Settings(BaseSettings):
 
     # --- Supabase / database ---
     supabase_url: str
-    supabase_anon_key: str
-    supabase_service_role_key: str
-    """Riservata ai lavori in background: non deve mai servire richieste
-    che originano da un utente (docs/adr/0001)."""
+    supabase_publishable_key: str
+    """Chiave pubblicabile (`sb_publishable_…`): accompagna il token
+    dell'utente nei client che operano con la sua identità, così che le
+    regole di riga restino sempre valutate (docs/adr/0001)."""
+    supabase_secret_key: str
+    """Chiave segreta (`sb_secret_…`): ammessa solo per lo spazio file delle
+    copertine e per la cancellazione dell'account (`get_service_client`),
+    mai per servire letture che originano da un utente (docs/adr/0001)."""
     database_url: str
     """Stringa di connessione diretta a Postgres, usata dal repository
     per verifiche di raggiungibilità (es. health check)."""

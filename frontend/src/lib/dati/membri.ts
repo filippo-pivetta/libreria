@@ -1,28 +1,22 @@
-import { cacheLife } from "next/cache";
+import { queryOptions } from "@tanstack/react-query";
 
-import {
-  getUtenti,
-  getLibreriaCollegato,
-  type UtentiResult,
-  type LibreriaCollegatoResult,
-} from "@/lib/api/utenti";
-import { contesto } from "@/lib/dati/sessione";
-import { DURATA_DATI_PERSONALI } from "@/lib/dati/durata";
+import { getAccessToken } from "@/lib/api/access-token";
+import { conUnSecondoTentativo } from "@/lib/dati/sessione";
+import { getUtenti, getLibreriaCollegato } from "@/lib/api/utenti";
 
 /** L'elenco dei membri, nei tre gruppi che il backend restituisce. */
-export async function utenti(cerca?: string): Promise<UtentiResult> {
-  "use cache: private";
-  cacheLife(DURATA_DATI_PERSONALI);
-  const { accessToken } = await contesto();
-  return getUtenti(accessToken, cerca);
+export function utenti() {
+  return queryOptions({
+    queryKey: ["rotta", "utenti"],
+    queryFn: () => conUnSecondoTentativo(async () => getUtenti(await getAccessToken())),
+  });
 }
 
-/** La libreria di un collegato. Chiamata dal layout di `/lettori/[id]`
- * per il sottotitolo e dalle pagine figlie per lo scaffale e per gli
- * Annali: una volta sola. */
-export async function libreriaCollegato(utenteId: string): Promise<LibreriaCollegatoResult> {
-  "use cache: private";
-  cacheLife(DURATA_DATI_PERSONALI);
-  const { accessToken, lingua } = await contesto();
-  return getLibreriaCollegato(accessToken, utenteId, lingua);
+/** La libreria di un collegato. La chiede il layout di `/lettori/:id`, che ne
+ * ricava anche se la stanza è ancora aperta, e la riusano le due pagine figlie. */
+export function libreriaCollegato(utenteId: string) {
+  return queryOptions({
+    queryKey: ["rotta", "libreria-collegato", utenteId],
+    queryFn: () => conUnSecondoTentativo(async () => getLibreriaCollegato(await getAccessToken(), utenteId)),
+  });
 }

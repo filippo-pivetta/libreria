@@ -1,5 +1,3 @@
-"use client";
-
 import { use } from "react";
 
 import { PortaProfilo } from "@/components/layout/porta-profilo";

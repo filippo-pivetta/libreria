@@ -1,8 +1,6 @@
-"use client";
-
 import { Suspense } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "@/components/ui/link";
+import { useLocation } from "react-router";
 
 import { ContatoreConDati, PortaConDati, PortaInAttesa } from "@/components/layout/barra-dati";
 import type { DatiBarra } from "@/lib/dati/barra";
@@ -58,7 +56,7 @@ import type { DatiBarra } from "@/lib/dati/barra";
  * 640px le stesse voci diventano una barra in fondo, dove sta la
  * navigazione di un'app e dove arriva il pollice. Lo scambio è in CSS
  * (`hidden` / `sm:flex`), non in JavaScript: nessun `matchMedia`, quindi
- * nessun lampeggio della barra sbagliata prima dell'idratazione.
+ * nessun lampeggio della barra sbagliata al primo disegno.
  *
  * Con tre linguette invece di quattro ciascuna guadagna un terzo di
  * larghezza, e l'etichetta può tornare al maiuscoletto pieno di §4 senza
@@ -114,7 +112,7 @@ function attiva(pathname: string, href: string): boolean {
 }
 
 export function ProtectedNav({ dati }: { dati: Promise<DatiBarra> }) {
-  const pathname = usePathname();
+  const pathname = useLocation().pathname;
 
   return (
     <>

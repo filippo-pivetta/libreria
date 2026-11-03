@@ -1,13 +1,10 @@
-"use client";
-
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Token della sessione browser corrente, per le mutazioni lato client
- * verso il backend (cambiare stato, registrare un avanzamento — design
- * doc §12, salvataggio ottimistico). Solo per Client Component: i Server
- * Component leggono la sessione da `lib/supabase/server.ts`, come già fa
- * `(protected)/layout.tsx`.
+ * Token della sessione browser corrente, per ogni chiamata al backend:
+ * le letture delle pagine (`lib/dati/*`) e le mutazioni (cambiare stato,
+ * registrare un avanzamento — design doc §12, salvataggio ottimistico).
+ * supabase-js lo rinnova da sé prima che scada.
  */
 export async function getAccessToken(): Promise<string> {
   const supabase = createClient();

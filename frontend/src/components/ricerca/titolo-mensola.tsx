@@ -1,5 +1,3 @@
-"use client";
-
 import { CollegamentoIntento } from "@/components/ui/collegamento-intento";
 import type { CSSProperties } from "react";
 
@@ -46,7 +44,6 @@ export function TitoloMensola({ titolo }: { titolo: TitoloPopolare }) {
       <span className="volume__spine" aria-hidden />
       <span className="volume__cover">
         {titolo.copertinaUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- copertina firmata dal nostro storage, non ottimizzabile da next/image
           <img
             ref={(elemento) => {
               if (elemento?.complete) elemento.setAttribute("data-loaded", "");

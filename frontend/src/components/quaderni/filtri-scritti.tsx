@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
 
 import { getSfaccettature, type FiltriScritti, type TipoContenuto } from "@/lib/api/scritti";

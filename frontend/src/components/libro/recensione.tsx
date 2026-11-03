@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 
 import { useConfermaEffimera } from "@/lib/hooks/use-conferma-effimera";
@@ -20,7 +18,7 @@ import { PastigliaInterruttore } from "@/components/ui/pastiglia-interruttore";
 import { IconaCollegati, IconaLucchetto } from "@/components/ui/icone";
 import { ErroreApp, assenza, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 
 /**
  * Recensione (design doc §9): un paragrafo Literata sulla pagina destra,

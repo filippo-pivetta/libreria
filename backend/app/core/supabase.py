@@ -4,7 +4,7 @@ Coerenti con docs/adr/0001-back-end-unico-con-regole-di-riga.md: le richieste
 che originano da un utente vanno eseguite con la sua identità, cosi che le
 regole di riga (RLS) restino sempre valutate.
 
-La chiave di servizio bypassa la RLS per definizione della piattaforma, e in
+La chiave segreta bypassa la RLS per definizione della piattaforma, e in
 questo backend ha due soli usi ammessi:
 
     1. lo spazio file delle copertine (app/core/storage.py). Non tocca mai
@@ -15,7 +15,7 @@ questo backend ha due soli usi ammessi:
        di rimuovere una riga in `auth.users`, schema su cui un ruolo
        `authenticated` non ha alcun privilegio. Arriva sempre *dopo* che la
        riga `public.utente` è già stata cancellata con l'identità
-       dell'utente (RLS, `utente_delete_owner`): la chiave di servizio non
+       dell'utente (RLS, `utente_delete_owner`): la chiave segreta non
        decide mai da sola se un account va cancellato, si limita a
        completare fuori dallo schema `public` una cancellazione già
        avvenuta lì.
@@ -134,7 +134,7 @@ def get_user_client(access_token: str) -> Client:
     settings = get_settings()
     client = create_client(
         settings.supabase_url,
-        settings.supabase_anon_key,
+        settings.supabase_publishable_key,
         options=SyncClientOptions(httpx_client=_pool_http()),
     )
     client.postgrest.auth(access_token)
@@ -143,7 +143,7 @@ def get_user_client(access_token: str) -> Client:
 
 @lru_cache
 def get_service_client() -> Client:
-    """Client con la chiave di servizio, ammesso solo per lo spazio file
+    """Client con la chiave segreta (`sb_secret_…`), ammesso solo per lo spazio file
     delle copertine (app/core/storage.py) e per la cancellazione
     dell'account (app/services/me_service.py::elimina_account, issue #8).
 
@@ -160,4 +160,4 @@ def get_service_client() -> Client:
     get_user_client che vi lega un token.
     """
     settings = get_settings()
-    return create_client(settings.supabase_url, settings.supabase_service_role_key)
+    return create_client(settings.supabase_url, settings.supabase_secret_key)

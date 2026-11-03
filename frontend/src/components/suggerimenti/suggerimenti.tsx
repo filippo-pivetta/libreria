@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -15,7 +13,7 @@ import {
 } from "@/lib/api/suggerimenti";
 import { useAggiungiRisultato } from "@/lib/hooks/use-aggiungi-risultato";
 import { Messaggio } from "@/components/ui/messaggio";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 import { erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 

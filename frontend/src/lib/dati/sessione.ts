@@ -1,65 +1,61 @@
-import { cache } from "react";
-import { redirect } from "next/navigation";
+import { queryOptions } from "@tanstack/react-query";
 
-import { createClient } from "@/lib/supabase/server";
-import { accettaLinguaInoltrata } from "@/lib/api/lingua-richiesta";
+import { createClient } from "@/lib/supabase/client";
 
 /**
- * Il contesto di richiesta che ogni fetcher di questo strato vuole: il
- * token con cui chiamare il backend e la lingua da inoltrargli.
+ * Le letture delle pagine.
+ *
+ * Ogni modulo di `lib/dati` espone `queryOptions` che una rotta usa due volte:
+ * il loader (`src/router.tsx`) le precarica senza aspettarle, così dati e
+ * codice della pagina partono insieme, e il componente della rotta le legge con
+ * `useQuery`. Restituiscono l'esito dei fetcher di `lib/api` così com'è
+ * (`{ status: … }`), senza lanciare: la pagina decide quale `ErrorState`
+ * mostrare, come prima facevano i Server Component.
+ *
+ * Le chiavi stanno tutte sotto `["rotta"]`, separate da quelle dei componenti
+ * (`["voci"]`, `["metriche", anno]`…) che hanno forma diversa: il componente
+ * riceve il primo dato come `initialData` e da lì tiene la propria chiave. Ogni
+ * mutazione riuscita segna come vecchie le chiavi `["rotta"]`
+ * (`lib/query-client.ts`).
  */
-export type Contesto = {
-  accessToken: string;
-  utenteId: string;
-  lingua: string | undefined;
-};
+
+/** Chi sta guardando. Letto dalla sessione nel browser, nessuna rete: la
+ * guardia dell'area protetta ha già verificato che la sessione c'è. */
+export function contesto() {
+  return queryOptions({
+    queryKey: ["sessione"],
+    queryFn: async (): Promise<{ utenteId: string }> => {
+      const {
+        data: { session },
+      } = await createClient().auth.getSession();
+      return { utenteId: session?.user.id ?? "" };
+    },
+    staleTime: Infinity,
+  });
+}
 
 /**
- * La sessione di questa richiesta, risolta una volta sola.
+ * Un fetcher di `lib/api` con un secondo tentativo, uno solo, dopo un guasto
+ * del server.
  *
- * `cache()` di React è memoization **di richiesta**: due chiamate nella
- * stessa richiesta danno lo stesso oggetto, due richieste diverse non
- * condividono nulla. Prima ogni pagina e ogni layout costruivano il
- * proprio `createServerClient` e rileggevano i cookie per conto loro —
- * fino a quattro volte per navigazione sulla scheda di un libro.
+ * Il caso da cui viene: la prima lettura subito dopo l'accesso. PostgREST
+ * confronta l'emissione del token con un orologio che aggiorna una volta al
+ * secondo, e un token usato nello stesso secondo in cui è nato torna indietro
+ * come "emesso nel futuro" (500 dal backend). Una SPA chiede la libreria nel
+ * millisecondo dopo il login, quindi ci cade. Un secondo dopo passa.
  *
- * Chi non ha sessione viene mandato al login invece di ricevere un esito
- * da gestire: il Proxy (`src/proxy.ts`) e il layout dell'area protetta
- * hanno già rediretto prima di arrivare qui, quindi il ramo non si
- * raggiunge in pratica — ma è la difesa in profondità che il layout
- * dichiara, non una svista, e tenerla qui fa sparire lo stesso controllo
- * ripetuto (e irraggiungibile) da undici Server Component.
+ * Solo `server`: una regola, un'assenza o una sessione scaduta danno lo stesso
+ * esito anche al secondo tentativo (`riprovabile` in `lib/messaggi-errore.ts`
+ * fa lo stesso ragionamento per il comando "Riprova").
  */
-export const contesto = cache(async (): Promise<Contesto> => {
-  const supabase = await createClient();
-
-  // `getClaims` e non il solo `getSession`: verifica la FIRMA del token
-  // in locale con WebCrypto (chiavi asimmetriche via JWKS, docs/adr/0012),
-  // senza interrogare il server di autenticazione. Prima questa verifica
-  // la faceva solo il layout dell'area protetta, una volta, all'ingresso:
-  // ogni altro punto si accontentava di `getSession`, che il cookie lo
-  // legge e basta. Standogli qui, ogni accesso ai dati di questa
-  // richiesta passa da una firma verificata, non solo la prima pagina.
-  const { data: claims } = await supabase.auth.getClaims();
-
-  if (!claims) {
-    redirect("/login");
-  }
-
-  // Sicuro solo perché `getClaims` sopra ha già verificato la firma: qui
-  // si rilegge il token validato — e già rinnovato, perché è `getClaims`
-  // a rinnovarlo quando sta per scadere.
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  return {
-    accessToken: session.access_token,
-    utenteId: session.user.id,
-    lingua: await accettaLinguaInoltrata(),
-  };
-});
+export async function conUnSecondoTentativo<R extends { status: string }>(
+  leggi: () => Promise<R>,
+): Promise<R> {
+  const primo = await leggi();
+  const guasto =
+    primo.status === "error" &&
+    (primo as unknown as { errore?: { genere?: string } }).errore?.genere === "server";
+  if (!guasto) return primo;
+  await new Promise((risolvi) => setTimeout(risolvi, 1000));
+  return leggi();
+}

@@ -12,7 +12,7 @@ stessa direzione (docs/adr/0016):
    ricostruirebbe mai. PostgREST non ha transazioni su più tabelle.
 2. `service_role` non ha comunque i privilegi SQL sulle tabelle `public`
    — verificato sul database reale: solo REFERENCES, TRIGGER e TRUNCATE.
-   Anche volendo, la chiave di servizio non potrebbe scrivere qui.
+   Anche volendo, la chiave segreta non potrebbe scrivere qui.
 
 Nessuna di queste righe appartiene a un Utente: sono dato condiviso di
 sistema, e la RLS su di esse non ha una forma basata su `auth.uid()` (vedi

@@ -162,7 +162,7 @@ async def elimina_account(access_token: str, utente_id: UUID, conferma_nome_uten
        avanzamenti, voti, recensioni, insight, note, artefatti generati e
        indici semantici: nessuna di queste tabelle va toccata qui.
     2. Solo dopo, rimuove la riga `auth.users` con l'Auth Admin API e la
-       chiave di servizio (`get_service_client`, docs/adr/0001 — nessun
+       chiave segreta (`get_service_client`, docs/adr/0001 — nessun
        ruolo `authenticated` ha privilegi su quello schema). L'ordine
        inverso lascerebbe una finestra in cui l'utente non può più
        autenticarsi ma i suoi dati applicativi sono ancora leggibili da

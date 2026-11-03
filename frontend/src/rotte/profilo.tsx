@@ -1,14 +1,13 @@
-import { Suspense } from "react";
-import { getTranslations } from "next-intl/server";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "use-intl";
 
 import { me } from "@/lib/dati/profilo";
-import { preferenzaLuce } from "@/lib/luce-richiesta";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 import { ErrorState } from "@/components/states/error-state";
 import { RiprovaRotta } from "@/components/states/riprova-rotta";
 import { ScheletroElenco } from "@/components/states/scheletri";
 import { TestataPagina } from "@/components/layout/testata-pagina";
 import { SezioneImpostazioni } from "@/components/profilo/sezione-impostazioni";
-import { messaggioErrore } from "@/lib/messaggi-errore-server";
 
 /**
  * Profilo (design doc §17): il proprio account e nient'altro — chi sei,
@@ -26,7 +25,7 @@ import { messaggioErrore } from "@/lib/messaggi-errore-server";
  * ("Interruttore nel profilo dell'Utente") e riserva "impostazioni" alle
  * azioni sui dati — che sono infatti i titoli delle sezioni qui dentro.
  *
- * 44px / 56px, come il titolo di Lettori (`readers/page.tsx`) e come
+ * 44px / 56px, come il titolo di Lettori (`rotte/lettori.tsx`) e come
  * quello degli Annali: un titolo di pagina ha una misura sola in tutta
  * l'app, non una a scelta di chi scrive la pagina.
  */
@@ -34,25 +33,26 @@ export default function ProfiloPage() {
   return (
     <div className="flex flex-col gap-8">
       <TestataPagina titolo="Profilo" />
-      <Suspense
-        fallback={
-          <>
-            <ScheletroElenco righe={3} />
-            <ScheletroElenco righe={4} />
-          </>
-        }
-      >
-        <Impostazioni />
-      </Suspense>
+      <Impostazioni />
     </div>
   );
 }
 
-async function Impostazioni() {
-  const [profilo, luce] = await Promise.all([me(), preferenzaLuce()]);
+function Impostazioni() {
+  const t = useTranslations();
+  const spiega = useMessaggioErrore();
+  const { data: profilo, isPending, refetch } = useQuery(me());
 
-  if (profilo.status !== "ok") {
-    const t = await getTranslations();
+  if (isPending) {
+    return (
+      <>
+        <ScheletroElenco righe={3} />
+        <ScheletroElenco righe={4} />
+      </>
+    );
+  }
+
+  if (!profilo || profilo.status !== "ok") {
     // Un account incompleto non è un guasto e non si riprova: ha una
     // frase propria e nessun comando. Tutto il resto sì.
     //
@@ -60,23 +60,22 @@ async function Impostazioni() {
     // libreria a non essere arrivata, ed è la prima clausola — quella che
     // nomina la cosa (§19) — a doverlo dire. Dal Profilo si leggeva "La
     // libreria non è arrivata" su una pagina che di libri non ne mostra.
-    const incompleto = profilo.status === "not_provisioned";
+    const incompleto = profilo?.status === "not_provisioned";
     return (
       <ErrorState
         regione
         message={
           incompleto
             ? t("assenze.accountIncompleto")
-            : await messaggioErrore("profiloNonCaricato", profilo.errore)
+            : spiega("profiloNonCaricato", profilo?.status === "error" ? profilo.errore : undefined)
         }
-        azione={incompleto ? undefined : <RiprovaRotta />}
+        azione={incompleto ? undefined : <RiprovaRotta riprova={refetch} />}
       />
     );
   }
 
   return (
     <SezioneImpostazioni
-      preferenzaLuce={luce}
       nomeUtente={profilo.data.nomeUtente}
       consensoIniziale={profilo.data.consensoElaborazioneAssistita}
       indiciStatoIniziale={profilo.data.indiciStato}

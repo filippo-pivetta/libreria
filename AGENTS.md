@@ -47,23 +47,31 @@ soluzione migliore, proponila invece di seguire la lettera del documento. Una de
 
 ## Dove sta cosa
 
-### `frontend/` — Next.js 16 (App Router, TS)
-- `src/app/` pagine · `src/lib/supabase/{client,server,proxy}.ts` client browser/server/sessione ·
-  `src/proxy.ts` (Next 16 sostituisce `middleware.ts`).
-- `src/lib/light.ts` — palette del momento, calcolata **lato server** interpolando quattro
-  ancoraggi in OKLCH sul fuso CET (design-frontend.md §3). Mai nel browser.
+### `frontend/` — SPA React 19 + Vite 8 + React Router 8 (TS), ADR 0020
+- `src/router.tsx` le rotte, tutte `lazy` · `src/rotte/` le pagine e i gusci · `src/rotte/precarica.ts`
+  cosa serve a ogni pagina (codice e dati), usato dai loader e da `components/ui/link.tsx`.
+- `src/lib/dati/*` — le letture delle pagine come `queryOptions` di React Query, chiavi sotto
+  `["rotta"]`. Restituiscono l'esito dei fetcher (`{ status: … }`) e non lanciano; i componenti
+  ricevono il primo dato come `initialData` e tengono le proprie chiavi. Ogni mutazione riuscita
+  segna come vecchie le chiavi `["rotta"]` (`lib/query-client.ts`).
+- `src/lib/supabase/client.ts` — supabase-js nel browser, sessione in `localStorage`, solo per
+  l'autenticazione. Guardia dell'area protetta: `components/layout/require-auth.tsx`.
+- `src/lib/light.ts` — palette del momento, interpolando quattro ancoraggi in OKLCH sull'ora di
+  **Roma**, mai su quella del telefono (design-frontend.md §3). Gira nel browser:
+  `lib/luce-avvio.ts` è compilato da `vite.config.ts` in uno script inline nell'`<head>`, prima del
+  primo disegno; `components/layout/luce-viva.tsx` la riapplica al cambio pagina e al ritorno in
+  primo piano.
 - `src/styles/tokens.css` — unica sorgente di colori/ombre/raggi/tipografia.
   `tokens.anchors.css` è generato da `npm run tokens`, non si modifica a mano.
-- `public/sw.js` — service worker: serve `/senza-rete` quando la rete manca, non mette MAI in
-  cache dati di lettura (ADR 0019). `public/icone/` generate da `scripts/build-icone.mts`.
-- `vercel.json` esiste per una riga sola, `regions: ["fra1"]`: il backend sta ad Amsterdam
-  (`backend/fly.toml`, `primary_region = "ams"`) e ogni pagina protetta lo chiama due o tre volte
-  in fila. La regione va tenuta uguale anche in Project Settings → Functions su Vercel, che in caso
-  di divergenza vince. `preferredRegion` non è la via: in Next 16 è deprecato.
-- **`frontend/AGENTS.md` e `frontend/CLAUDE.md` non sono documentazione di progetto**: li scrive
-  `next dev` (`node_modules/next/dist/server/lib/generate-agent-files.js`) e li ricrea se
-  cancellati. Contengono solo l'avviso di Next: questa versione ha rotture rispetto ai modelli
-  addestrati, quindi prima di scrivere codice Next consulta `node_modules/next/dist/docs/`.
+- `public/sw.js` — service worker: serve `/senza-rete.html` quando la rete manca e i file di
+  `/assets/` dalla cache, non mette MAI in cache dati di lettura (ADR 0019). `senza-rete.html` è
+  scritta a mano, con i testi presi dal catalogo al build (`%it:…%`/`%en:…%`).
+  `public/icone/` generate da `scripts/build-icone.mts`.
+- `vercel.json` — rinvio di ogni percorso a `index.html`, header di sicurezza, regole di cache
+  (`/assets/` immutabile, `sw.js` `no-store`). `public/manifest.webmanifest` è generato da
+  `npm run tokens` insieme a `tokens.anchors.css`.
+- Variabili `VITE_*` (`.env.example`): finiscono tutte nel bundle del browser, mai un segreto. Il
+  build si ferma se ne manca una.
 
 ### `backend/` — FastAPI a strati
 `app/routers` (HTTP) → `app/services` (orchestrazione) → `app/repositories` (accesso dati).
@@ -201,8 +209,9 @@ vedi `docs/lavoro-rimandato.md`.
 
 ## Comandi
 
-**Frontend** (`cd frontend`): `npm run dev` · `build` · `lint` · `type-check` ·
-`tokens` (rigenera `tokens.anchors.css`, gira anche come `prebuild`) · `check:contrast` (AA su
+**Frontend** (`cd frontend`): `npm run dev` (Vite, porta 3000) · `build` · `preview` (il build con
+il service worker, sulla stessa porta) · `lint` · `type-check` ·
+`tokens` (rigenera `tokens.anchors.css` e il manifesto, gira anche come `prebuild`) · `check:contrast` (AA su
 tutto l'anno) · `check:messaggi` (catalogo e codice allineati, IT/EN in parità) ·
 `icone` (vuole Chrome in locale, non gira in CI, i PNG sono versionati).
 
@@ -212,7 +221,9 @@ tutto l'anno) · `check:messaggi` (catalogo e codice allineati, IT/EN in parità
 **Supabase locale.** Prima di `supabase start` serve una chiave di firma JWT (ADR 0012):
 `supabase gen signing-key --algorithm ES256` scrive in `supabase/signing_keys.json` (mai
 committato). Poi `supabase status` per URL e chiavi da mettere in `.env`/`.env.local` (copiati da
-`.env.example`). Migrazioni: `supabase migration new <nome>` · `migration up --local` ·
+`.env.example`): `PUBLISHABLE_KEY` (`sb_publishable_…`) al frontend e al backend, `SECRET_KEY`
+(`sb_secret_…`) solo al backend. Le chiavi JWT `anon`/`service_role` sono il sistema legacy di
+Supabase e non si usano da nessuna parte. Migrazioni: `supabase migration new <nome>` · `migration up --local` ·
 `db reset --local` (riapplica tutto e riesegue `seed.sql`; cancella ogni account di test creato a
 mano).
 
@@ -223,11 +234,12 @@ silenzio le fixture di un'altra. `-v ON_ERROR_STOP=1` è essenziale, senza psql 
 fallimento.
 
 **CI** (`.github/workflows/ci.yml`), 4 job: frontend (lint, type-check, tokens, contrast,
-messaggi), backend (lint, type-check, test), supabase (le sei verifiche contro un'istanza avviata
+messaggi, build), backend (lint, type-check, test), supabase (le sei verifiche contro un'istanza avviata
 nel job), semgrep (`p/default`, diff-aware sulle PR).
 
 **Deploy.** Le migrazioni le applica da sola l'integrazione GitHub di Supabase a ogni merge su
-`main`. Il backend **no**: `cd backend && fly deploy`, a mano.
+`main`. Il backend **no**: `cd backend && fly deploy`, a mano. Il frontend lo pubblica Vercel a
+ogni push su `main`, come file statici (framework Vite, variabili `VITE_*`).
 
 **Autenticazione.** `app/core/security.py` espone `get_current_user`, che verifica il JWT via JWKS
 (ADR 0012) e va usata da ogni route che serve dati di un utente — pattern di riferimento in
@@ -287,13 +299,16 @@ Le regole che si violano più facilmente:
   la barra che raccoglie la parola quando il titolo grande esce dallo schermo. Una rotta nuova con
   un titolo passa da lì, non da un `<h1>` scritto a mano.
 - **Primitivi**: `@base-ui/react` (ADR 0014, non Radix nonostante la lettera del design doc),
-  generati come codice proprio in `src/components/ui/` dalla CLI `shadcn`, mai l'estetica di
+  generati come codice proprio in `src/components/ui/` dalla CLI `shadcn` (con `npx shadcn`: non è
+  fra le dipendenze, perché porta Babel 7 e confligge col plugin React di Vite), mai l'estetica di
   shadcn/ui presa così com'è.
 
 **La luce** ha un comando a tre stati nel Profilo — «Segui l'ora» (predefinito) / «Giorno» /
-«Notte» — in un cookie `httpOnly` letto dal layout radice. I due valori fissi coincidono col nome
-dell'ancoraggio che fissano (`PreferenzaLuce` è un sottoinsieme di `Anchor`). Il calcolo resta lato
-server e solo al cambio pagina. Mai `localStorage`, mai uno script anti-lampeggio.
+«Notte» — in `localStorage` (`mtg-luce`, `lib/luce-browser.ts`). I due valori fissi coincidono col
+nome dell'ancoraggio che fissano (`PreferenzaLuce` è un sottoinsieme di `Anchor`). Si calcola nello
+script inline di `index.html`, prima del primo disegno, poi al cambio pagina e al ritorno in primo
+piano: **mai con un timer**, perché un salto di luce mentre si legge è ciò che `crossesNight` esiste
+per evitare (ADR 0020).
 
 ### Scrittura e messaggi
 Mai «con successo» / «per favore» / punti esclamativi / «ops»; gli errori sono testo, mai un
@@ -318,8 +333,9 @@ successivo e lo sa il trasporto. Dove esiste una `rassicurazioni.<dominio>` pren
 rimedio. Assenze e regole saltano la composizione e usano la propria frase intera.
 `npm run check:messaggi` (in CI) impedisce che catalogo e codice divergano.
 
-**Bilingue IT/EN.** `next-intl` risolve la lingua da `Accept-Language` a ogni richiesta — nessun
-selettore, nessun cookie (`src/lib/lingua.ts`, `src/i18n/request.ts`). I cataloghi
+**Bilingue IT/EN.** `use-intl` con la lingua risolta all'avvio da `navigator.languages` — nessun
+selettore, nessun cookie (`src/lib/lingua.ts`, `src/providers/lingua-provider.tsx`). Il browser
+manda da sé le stesse lingue come `Accept-Language`, che il backend usa per le varianti. I cataloghi
 `frontend/messages/{it,en}.json` coprono tutto il perimetro dei messaggi: `errori`,
 `rassicurazioni`, `rimedi`, `regole`, `assenze`, `accesso`, `sessione`, `titoli`, `avvisi`,
 `conferme`, `attesa`. Il backend manda `detail.message`, ma il frontend **non lo mostra mai**:
@@ -354,5 +370,5 @@ Mobile e desktop hanno pari importanza, con il mobile come riferimento nei casi 
   (Postgres di default: UTC).
 - Nessun comando git che cambia lo stato del repository (`commit`, `push`, `branch`, `checkout -b`,
   merge, rebase) senza il consenso esplicito dell'utente, anche a lavoro finito e verificato.
-- A fine implementazione, i processi locali avviati per verificare (`uvicorn`, `next dev`,
+- A fine implementazione, i processi locali avviati per verificare (`uvicorn`, `vite`,
   `supabase start`) vanno spenti prima di chiudere il task.

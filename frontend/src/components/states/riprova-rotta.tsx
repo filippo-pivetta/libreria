@@ -1,50 +1,38 @@
-"use client";
-
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { useTranslations } from "use-intl";
 
 import { Button } from "@/components/ui/button";
 
 /**
- * "Riprova" per un errore nato in un Server Component.
+ * "Riprova" per un errore che ha tolto di mezzo il contenuto di una pagina.
  *
- * Il caso da cui viene: la Libreria che non arriva al primo render dopo
- * l'accesso. La frase composta dal catalogo dice "Riprova fra poco", ma
- * non c'era niente da premere — `ErrorState` accetta una `onRetry`, e una
- * funzione non attraversa il confine server/client. Restava il tasto di
- * ricarica del browser, che è l'ammissione che l'app non sa rimettersi in
- * piedi da sola.
+ * Il caso da cui viene: la Libreria che non arriva al primo caricamento. La
+ * frase composta dal catalogo dice "Riprova fra poco", e senza un comando lo
+ * diceva a vuoto: restava il tasto di ricarica del browser, che è l'ammissione
+ * che l'app non sa rimettersi in piedi da sola.
  *
- * `router.refresh()` e non `location.reload()`: rifà la richiesta al
- * server per questa sola rotta, **svuotando la Client Cache del
- * segmento** (Next 16, `use-router`). È quest'ultima parte a rendere il
- * comando onesto invece che decorativo: `lib/dati/letture.ts` sta dietro
- * un `"use cache: private"` con `stale: 300`, cioè la risposta — errore
- * compreso — resta buona nella memoria del browser per cinque minuti. Un
- * ricaricamento morbido che non la svuotasse rimostrerebbe lo stesso
- * guasto senza aver chiesto niente a nessuno. Una ricarica intera
- * funzionerebbe (la cache privata non sopravvive al reload) ma butta via
- * anche tutto il resto: il guscio, la sessione già verificata, la
- * posizione nella pagina.
+ * `riprova` è il `refetch` della query della pagina: rifà solo quella lettura,
+ * senza buttare via il guscio, la sessione o la posizione nella pagina.
  *
- * `useTransition` perché il ritorno dal server non è istantaneo e un
- * comando che non dà segno di aver sentito il clic invita a premerlo di
- * nuovo — cioè a raddoppiare le richieste proprio mentre il server è in
- * affanno, che è il caso in cui si sta.
+ * Il comando si spegne mentre la richiesta è in corso: un comando che non dà
+ * segno di aver sentito il clic invita a premerlo di nuovo, cioè a raddoppiare
+ * le richieste proprio mentre il server è in affanno.
  */
-export function RiprovaRotta() {
+export function RiprovaRotta({ riprova }: { riprova: () => Promise<unknown> }) {
   const t = useTranslations();
-  const router = useRouter();
-  const [inCorso, avvia] = useTransition();
+  const [inCorso, setInCorso] = useState(false);
+
+  async function avvia() {
+    setInCorso(true);
+    try {
+      await riprova();
+    } finally {
+      setInCorso(false);
+    }
+  }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={inCorso}
-      onClick={() => avvia(() => router.refresh())}
-    >
+    <Button variant="outline" size="sm" disabled={inCorso} onClick={() => void avvia()}>
       {inCorso ? t("attesa.generica") : "Riprova"}
     </Button>
   );

@@ -72,9 +72,9 @@ nominano l'ancoraggio che fissano, non un'invenzione a parte: si chiamavano "Chi
 secondo vocabolario per gli stessi due ancoraggi (§2) che il resto del documento chiama "giorno" e
 "notte". "Segui l'ora"
 resta il valore predefinito: chi non lo tocca vede la stanza seguire l'ora, e due collegati
-senza preferenze espresse vedono la stessa stanza allo stesso momento. Il calcolo resta lato
-server, il cambio avviene solo al cambio pagina, nessun timer nel browser: la preferenza viaggia
-in un cookie `httpOnly` letto dal layout radice. `prefers-contrast` e la modalità a colori
+senza preferenze espresse vedono la stessa stanza allo stesso momento. Il cambio avviene al
+cambio pagina e al ritorno in primo piano, nessun timer: la preferenza sta in `localStorage`
+(ADR 0020). `prefers-contrast` e la modalità a colori
 forzati del sistema restano onorati indipendentemente da questo comando (`tokens.css`).
 
 Fissare una preferenza fissa un ancoraggio (`giorno` o `notte`) senza interpolare: sono scelte,
@@ -86,8 +86,9 @@ si interpolano.
 **Interpolazione in OKLCH.** I mezzitoni restano saturi e leggibili; in sRGB il passaggio fra
 alba e giorno darebbe un mezzogiorno grigio e fangoso.
 
-**Calcolo lato server.** Il dominio fissa il fuso CET uguale per tutti; calcolarlo nel browser
-produrrebbe un mismatch di idratazione in Next.js. Alba e tramonto da tabella a latitudine
+**Calcolo sull'ora di Roma.** Il dominio fissa il fuso CET uguale per tutti: il calcolo gira nel
+browser (uno script inline in `index.html`, prima del primo disegno, così non c'è lampo della
+stanza sbagliata), ma l'ora è sempre quella di Roma, mai quella del telefono. Alba e tramonto da tabella a latitudine
 fissa, non dalla posizione dell'utente: due collegati vedono la stessa stanza alla stessa ora.
 
 Il valore si aggiorna al cambio pagina, mai con un timer, e mai mentre si sta scrivendo: in quel
@@ -1487,7 +1488,7 @@ uno scheletro con la forma del contenuto dice già cosa sta arrivando.
 
 **L'apostrofo è quello tipografico (`’`), mai quello dritto** — anche nelle frasi che scrive il
 backend, che sono testi d'interfaccia come gli altri. Le stringhe vivono in
-`frontend/messages/it.json`/`en.json`, il catalogo `next-intl` dell'interfaccia bilingue, e
+`frontend/messages/it.json`/`en.json`, il catalogo `use-intl` dell'interfaccia bilingue, e
 `npm run check:messaggi` verifica in CI che catalogo e codice non divergano: nessuna chiave usata
 e assente, nessuna presente e mai usata, nessun `error_code` del backend senza una frase, le due
 lingue in parità.
@@ -1529,7 +1530,7 @@ traducono.
 
 ## 20. Stack e strumenti
 
-Next.js App Router su Vercel.
+SPA React + Vite + React Router, servita come file statici da Vercel (ADR 0020).
 
 ### Base
 

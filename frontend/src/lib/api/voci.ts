@@ -306,7 +306,7 @@ function toVoceDettaglio(body: VoceDettaglioBody): VoceDettaglio {
 type ErrorBody = { detail?: string | { error_code?: string; message?: string } };
 
 function baseUrlOrError(): { baseUrl: string } | { status: "error"; errore: ErroreApi } {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!baseUrl) {
     return { status: "error", errore: ERRORE_CONFIGURAZIONE };
   }
@@ -324,9 +324,7 @@ export type VociResult =
  * titolo/descrizione/etichetta di genere nella lingua dell'interfaccia
  * avviene lato backend (`app/core/lingua.py`) sulla stessa intestazione
  * `Accept-Language`. Dal browser il fetch la manda già da solo — nulla da
- * passare qui; da un Server Component (fetch iniziale della pagina) va
- * inoltrata esplicitamente, perché il fetch del server Next.js non eredita
- * gli header della richiesta in arrivo. Vedi `app/(protected)/page.tsx`.
+ * passare qui.
  */
 export async function getVoci(accessToken: string, acceptLanguage?: string): Promise<VociResult> {
   const config = baseUrlOrError();

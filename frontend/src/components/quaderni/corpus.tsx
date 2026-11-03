@@ -1,5 +1,3 @@
-"use client";
-
 import type { Scritto } from "@/lib/api/scritti";
 import { CartaScritto } from "@/components/quaderni/carta-scritto";
 import { EmptyState } from "@/components/states/empty-state";

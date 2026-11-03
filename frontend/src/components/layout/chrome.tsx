@@ -1,11 +1,9 @@
-"use client";
-
 import { Suspense } from "react";
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router";
 
 import { PortaConDati, PortaInAttesa, SalutoConDati } from "@/components/layout/barra-dati";
 import { ProtectedNav } from "@/components/layout/protected-nav";
-import type { DatiBarra } from "@/lib/dati/barra";
+import { useDatiBarra } from "@/lib/dati/barra";
 
 /**
  * Sceglie quale barra mostrare (design doc §5/§9/§15, emendamento 25
@@ -32,22 +30,16 @@ import type { DatiBarra } from "@/lib/dati/barra";
  * sotto — quel layout porta già il proprio, a piena larghezza per la
  * testata e con padding per il resto.
  *
- * `usePathname`, non `params`: questo componente vive nel layout radice
- * dell'area protetta, che non riceve i parametri dinamici delle rotte
- * figlie — è l'unico modo per un layout condiviso di sapere in quale
- * ramo si trova.
+ * Il percorso e non i parametri: questo componente vive nel guscio
+ * dell'area protetta, sopra le rotte figlie — è l'unico modo per un
+ * guscio condiviso di sapere in quale ramo si trova.
  */
-export function Chrome({
-  dati,
-  children,
-}: {
-  /** Promessa e non valori: vedi `barra-dati.tsx`. Aspettarla qui
-   *  significherebbe far aspettare anche `children`, cioè l'intera
-   *  pagina, per un nome e un contatore che stanno in barra. */
-  dati: Promise<DatiBarra>;
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
+export function Chrome({ children }: { children: React.ReactNode }) {
+  // Promessa e non valori: vedi `barra-dati.tsx`. Aspettarla qui
+  // significherebbe far aspettare anche `children`, cioè l'intera pagina,
+  // per un nome e un contatore che stanno in barra.
+  const dati = useDatiBarra();
+  const pathname = useLocation().pathname;
 
   if (pathname.startsWith("/lettori/")) {
     return (

@@ -1,46 +1,58 @@
-import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { Outlet, useParams } from "react-router";
+import { useTranslations } from "use-intl";
 
 import { libreriaCollegato } from "@/lib/dati/membri";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { ErrorState } from "@/components/states/error-state";
+import { RiprovaRotta } from "@/components/states/riprova-rotta";
+import { ScheletroScaffale } from "@/components/states/scheletri";
 import { BarraContesto } from "@/components/lettori/barra-contesto";
-import { getTranslations } from "next-intl/server";
-import { messaggioErrore } from "@/lib/messaggi-errore-server";
+
+function Pagina({ children }: { children: React.ReactNode }) {
+  return <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">{children}</main>;
+}
 
 /**
- * Layout del contesto di un collegato (design doc §15, emendamento 20
- * agosto 2026): sostituisce per intero la barra globale (già rimossa da
- * `Chrome` per queste rotte) con `BarraContesto`, e fa da unico punto in
- * cui si verifica l'accesso — sia la pagina Libreria che quella Annali
- * (le due schede) ereditano questa verifica, non la ripetono.
+ * Il guscio del contesto di un collegato (design doc §15): la testata
+ * `BarraContesto` sopra le due schede, e l'unico punto in cui si verifica
+ * l'accesso — sia la Libreria sia gli Annali lo ereditano, non lo ripetono.
  *
- * `params` è una Promise in Next 16 (frontend/AGENTS.md).
+ * La stanza si apre solo dopo la risposta, deliberatamente: questa lettura non
+ * serve solo alla testata, decide se la stanza è ancora aperta (§15). Mostrare
+ * prima lo scaffale lo farebbe comparire per un istante anche a chi il
+ * collegamento non ce l'ha più. Le due schede leggono la stessa libreria, già
+ * in cache: una richiesta sola.
  */
-export default async function LibreriaCollegatoLayout(
-  props: LayoutProps<"/lettori/[id]">,
-) {
-  const { id } = await props.params;
-  const t = await getTranslations();
+export default function CollegatoGuscio() {
+  const t = useTranslations();
+  const spiega = useMessaggioErrore();
+  const { id = "" } = useParams();
+  const { data: result, isPending, refetch } = useQuery(libreriaCollegato(id));
 
-  // Resta un'attesa bloccante, e deliberatamente: questo fetch non serve
-  // solo a disegnare la testata, decide se la stanza è ancora aperta
-  // (design doc §15). Mandarlo in streaming farebbe comparire lo scaffale
-  // per un istante anche a chi il collegamento non ce l'ha più.
-  // `libreriaCollegato` è la stessa funzione che chiamano le due pagine
-  // figlie: la memoization di richiesta la risolve una volta sola, dove
-  // prima erano due chiamate identiche per ogni navigazione.
-  const result = await libreriaCollegato(id);
-
-  if (result.status === "not_found") {
+  if (isPending) {
     return (
-      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
-        <ErrorState title={t("titoli.nonTrovato")} message={t("assenze.utenteInesistente")} />
-      </main>
+      <Pagina>
+        <div role="status" aria-busy>
+          <span className="sr-only">Un momento…</span>
+          <ScheletroScaffale />
+        </div>
+      </Pagina>
     );
   }
-  if (result.status === "non_collegato") {
+
+  if (result?.status === "not_found") {
     return (
-      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
+      <Pagina>
+        <ErrorState title={t("titoli.nonTrovato")} message={t("assenze.utenteInesistente")} />
+      </Pagina>
+    );
+  }
+  if (result?.status === "non_collegato") {
+    return (
+      <Pagina>
         <div className="flex flex-col items-start gap-3">
           {/* Non "sei stato rimosso", non "errore": una stanza chiusa
               (design doc §15). */}
@@ -48,21 +60,23 @@ export default async function LibreriaCollegatoLayout(
             title={t("titoli.nonPiuAccessibile")}
             message={t("assenze.libreriaChiusa")}
           />
-          {/* Era un comando testuale sottolineato: in una pagina che è un
-              vicolo cieco, l'unica via d'uscita non può avere il peso più
-              leggero della scala. */}
+          {/* In una pagina che è un vicolo cieco, l'unica via d'uscita non
+              può avere il peso più leggero della scala. */}
           <Button render={<Link href="/readers" />} nativeButton={false} variant="outline">
             Torna ai lettori
           </Button>
         </div>
-      </main>
+      </Pagina>
     );
   }
-  if (result.status === "error") {
+  if (!result || result.status === "error") {
     return (
-      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">
-        <ErrorState message={await messaggioErrore("metricheSueNonCaricate", result.errore)} />
-      </main>
+      <Pagina>
+        <ErrorState
+          message={spiega("metricheSueNonCaricate", result?.errore)}
+          azione={<RiprovaRotta riprova={refetch} />}
+        />
+      </Pagina>
     );
   }
 
@@ -72,7 +86,9 @@ export default async function LibreriaCollegatoLayout(
   return (
     <div data-guest className="flex flex-1 flex-col">
       <BarraContesto utenteId={id} nomeUtente={result.utente.nomeUtente} sottotitolo={sottotitolo} />
-      <main className="sotto-la-barra mx-auto w-full max-w-5xl flex-1 px-4 py-5 text-ink sm:p-6">{props.children}</main>
+      <Pagina>
+        <Outlet />
+      </Pagina>
     </div>
   );
 }

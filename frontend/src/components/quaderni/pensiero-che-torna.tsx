@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
@@ -8,7 +6,7 @@ import { getAccessToken } from "@/lib/api/access-token";
 import { formattaData } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { RiferimentoLibro } from "@/components/ui/riferimento-libro";
-import { useLocale } from "next-intl";
+import { useLocale } from "use-intl";
 
 const SOGLIA_SENTENZA = 200;
 

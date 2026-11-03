@@ -4,15 +4,14 @@
  * PRD: "interfaccia bilingue italiano e inglese dal primo giorno... date e
  * numeri seguono la lingua del browser" — nessun selettore (design-frontend.md
  * non ne descrive uno, §23 rimanda solo il perimetro della traduzione, non il
- * meccanismo). La lingua è quindi una funzione pura della stessa intestazione
- * `Accept-Language` che il browser manda da solo con ogni richiesta, calcolata
- * lato server a ogni richiesta — stesso stile di `lib/light.ts`, che calcola
- * la luce dall'ora invece di leggerla da un timer client: nessun cookie,
- * nessun `localStorage`, nessuno stato da tenere sincronizzato.
+ * meccanismo). La lingua è quindi una funzione pura delle lingue preferite del
+ * browser (`navigator.languages`), le stesse da cui il browser compone
+ * l'intestazione `Accept-Language` che manda con ogni richiesta: nessun
+ * cookie, nessun `localStorage`, nessuno stato da tenere sincronizzato.
  *
  * Il backend risolve la stessa intestazione con lo stesso algoritmo
  * (`backend/app/core/lingua.py`): è ciò che tiene allineata la lingua in cui
- * next-intl mostra l'interfaccia con la lingua in cui il backend sceglie fra
+ * use-intl mostra l'interfaccia con la lingua in cui il backend sceglie fra
  * le varianti di titolo/descrizione/etichetta di genere già salvate nelle due
  * lingue (design-frontend.md, entità Variante di titolo/Descrizione) — issue
  * #34, "Attenzione": una sola preferenza, non due che possono disallinearsi.
@@ -61,12 +60,18 @@ export function risolviLingua(acceptLanguage: string | null | undefined): Lingua
   return LINGUA_PREDEFINITA;
 }
 
+/** La lingua dell'interfaccia per questo browser. L'ordine di
+ * `navigator.languages` è già quello di preferenza, e `risolviLingua` ordina
+ * in modo stabile: unirle senza pesi lo conserva. */
+export function linguaDelBrowser(): LinguaInterfaccia {
+  return risolviLingua(navigator.languages?.join(",") || navigator.language);
+}
+
 /**
  * Le intestazioni comuni di ogni fetcher di `lib/api/*.ts` verso il backend:
  * l'autenticazione, più `Accept-Language` quando il chiamante la passa
- * esplicitamente (i fetcher usati da un Server Component per il rendering
- * iniziale — vedi `lib/api/lingua-richiesta.ts`). Un fetch dal browser non
- * passa nulla qui: la manda già da sé, non richiede questo aiuto.
+ * esplicitamente. Dal browser di norma non serve: il fetch la manda già da sé,
+ * composta dalle stesse lingue di `linguaDelBrowser`.
  */
 export function intestazioniConLingua(
   accessToken: string,

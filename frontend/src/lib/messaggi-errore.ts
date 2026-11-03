@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 
 import { erroreDi, type ErroreApi } from "@/lib/api/errore";
 import type messaggi from "../../messages/it.json";

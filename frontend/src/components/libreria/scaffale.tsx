@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -10,7 +8,7 @@ import { nomiAutori } from "@/lib/autori";
 import { RIBBON } from "@/lib/ribbon";
 import { costruisciElementi, impacchetta, type ShelfItem } from "@/lib/shelf-pack";
 import { useContainerWidth, useMisureScaffale } from "@/lib/use-container-width";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 
 import { Volume } from "@/components/libreria/volume";
 import { EmptyShelf } from "@/components/states/empty-shelf";
@@ -21,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { CampoRicerca } from "@/components/ui/campo-ricerca";
 import { IconaPiu } from "@/components/ui/icone";
 import { attributiPastiglia, pastigliaVariants } from "@/components/ui/pastiglia";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "use-intl";
 import { ErroreApp, erroreDi } from "@/lib/api/errore";
 import { useMessaggioErrore } from "@/lib/messaggi-errore";
 

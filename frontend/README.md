@@ -1,6 +1,6 @@
 # Montaigne — frontend
 
-Next.js (App Router) del progetto Montaigne. Per convenzioni, stack e contesto del prodotto vedi [`AGENTS.md`](../AGENTS.md) alla radice del repo e la documentazione in [`../docs`](../docs).
+SPA React + Vite del progetto Montaigne (ADR 0020). Per convenzioni, stack e contesto del prodotto vedi [`AGENTS.md`](../AGENTS.md) alla radice del repo e la documentazione in [`../docs`](../docs).
 
 ## Avvio locale
 

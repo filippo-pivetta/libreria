@@ -1,11 +1,14 @@
-import { Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useParams, useSearchParams } from "react-router";
+import { useTranslations } from "use-intl";
 
 import { scheda } from "@/lib/dati/catalogo";
+import { useMessaggioErrore } from "@/lib/messaggi-errore";
 import { ErrorState } from "@/components/states/error-state";
+import { RiprovaRotta } from "@/components/states/riprova-rotta";
 import { ScheletroScheda } from "@/components/states/scheletri";
 import { SchedaPubblica } from "@/components/scheda-pubblica/scheda-pubblica";
-import { getTranslations } from "next-intl/server";
-import { messaggioErrore } from "@/lib/messaggi-errore-server";
+import type { FonteScheda } from "@/lib/api/schede";
 
 /**
  * La scheda di un libro che NON si ha in libreria (design doc §13).
@@ -33,29 +36,33 @@ import { messaggioErrore } from "@/lib/messaggi-errore-server";
  * miglioramento della risoluzione, non un dato di cui la pagina ha
  * bisogno.
  */
-export default function BookPage(props: PageProps<"/book/[fonte]/[id]">) {
-  return (
-    <Suspense fallback={<ScheletroScheda />}>
-      <Carta params={props.params} searchParams={props.searchParams} />
-    </Suspense>
-  );
-}
-
-async function Carta({
-  params,
-  searchParams,
-}: {
-  params: PageProps<"/book/[fonte]/[id]">["params"];
-  searchParams: PageProps<"/book/[fonte]/[id]">["searchParams"];
-}) {
-  const [{ fonte, id }, { alt }] = await Promise.all([params, searchParams]);
-  const t = await getTranslations();
+export default function BookPage() {
+  const t = useTranslations();
+  const { fonte = "", id = "" } = useParams();
 
   if (fonte !== "catalogo" && fonte !== "google") {
     return <ErrorState title={t("titoli.nonTrovata")} message={t("assenze.paginaInesistente")} />;
   }
 
-  const result = await scheda(fonte, id);
+  return <Carta fonte={fonte} id={id} />;
+}
+
+function Carta({ fonte, id }: { fonte: FonteScheda; id: string }) {
+  const t = useTranslations();
+  const spiega = useMessaggioErrore();
+  const [parametri] = useSearchParams();
+  const alt = parametri.get("alt");
+  const { data: result, isPending, refetch } = useQuery(scheda(fonte, id));
+
+  if (isPending) return <ScheletroScheda />;
+  if (!result) {
+    return (
+      <ErrorState
+        message={spiega("schedaNonCaricata")}
+        azione={<RiprovaRotta riprova={refetch} />}
+      />
+    );
+  }
 
   if (result.status === "not_found") {
     return (
@@ -68,11 +75,16 @@ async function Carta({
     return <ErrorState message={t("avvisi.cataloghiMuti")} />;
   }
   if (result.status === "error") {
-    return <ErrorState message={await messaggioErrore("schedaNonCaricata", result.errore)} />;
+    return (
+      <ErrorState
+        message={spiega("schedaNonCaricata", result.errore)}
+        azione={<RiprovaRotta riprova={refetch} />}
+      />
+    );
   }
 
   const volumiAlternativi =
-    typeof alt === "string" && alt.length > 0 ? alt.split(",").filter(Boolean) : [];
+    alt && alt.length > 0 ? alt.split(",").filter(Boolean) : [];
 
   return (
     <SchedaPubblica
