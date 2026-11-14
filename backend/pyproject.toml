@@ -51,7 +51,7 @@ target-version = "py311"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"  # quella del Dockerfile e della CI: con 3.11 mypy rifiuta il pacchetto `deprecated`
 strict = true
 ignore_missing_imports = true
 exclude = ["tests/"]

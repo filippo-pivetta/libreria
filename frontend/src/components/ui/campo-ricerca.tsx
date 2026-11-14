@@ -61,21 +61,24 @@ type Taglia = "insegna" | "piena" | "riga";
 
 const TAGLIE: Record<
   Taglia,
-  { campo: string; icona: string; imbottitura: string }
+  { campo: string; icona: string; croce: string; imbottitura: string }
 > = {
   insegna: {
     campo: "py-3 font-display text-2xl",
     icona: "size-5",
+    croce: "size-5",
     imbottitura: "pl-8",
   },
   piena: {
     campo: "py-2.5 font-ui text-base",
     icona: "size-[1.0625rem]",
+    croce: "size-[1.0625rem]",
     imbottitura: "pl-7",
   },
   riga: {
     campo: "py-2 font-ui text-base sm:text-sm",
     icona: "size-4",
+    croce: "size-4",
     imbottitura: "pl-6",
   },
 };
@@ -149,22 +152,30 @@ export function CampoRicerca({
           "[&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden",
           misure.campo,
           misure.imbottitura,
-          pieno && "pr-8",
+          pieno && "pr-7",
         )}
         {...props}
       />
       {pieno && (
-        <button
-          type="button"
-          aria-label="Svuota il campo"
-          onClick={() => {
-            onCambia("");
-            riferimento.current?.focus();
-          }}
-          className="bersaglio absolute top-1/2 right-0 inline-flex size-[1.375rem] -translate-y-1/2 items-center justify-center rounded-full border border-line text-ink-soft transition-colors duration-(--dur-micro) hover:border-line-strong hover:text-ink"
-        >
-          <IconaChiudi className="size-3" />
-        </button>
+        // Il posizionamento sta su un contenitore e non sul pulsante:
+        // `.bersaglio` (tokens.css) è fuori da ogni `@layer` e dichiara
+        // `position: relative`, che batte la utility `absolute`. Sul
+        // pulsante, la croce finiva nel flusso del flex DOPO la riga e il
+        // `-translate-y-1/2` la sollevava di mezzo diametro: galleggiava
+        // sopra il campo, fuori dalla sua riga (14 novembre 2026).
+        <span className="absolute inset-y-0 right-0 flex items-center">
+          <button
+            type="button"
+            aria-label="Svuota il campo"
+            onClick={() => {
+              onCambia("");
+              riferimento.current?.focus();
+            }}
+            className="bersaglio inline-flex items-center justify-center rounded-full text-ink-soft transition-colors duration-(--dur-micro) hover:text-ink focus-visible:text-ink"
+          >
+            <IconaChiudi className={misure.croce} />
+          </button>
+        </span>
       )}
     </form>
   );

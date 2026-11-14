@@ -354,6 +354,14 @@ async def esegui(payload: dict[str, Any]) -> None:
     campione di 41 di quelle schede, 35 avevano una copertina raggiungibile
     da uno dei due passi nuovi. Le due chiavi sono facoltative: un lavoro
     accodato prima di loro si comporta come prima.
+
+    Prima di tutte, se c'è, `url_immagine`: un indirizzo https scelto a
+    mano dal Manutentore per le opere che nessuna delle due fonti ha
+    (ADR 0007, si accoda da SQL; la coda `lavoro` è chiusa a ogni ruolo
+    applicativo, quindi nessun Utente può far scaricare al server un
+    indirizzo arbitrario). Passa per gli stessi controlli e la stessa
+    conversione delle altre fonti, e se non è una copertina si prosegue
+    con quelle.
     """
     libro_id = str(payload["libro_id"])
     volume_id = payload.get("google_volume_id")
@@ -362,7 +370,10 @@ async def esegui(payload: dict[str, Any]) -> None:
 
     client = _cliente()
     dati: bytes | None = None
-    if volume_id:
+    url_scelto = payload.get("url_immagine")
+    if isinstance(url_scelto, str) and url_scelto.startswith("https://"):
+        dati = await _prova(client, url_scelto, libro_id, "URL del Manutentore")
+    if dati is None and volume_id:
         dati = await _prova(client, _url_google(str(volume_id)), libro_id, "Google")
     for isbn in isbn_da_provare[:_MASSIMO_ISBN]:
         if dati is not None:

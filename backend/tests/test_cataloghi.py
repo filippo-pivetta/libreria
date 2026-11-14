@@ -7,6 +7,7 @@ dal vivo, non da dati inventati: sono annotati dove lo sono, perché è
 l'unico modo per capire, rileggendoli, perché una regola esiste.
 """
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -568,3 +569,58 @@ def test_il_client_verso_una_fonte_e_uno_solo(monkeypatch: pytest.MonkeyPatch) -
     # E non è stato chiuso: un client chiuso non si riapre, e la chiamata
     # dopo fallirebbe con "client is closed".
     assert costruiti[0].is_closed is False
+
+
+# --- Wikidata: l'autore decide fra omonimi (14 novembre 2026) ---------------
+
+
+def _wikidata_finto(monkeypatch: pytest.MonkeyPatch, autori_dichiarati: dict[str, str]) -> None:
+    """Due opere intitolate "Pensieri", nessuna descrizione che nomini
+    l'autore: decide l'autore dichiarato (P50)."""
+    from app.cataloghi import wikidata
+
+    def _opera(autore: str) -> dict[str, Any]:
+        return {
+            "labels": {"it": {"value": "Pensieri"}},
+            "claims": {
+                "P31": [{"mainsnak": {"datavalue": {"value": {"id": "Q7725634"}}}}],
+                "P50": [{"mainsnak": {"datavalue": {"value": {"id": autore}}}}],
+            },
+        }
+
+    async def _chiama(parametri: dict[str, str]) -> dict[str, Any]:
+        if parametri["action"] == "wbsearchentities":
+            return {
+                "search": [
+                    {"id": "QPASCAL", "description": "opera filosofica"},
+                    {"id": "QAURELIO", "description": "opera filosofica"},
+                ]
+            }
+        if parametri.get("props") == "labels":
+            return {
+                "entities": {
+                    q: {"labels": {"it": {"value": n}}} for q, n in autori_dichiarati.items()
+                }
+            }
+        return {"entities": {"QPASCAL": _opera("A1"), "QAURELIO": _opera("A2")}}
+
+    monkeypatch.setattr(wikidata, "_chiama", _chiama)
+
+
+def test_wikidata_sceglie_l_omonimo_dell_autore_giusto(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.cataloghi import wikidata
+
+    _wikidata_finto(monkeypatch, {"A1": "Blaise Pascal", "A2": "Marco Aurelio"})
+    opera = asyncio.run(wikidata.cerca_opera("Pensieri", ["Marco Aurelio"]))
+    assert opera is not None and opera.qid == "QAURELIO"
+
+
+def test_wikidata_senza_l_autore_giusto_non_sceglie_nessuno(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Prima si ripiegava sul primo candidato: era così che Marco Aurelio
+    diventava Pascal."""
+    from app.cataloghi import wikidata
+
+    _wikidata_finto(monkeypatch, {"A1": "Blaise Pascal", "A2": "Blaise Pascal"})
+    assert asyncio.run(wikidata.cerca_opera("Pensieri", ["Marco Aurelio"])) is None

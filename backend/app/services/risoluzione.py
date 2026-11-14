@@ -113,12 +113,15 @@ def _titoli_vicini(a: str, b: str) -> bool:
     return bool(x and y) and (x in y or y in x)
 
 
-async def _per_isbn(isbn_disponibili: list[str]) -> open_library.OperaOL | None:
+async def _per_isbn(isbn_disponibili: list[str], volume: Volume) -> open_library.OperaOL | None:
     """Passo 2. Prova tutti gli ISBN del gruppo, non solo il primo.
 
     È il guadagno concreto del collasso per opera: più edizioni raccolte
     sotto una riga significano più ISBN da provare, e basta che uno solo
     sia in Open Library perché l'identità si chiuda.
+
+    Un'opera incoerente col volume (`_coerente_col_volume`) non chiude
+    l'identità: si passa all'ISBN successivo, come se quello non ci fosse.
     """
     for isbn in isbn_disponibili:
         try:
@@ -126,9 +129,69 @@ async def _per_isbn(isbn_disponibili: list[str]) -> open_library.OperaOL | None:
         except FonteNonRaggiungibileError as errore:
             logger.info("Open Library non raggiungibile su isbn %s: %s", isbn, errore.motivo)
             return None
-        if opera is not None:
+        if opera is not None and await _coerente_col_volume(opera, volume):
             return opera
     return None
+
+
+async def _coerente_col_volume(opera: open_library.OperaOL, volume: Volume) -> bool:
+    """Se l'opera che Open Library associa a un ISBN può essere davvero
+    quella del volume.
+
+    L'ISBN era trattato come prova sufficiente, ma Open Library contiene
+    edizioni attaccate all'opera sbagliata. Misurato il 14 novembre 2026:
+    una ristampa americana di "Storia di una capinera" (9781980538622)
+    risolve sull'opera "I Malavoglia di Giovanni Verga", 369 edizioni.
+    Record ricco, quindi la catena ne adottava titolo e anno, e la scheda
+    della Capinera è nata come "I Malavoglia".
+
+    Due controlli, dal più economico:
+
+    1. **Autore.** Lo stesso del passo per testo: un cognome in comune non
+       prova che sia la stessa opera, ma la sua assenza prova che non lo è.
+    2. **Titolo, solo per un record ricco.** Un record povero non detta il
+       contenuto (vedi `_conferma_il_titolo_che_abbiamo`), e la sua identità
+       resta registrata come sempre. Un record ricco con un titolo diverso
+       dal nostro è o una traduzione ("Lo straniero" -> "L'Étranger") o
+       un'opera sbagliata, e localmente non si distinguono: decide Wikidata,
+       che per l'opera giusta ha un'etichetta vicina al titolo del volume in
+       una delle sue lingue. Una chiamata in più, solo in questo caso.
+
+    Nel dubbio si scarta: il PRD preferisce un dato assente a uno sbagliato,
+    e il passo per testo e Wikidata restano a disposizione.
+    """
+    if (
+        volume.autori
+        and opera.autori
+        and not autori_compatibili(list(volume.autori), list(opera.autori))
+    ):
+        logger.info(
+            "Opera Open Library %s scartata: autori %s incompatibili con %s.",
+            opera.work_id,
+            opera.autori,
+            volume.autori,
+        )
+        return False
+    if not opera.e_plausibile or _titoli_vicini(volume.titolo, opera.titolo):
+        return True
+    try:
+        conferma = await wikidata.per_open_library(opera.work_id)
+    except FonteNonRaggiungibileError as errore:
+        logger.info(
+            "Wikidata non raggiungibile per confermare %s: %s", opera.work_id, errore.motivo
+        )
+        return False
+    if conferma is not None and any(
+        _titoli_vicini(volume.titolo, etichetta) for etichetta in conferma.etichette.values()
+    ):
+        return True
+    logger.info(
+        "Opera Open Library %s (%r) scartata: titolo diverso da %r e non confermato da Wikidata.",
+        opera.work_id,
+        opera.titolo,
+        volume.titolo,
+    )
+    return False
 
 
 async def _per_testo(volume: Volume) -> open_library.OperaOL | None:
@@ -271,7 +334,7 @@ async def risolvi(opera_google: google_books.Opera) -> SchedaRisolta:
     if volume.descrizione:
         scheda.descrizioni.append((volume.lingua or "en", volume.descrizione, "google_books", None))
 
-    opera_ol = await _per_isbn(isbn)
+    opera_ol = await _per_isbn(isbn, volume)
     if opera_ol is None:
         opera_ol = await _per_testo(volume)
 

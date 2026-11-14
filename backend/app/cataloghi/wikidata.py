@@ -28,6 +28,7 @@ televisive, album e — insidiosi — elementi separati per le singole
 traduzioni. Da qui il filtro sul tipo.
 """
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -37,6 +38,8 @@ import httpx
 from app.cataloghi import agente, trasporto
 from app.cataloghi.errori import FonteNonRaggiungibileError
 from app.core.testo import cognomi
+
+logger = logging.getLogger("app.cataloghi.wikidata")
 
 _URL = "https://www.wikidata.org/w/api.php"
 _TIMEOUT = httpx.Timeout(8.0)
@@ -201,6 +204,46 @@ def _work_id(rivendicazioni: dict[str, Any]) -> str | None:
     return None
 
 
+async def _per_autore_dichiarato(
+    opere: list[str], entita: dict[str, Any], cognomi_autori: set[str]
+) -> list[str]:
+    """Le opere il cui autore dichiarato (`P50`) porta uno dei cognomi.
+
+    Il secondo controllo, quando la descrizione non nomina l'autore: non
+    tutte lo fanno, e prima di scartare un candidato si guarda l'autore
+    vero. Una sola chiamata per tutte le etichette, e solo in questo caso.
+    """
+    autori_per_opera: dict[str, list[str]] = {}
+    for qid in opere:
+        rivendicazioni = (entita.get("entities") or {}).get(qid, {}).get("claims") or {}
+        autori_per_opera[qid] = [
+            q for q in (_qid_di(v) for v in _valori(rivendicazioni, "P50")) if q
+        ]
+    tutti = sorted({q for qids in autori_per_opera.values() for q in qids})
+    if not tutti:
+        return []
+    etichette = await _chiama(
+        {
+            "action": "wbgetentities",
+            "ids": "|".join(tutti[:50]),
+            "props": "labels",
+            "languages": "|".join(_LINGUE_ETICHETTE),
+        }
+    )
+    nomi: dict[str, list[str]] = {
+        qid: [
+            str(v.get("value")) for v in (dati.get("labels") or {}).values() if isinstance(v, dict)
+        ]
+        for qid, dati in (etichette.get("entities") or {}).items()
+        if isinstance(dati, dict)
+    }
+    return [
+        qid
+        for qid in opere
+        if any(cognomi(nomi.get(autore, [])) & cognomi_autori for autore in autori_per_opera[qid])
+    ]
+
+
 def _e_opera(entita: dict[str, Any]) -> bool:
     tipi = {q for q in (_qid_di(v) for v in _valori(entita.get("claims") or {}, "P31")) if q}
     return bool(tipi & TIPI_OPERA)
@@ -301,8 +344,18 @@ async def cerca_opera(
 
     if cognomi_autori:
         con_autore = [q for q in opere if any(c in descrizioni[q] for c in cognomi_autori)]
-        if con_autore:
-            opere = con_autore
+        if not con_autore:
+            con_autore = await _per_autore_dichiarato(opere, entita, cognomi_autori)
+        if not con_autore:
+            # Prima qui si ripiegava sul primo candidato. Misurato il 14
+            # novembre 2026: "Pensieri" di Marco Aurelio diventava i
+            # "Pensieri" di Pascal (Q17360856), primo per rilevanza, e la
+            # scheda ne prendeva anno, lingua, descrizioni e perfino il
+            # riferimento Open Library. Un autore noto che nessun candidato
+            # porta è una risposta: nessuno di questi è l'opera cercata.
+            logger.info("Wikidata: nessun candidato per %r è di %s.", titolo, list(autori))
+            return None
+        opere = con_autore
 
     # A parità, l'ordine di rilevanza di Wikidata, che è già buono.
     scelto = opere[0]

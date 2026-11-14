@@ -211,3 +211,73 @@ def test_wikidata_giu_non_nega_l_aggiunta(monkeypatch: pytest.MonkeyPatch) -> No
     scheda = asyncio.run(risoluzione.risolvi(gb.Opera(rappresentante=_volume())))
 
     assert scheda.titolo_canonico == "Il nome della rosa"
+
+
+# --- coerenza fra l'ISBN e l'opera di Open Library (14 novembre 2026) -------
+
+
+def _wikidata_con_etichette(monkeypatch: pytest.MonkeyPatch, etichette: dict[str, str]) -> None:
+    from app.cataloghi import wikidata
+
+    async def _per_open_library(work_id: str) -> wikidata.OperaWikidata:
+        return wikidata.OperaWikidata("Q1", etichette, work_id, None, None, {})
+
+    async def _niente(*args: Any, **kwargs: Any) -> None:
+        return None
+
+    monkeypatch.setattr(risoluzione.wikidata, "per_open_library", _per_open_library)
+    monkeypatch.setattr(risoluzione.wikidata, "cerca_opera", _niente)
+
+
+def test_un_isbn_attaccato_all_opera_sbagliata_dello_stesso_autore_e_scartato(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il caso misurato: una ristampa della Capinera risolve sull'opera
+    "I Malavoglia", record ricco. Stesso autore, quindi solo il titolo,
+    confermato o smentito da Wikidata, può fermarlo."""
+    _wikidata_con_etichette(monkeypatch, {"it": "I Malavoglia"})
+    _con_isbn(
+        monkeypatch,
+        ol.OperaOL(
+            "OL141870W", "I Malavoglia di Giovanni Verga", ("Giovanni Verga",), 1881, 250, 369, ()
+        ),
+    )
+    volume = _volume("Storia di una capinera", autori=("Giovanni Verga",))
+
+    scheda = asyncio.run(risoluzione.risolvi(gb.Opera(rappresentante=volume)))
+
+    assert scheda.titolo_canonico == "Storia di una capinera"
+    assert scheda.anno_prima_pubblicazione is None
+    assert not any(f == "open_library" for f, _, _ in scheda.riferimenti)
+
+
+def test_una_traduzione_confermata_da_wikidata_resta_accettata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Il caso legittimo che il controllo sul titolo non deve rompere:
+    l'ISBN italiano dello Straniero risolve sull'opera francese."""
+    _wikidata_con_etichette(monkeypatch, {"fr": "L'Étranger", "it": "Lo straniero"})
+    _con_isbn(
+        monkeypatch,
+        ol.OperaOL("OL15W", "L'Étranger", ("Albert Camus",), 1942, 160, 300, ()),
+    )
+    volume = _volume("Lo straniero", autori=("Albert Camus",))
+
+    scheda = asyncio.run(risoluzione.risolvi(gb.Opera(rappresentante=volume)))
+
+    assert ("open_library", "OL15W", True) in scheda.riferimenti
+    assert scheda.anno_prima_pubblicazione == 1942
+
+
+def test_un_opera_di_un_altro_autore_e_scartata(monkeypatch: pytest.MonkeyPatch) -> None:
+    _senza_wikidata(monkeypatch)
+    _con_isbn(
+        monkeypatch,
+        ol.OperaOL("OL1262495W", "Pensieri", ("Blaise Pascal",), 1670, 300, 400, ()),
+    )
+    volume = _volume("Pensieri", autori=("Marco Aurelio",))
+
+    scheda = asyncio.run(risoluzione.risolvi(gb.Opera(rappresentante=volume)))
+
+    assert scheda.anno_prima_pubblicazione is None
+    assert not any(f == "open_library" for f, _, _ in scheda.riferimenti)

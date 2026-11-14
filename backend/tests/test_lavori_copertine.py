@@ -408,3 +408,36 @@ class _ConnessioneContesto:
 
     def __exit__(self, *args: object) -> None:
         return None
+
+
+def test_l_url_del_manutentore_viene_prima_delle_fonti(
+    scritture: _Scritture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    aggiornamenti = _registra_aggiornamenti(monkeypatch)
+    _con_risposte(
+        monkeypatch,
+        {"esempio.it/copertina.jpg": httpx.Response(200, content=_byte(_copertina_finta()))},
+    )
+
+    asyncio.run(
+        copertine.esegui(
+            {"libro_id": _LIBRO_ID, "url_immagine": "https://esempio.it/copertina.jpg"}
+        )
+    )
+
+    assert len(aggiornamenti) == 1
+
+
+def test_un_url_non_https_viene_ignorato(
+    scritture: _Scritture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _con_risposte(
+        monkeypatch,
+        {"esempio.it/copertina.jpg": httpx.Response(200, content=_byte(_copertina_finta()))},
+    )
+
+    asyncio.run(
+        copertine.esegui({"libro_id": _LIBRO_ID, "url_immagine": "http://esempio.it/copertina.jpg"})
+    )
+
+    assert scritture.stato == "assente"

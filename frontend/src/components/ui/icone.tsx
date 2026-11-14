@@ -22,6 +22,8 @@
  * fanno parte del marchio — qui non ne fanno parte.
  */
 
+import { useId } from "react";
+
 type Props = React.SVGProps<SVGSVGElement>;
 
 function Icona({ children, ...props }: Props & { children: React.ReactNode }) {
@@ -59,14 +61,35 @@ export function IconaLente(props: Props) {
   );
 }
 
-/** La croce di "svuota il campo". Griglia 24 come le altre, ma tracciata
- * corta: sta dentro un cerchio di 18px e a misura piena toccherebbe il
- * bordo. */
+/** Il comando "svuota il campo": un disco pieno con la croce ritagliata,
+ * il disegno che un campo di ricerca ha su iOS da sempre.
+ *
+ * È l'unica icona piena dell'app, ed è voluto. La prima stesura era una
+ * croce a contorno dentro un cerchio a filo: a 22px il filo del cerchio e
+ * quello della croce avevano lo stesso peso, e l'insieme sembrava una
+ * sbavatura più che un comando (14 novembre 2026). Il disco pieno si
+ * legge come un oggetto da premere anche a 16px.
+ *
+ * La croce è un ritaglio (`mask`) e non un tracciato del colore della
+ * carta: il campo sta sulla stanza, sulla carta o su un pannello secondo
+ * la pagina, e la luce cambia con l'ora — un colore fisso sarebbe giusto
+ * solo su uno di quei fondi. Il ritaglio mostra il fondo, qualunque sia.
+ * `useId` perché ogni istanza ha bisogno della propria maschera. */
 export function IconaChiudi(props: Props) {
+  const maschera = useId();
   return (
-    <Icona strokeWidth={1.7} {...props}>
-      <path d="m8 8 8 8M16 8l-8 8" />
-    </Icona>
+    <svg viewBox="0 0 24 24" aria-hidden focusable="false" {...props}>
+      <mask id={maschera}>
+        <rect width="24" height="24" fill="white" />
+        <path
+          d="m8.75 8.75 6.5 6.5m0-6.5-6.5 6.5"
+          stroke="black"
+          strokeWidth={2.1}
+          strokeLinecap="round"
+        />
+      </mask>
+      <circle cx="12" cy="12" r="10" fill="currentColor" mask={`url(#${maschera})`} />
+    </svg>
   );
 }
 
