@@ -102,6 +102,8 @@ spazio copertine, rate limit.
   `verifica_superficie_data_api`.
 - `tests/dati_*.sql` — seminano dati di prova per schermate specifiche, non girano in CI.
 - `manutenzione/semina/` — popolamento del catalogo, con il suo runbook (`COME_PROCEDERE.md`).
+- `manutenzione/catalogo/ricette.sql` — le query ricorrenti di manutenzione (salute, coda,
+  copertine, semina, doppioni, correzioni, pagine), spiegate in `docs/manutenzione.md`.
 
 ## Gotcha non ovvi
 Regole che non si deducono dal codice guardandolo da vicino, e che si violano per distrazione.
