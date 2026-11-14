@@ -102,6 +102,52 @@ def _url_open_library(isbn13: str) -> str:
     return f"https://covers.openlibrary.org/b/isbn/{isbn13}-L.jpg?default=false"
 
 
+def _url_open_library_id(cover_id: int) -> str:
+    """Copertina per identificativo d'immagine, quello che un'opera di Open
+    Library elenca in `covers`. Stesso `default=false` dell'URL per ISBN."""
+    return f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg?default=false"
+
+
+def _url_record_open_library(identificativo: str) -> str:
+    """Il record JSON dell'opera (`OL…W`) o, per i pochi riferimenti che il
+    catalogo ha registrato come edizione (`OL…M`), dell'edizione: entrambi
+    portano l'elenco `covers`."""
+    cartella = "books" if identificativo.endswith("M") else "works"
+    return f"https://openlibrary.org/{cartella}/{identificativo}.json"
+
+
+_MASSIMO_ISBN = 6
+"""Quanti ISBN provare su Open Library. Un'opera seminata ne porta fino a
+una dozzina, quasi tutti ristampe print-on-demand senza immagine: oltre i
+primi la probabilità di trovarne una non giustifica le richieste, e la
+copertina dell'opera arriva comunque dopo."""
+
+_MASSIMO_OPERE = 3
+
+
+async def _id_copertina_opera(client: httpx.AsyncClient, identificativo: str) -> int | None:
+    """Il primo identificativo d'immagine dell'opera, o None se non ne ha.
+
+    Open Library usa -1 nell'elenco per "immagine rimossa": va saltato.
+    """
+    url = _url_record_open_library(identificativo)
+    try:
+        risposta = await client.get(url)
+    except httpx.HTTPError as errore:
+        raise ErroreTransitorio(f"{url}: {errore}") from errore
+    if risposta.status_code == 404:
+        return None
+    if risposta.status_code >= 500 or risposta.status_code == 429:
+        raise ErroreTransitorio(f"{url}: HTTP {risposta.status_code}")
+    if risposta.status_code >= 400:
+        return None
+    try:
+        copertine_opera = risposta.json().get("covers") or []
+    except ValueError:
+        return None
+    return next((c for c in copertine_opera if isinstance(c, int) and c > 0), None)
+
+
 async def _scarica(client: httpx.AsyncClient, url: str) -> bytes | None:
     """Ritorna i byte, oppure None se la fonte dichiara di non avere nulla.
 
@@ -291,21 +337,43 @@ async def esegui(payload: dict[str, Any]) -> None:
     la regola del PRD ("senza ulteriori tentativi automatici") si realizza
     senza casi particolari — nessuno chiede un altro tentativo, quindi
     nessuno lo fa.
+
+    Le fonti si provano in ordine, fermandosi alla prima immagine che è
+    davvero una copertina:
+
+    1. Google, volume principale — la risoluzione migliore.
+    2. Open Library per ISBN: prima quello principale, poi gli altri del
+       gruppo (`isbn13_alternativi`).
+    3. Open Library per opera (`open_library_work_ids`): la copertina che
+       l'opera elenca per prima, di qualunque edizione sia.
+
+    I passi 2 (oltre il primo ISBN) e 3 sono nati il 14 novembre 2026,
+    misurati in produzione: su 209 schede 'assente' il volume Google era
+    quasi sempre uno senza anteprima (identificativi in `…AAJ`), che
+    risponde col segnaposto, e il solo primo ISBN non bastava. Su un
+    campione di 41 di quelle schede, 35 avevano una copertina raggiungibile
+    da uno dei due passi nuovi. Le due chiavi sono facoltative: un lavoro
+    accodato prima di loro si comporta come prima.
     """
     libro_id = str(payload["libro_id"])
     volume_id = payload.get("google_volume_id")
-    isbn13 = payload.get("isbn13")
+    isbn_da_provare = _distinti([payload.get("isbn13"), *(payload.get("isbn13_alternativi") or [])])
+    opere = _distinti(payload.get("open_library_work_ids") or [])
 
-    dati: bytes | None = None
     client = _cliente()
+    dati: bytes | None = None
     if volume_id:
-        dati = await _scarica(client, _url_google(str(volume_id)))
-        if dati is not None and not _e_una_copertina(dati, libro_id, "Google"):
-            dati = None
-    if dati is None and isbn13:
-        dati = await _scarica(client, _url_open_library(str(isbn13)))
-        if dati is not None and not _e_una_copertina(dati, libro_id, "Open Library"):
-            dati = None
+        dati = await _prova(client, _url_google(str(volume_id)), libro_id, "Google")
+    for isbn in isbn_da_provare[:_MASSIMO_ISBN]:
+        if dati is not None:
+            break
+        dati = await _prova(client, _url_open_library(isbn), libro_id, "Open Library")
+    for opera in opere[:_MASSIMO_OPERE]:
+        if dati is not None:
+            break
+        cover_id = await _id_copertina_opera(client, opera)
+        if cover_id is not None:
+            dati = await _prova(client, _url_open_library_id(cover_id), libro_id, "Open Library")
 
     if dati is None:
         await _scrivi_stato(libro_id, "assente")
@@ -329,6 +397,24 @@ async def esegui(payload: dict[str, Any]) -> None:
             )
 
     await run_in_threadpool(_scrivi)
+
+
+def _distinti(valori: list[Any]) -> list[str]:
+    """Stringhe non vuote, senza doppioni, nell'ordine dato."""
+    visti: list[str] = []
+    for valore in valori:
+        testo = str(valore).strip() if valore else ""
+        if testo and testo not in visti:
+            visti.append(testo)
+    return visti
+
+
+async def _prova(client: httpx.AsyncClient, url: str, libro_id: str, fonte: str) -> bytes | None:
+    """I byte di `url` se sono una copertina utilizzabile, altrimenti None."""
+    dati = await _scarica(client, url)
+    if dati is not None and not _e_una_copertina(dati, libro_id, fonte):
+        return None
+    return dati
 
 
 def _e_una_copertina(dati: bytes, libro_id: str, fonte: str) -> bool:

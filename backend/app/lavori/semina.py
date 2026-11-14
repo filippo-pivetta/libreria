@@ -59,6 +59,18 @@ dell'opera — con l'anno dell'antologia (1980) al posto di quello
 dell'opera. Sul piu' lungo prende 3/6 e viene scartata."""
 
 
+LINGUA_PREFERITA = "it"
+"""A pari punteggio di titolo, il volume in questa lingua vince sugli altri.
+
+Il volume scelto da' la copertina e il primo ISBN della scheda, cioe' cio'
+che la cerchia vede sullo scaffale. Misurato il 14 novembre 2026 sulla
+riparazione di 62 schede: per i titoli identici in ogni lingua ("Kitchen",
+"La vegetariana", "Il Maestro e Margherita") vinceva il primo risultato di
+Google, ed erano edizioni spagnole, brasiliane, francesi, ungheresi. Non e'
+un filtro: un'opera di cui Google non ha un volume italiano resta
+seminabile, e un titolo che corrisponde meglio vince comunque."""
+
+
 async def esegui(payload: dict[str, Any]) -> None:
     titolo = str(payload.get("titolo") or "").strip()
     autori = [str(a) for a in (payload.get("autori") or [])]
@@ -126,6 +138,7 @@ def _scegli(
 
     migliore: google_books.Opera | None = None
     punteggio_migliore = 0.0
+    italiano_migliore = False
     for opera in opere:
         volume = opera.rappresentante
         if attesi and not (cognomi(list(volume.autori)) & attesi):
@@ -134,9 +147,11 @@ def _scegli(
         if not parole:
             continue
         punteggio = len(parole & parole_attese) / max(len(parole), len(parole_attese))
-        # Stretto, non `>=`: a pari punteggio vince chi Google ha messo
-        # prima, che e' l'unico ordinamento per rilevanza che abbiamo.
-        if punteggio > punteggio_migliore:
-            migliore, punteggio_migliore = opera, punteggio
+        italiano = volume.lingua == LINGUA_PREFERITA
+        # Stretto, non `>=`: a pari punteggio E pari lingua vince chi
+        # Google ha messo prima, che e' l'unico ordinamento per rilevanza
+        # che abbiamo. A pari punteggio, invece, vince il volume italiano.
+        if (punteggio, italiano) > (punteggio_migliore, italiano_migliore):
+            migliore, punteggio_migliore, italiano_migliore = opera, punteggio, italiano
 
     return migliore if punteggio_migliore >= SOGLIA_TITOLO else None

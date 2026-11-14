@@ -312,7 +312,13 @@ def crea_scheda(
         # un'immagine che nessuno produrrà. Il libro_id non esiste prima
         # dell'insert, quindi è qui e non nel chiamante che i payload si
         # possono comporre.
-        if copertina_volume_id or copertina_isbn13:
+        # Oltre al volume e all'ISBN scelti, il lavoro riceve tutti gli
+        # altri ISBN e le opere di Open Library: sono i ripieghi che
+        # `app/lavori/copertine.py` prova quando Google risponde col
+        # segnaposto, il caso misurato più frequente.
+        isbn_alternativi = [i for f, i, _ in riferimenti if f == "isbn13" and i != copertina_isbn13]
+        opere_open_library = [i for f, i, _ in riferimenti if f == "open_library"]
+        if copertina_volume_id or copertina_isbn13 or isbn_alternativi or opere_open_library:
             lavoro_repository.accoda(
                 connection,
                 "copertina",
@@ -321,6 +327,8 @@ def crea_scheda(
                     "libro_id": str(libro_id),
                     "google_volume_id": copertina_volume_id,
                     "isbn13": copertina_isbn13,
+                    "isbn13_alternativi": isbn_alternativi,
+                    "open_library_work_ids": opere_open_library,
                 },
             )
         if titoli_wikipedia:

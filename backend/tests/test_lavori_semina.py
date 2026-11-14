@@ -91,3 +91,27 @@ def test_preferisce_l_opera_all_antologia_quando_ci_sono_entrambe() -> None:
         _opera("Nineteen Eighty-Four", ("George Orwell",), "v2"),
     ]
     assert _scegli(opere, "Nineteen Eighty-Four", ["George Orwell"]) is opere[1]
+
+
+def _in_lingua(opera: Opera, lingua: str) -> Opera:
+    from dataclasses import replace
+
+    return Opera(rappresentante=replace(opera.rappresentante, lingua=lingua))
+
+
+def test_a_pari_titolo_preferisce_il_volume_italiano() -> None:
+    """Il caso misurato il 14 novembre 2026: per "Kitchen" il primo
+    risultato di Google era l'edizione spagnola, e la copertina della
+    scheda veniva da lì."""
+    spagnola = _in_lingua(_opera("Kitchen", ("Banana Yoshimoto",), "es1"), "es")
+    italiana = _in_lingua(_opera("Kitchen", ("Banana Yoshimoto",), "it1"), "it")
+    assert _scegli([spagnola, italiana], "Kitchen", ["Banana Yoshimoto"]) is italiana
+
+
+def test_un_titolo_migliore_vince_sulla_lingua() -> None:
+    """La lingua decide solo a pari punteggio: non è un filtro."""
+    inglese = _in_lingua(_opera("Il nome della rosa", ("Umberto Eco",), "en1"), "en")
+    italiana = _in_lingua(
+        _opera("Il nome della rosa e altri scritti", ("Umberto Eco",), "it1"), "it"
+    )
+    assert _scegli([inglese, italiana], "Il nome della rosa", ["Umberto Eco"]) is inglese

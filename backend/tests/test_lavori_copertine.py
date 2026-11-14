@@ -267,6 +267,93 @@ def test_ripiego_su_open_library_quando_google_non_ha_la_copertina(
     assert len(aggiornamenti) == 1
 
 
+def _registra_aggiornamenti(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
+    aggiornamenti: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(
+        copertine.catalogo_repository,
+        "aggiorna_copertina",
+        lambda conn, libro_id, mini, grande, colore, colore_scuro: aggiornamenti.append(
+            (mini, grande, colore)
+        ),
+    )
+    monkeypatch.setattr(copertine.database, "connessione_dal_pool", lambda: _ConnessioneContesto())
+    return aggiornamenti
+
+
+def test_prova_gli_altri_isbn_quando_il_primo_non_ha_la_copertina(
+    scritture: _Scritture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    segnaposto = (_CAMPIONI / "google_segnaposto.png").read_bytes()
+    aggiornamenti = _registra_aggiornamenti(monkeypatch)
+    _con_risposte(
+        monkeypatch,
+        {
+            "books.google.com": httpx.Response(200, content=segnaposto),
+            "isbn/9780000000002-L.jpg": httpx.Response(200, content=_byte(_copertina_finta())),
+        },
+    )
+
+    asyncio.run(
+        copertine.esegui(
+            {
+                "libro_id": _LIBRO_ID,
+                "google_volume_id": "abc123",
+                "isbn13": "9780000000001",
+                "isbn13_alternativi": ["9780000000002"],
+            }
+        )
+    )
+
+    assert scritture.stato is None
+    assert len(aggiornamenti) == 1
+
+
+def test_ripiego_sulla_copertina_dell_opera_di_open_library(
+    scritture: _Scritture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Il caso più frequente in produzione: volume Google senza anteprima,
+    nessun ISBN con immagine, ma l'opera su Open Library ne elenca una.
+    Il -1 in testa all'elenco è un'immagine rimossa e va saltato."""
+    segnaposto = (_CAMPIONI / "google_segnaposto.png").read_bytes()
+    aggiornamenti = _registra_aggiornamenti(monkeypatch)
+    _con_risposte(
+        monkeypatch,
+        {
+            "books.google.com": httpx.Response(200, content=segnaposto),
+            "openlibrary.org/works/OL123W.json": httpx.Response(200, json={"covers": [-1, 4242]}),
+            "b/id/4242-L.jpg": httpx.Response(200, content=_byte(_copertina_finta())),
+        },
+    )
+
+    asyncio.run(
+        copertine.esegui(
+            {
+                "libro_id": _LIBRO_ID,
+                "google_volume_id": "abc123AAJ",
+                "isbn13": "9780000000001",
+                "open_library_work_ids": ["OL123W"],
+            }
+        )
+    )
+
+    assert scritture.stato is None
+    assert len(aggiornamenti) == 1
+
+
+def test_opera_senza_copertine_resta_assente(
+    scritture: _Scritture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _con_risposte(
+        monkeypatch,
+        {"openlibrary.org/works/OL123W.json": httpx.Response(200, json={"title": "x"})},
+    )
+
+    asyncio.run(copertine.esegui({"libro_id": _LIBRO_ID, "open_library_work_ids": ["OL123W"]}))
+
+    assert scritture.stato == "assente"
+    assert scritture.caricati == {}
+
+
 def test_una_striscia_di_scansione_non_diventa_una_copertina(
     scritture: _Scritture, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -31,6 +31,7 @@ personale. Il trasporto condiviso dai due moduli sta in `openai_client.py`
 from dataclasses import dataclass
 
 from app.cataloghi.openai_client import chiama_json
+from app.core import lingua_originale as codici_lingua
 from app.core.testo import (
     REGOLA_STILE_PER_IL_MODELLO,
     REGOLA_TRATTINI_PER_IL_MODELLO,
@@ -81,7 +82,13 @@ _SCHEMA_ARRICCHIMENTO = {
     "properties": {
         "generi": {"type": "array", "items": {"type": "string"}},
         "anno_prima_pubblicazione": {"type": ["integer", "null"]},
-        "lingua_originale": {"type": ["string", "null"]},
+        # Un codice dall'elenco chiuso, mai il nome per esteso: senza enum
+        # il modello rispondeva «inglese», «English» o «Amerikanisches
+        # Englisch» (app/core/lingua_originale.py).
+        "lingua_originale": {
+            "type": ["string", "null"],
+            "enum": [*sorted(codici_lingua.CODICI), None],
+        },
     },
     "required": ["generi", "anno_prima_pubblicazione", "lingua_originale"],
     "additionalProperties": False,
@@ -113,7 +120,7 @@ async def classifica_e_deduci(
         for campo, necessario in (
             ("il genere", necessita_genere),
             ("l'anno di prima pubblicazione", necessita_anno),
-            ("la lingua originale", necessita_lingua),
+            ('la lingua originale (codice ISO 639-1, es. "en", "it")', necessita_lingua),
         )
         if necessario
     ]
@@ -169,7 +176,7 @@ async def classifica_e_deduci(
     return RispostaArricchimento(
         generi=[str(g) for g in dati.get("generi") or []],
         anno_prima_pubblicazione=dati.get("anno_prima_pubblicazione"),
-        lingua_originale=dati.get("lingua_originale"),
+        lingua_originale=codici_lingua.normalizza(dati.get("lingua_originale")),
     )
 
 

@@ -361,6 +361,14 @@ Mobile e desktop hanno pari importanza, con il mobile come riferimento nei casi 
 - `utente_id` denormalizzata su una tabella figlia non basta come garanzia di proprietà: se la riga
   discende da un'altra già di proprietà di un utente, il vincolo è una chiave esterna **composita**
   verso `(id, utente_id)` del genitore.
+- Un Libro nasce SOLO dalla catena di risoluzione del backend (`ricerca_service.assicura_scheda`),
+  raggiunta via API (`POST /libri`, anche da `backend/scripts/importa_libreria.py`) o col lavoro
+  `semina_libro`. MAI un `INSERT` su `libro`, `autore`, `libro_autore` o
+  `libro_riferimento_esterno` da SQL, nemmeno per un import «veloce» da un foglio: da SQL non si
+  raggiungono Google Books né Open Library, la scheda nasce senza identificativi, il recupero
+  copertina non viene mai accodato e resta `in_attesa` per sempre (successo il 23 settembre 2026
+  con 62 libri, riparati il 14 novembre con `semina_libro` + `fondi_libro`). Lo stesso vale per
+  le Voci di un import: si creano dall'API, che le lega a una scheda risolta.
 - Nessun segreto nel codice: sempre variabili d'ambiente (`.env.example` documenta le chiavi, mai
   i valori).
 - Validazione lato server sempre, anche se il client valida già.
