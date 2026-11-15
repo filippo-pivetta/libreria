@@ -58,7 +58,7 @@ export const pastigliaVariants = cva(
     variants: {
       taglia: {
         filtro: "h-[1.875rem] gap-1.5 px-3 text-xs [&_svg]:size-3",
-        comando: "h-9 gap-2 px-3.5 text-[0.8125rem] font-medium [&_svg]:size-[0.9375rem]",
+        comando: "h-9 gap-2 px-3.5 text-[0.8125rem] pointer-coarse:text-sm font-medium [&_svg]:size-[0.9375rem]",
         tema: "h-8 gap-2 px-3.5 font-display text-[0.9375rem] [&_svg]:size-3.5",
       },
       acceso: {

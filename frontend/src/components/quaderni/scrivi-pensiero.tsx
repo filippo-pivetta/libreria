@@ -180,7 +180,7 @@ export function ScriviPensiero({ onChiudi }: { onChiudi: () => void }) {
                     >
                       <span className="truncate text-ink">{voce.libro.titoloCanonico}</span>
                       {(voce.stato === "in_lettura" || voce.stato === "in_pausa") && (
-                        <span className="t-meta shrink-0 text-[11px]">in lettura</span>
+                        <span className="t-meta shrink-0">in lettura</span>
                       )}
                     </button>
                   </li>

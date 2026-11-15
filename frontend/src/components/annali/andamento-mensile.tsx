@@ -50,7 +50,7 @@ export function AndamentoMensile({
           return (
             <div key={MESI[i]} className="flex h-full flex-1 flex-col justify-end">
               {pagine === massimo && (
-                <span className="t-num t-meta mb-1.5 text-center text-[11px]">
+                <span className="t-num t-meta mb-1.5 text-center text-[11px] sm:text-xs">
                   {pagine.toLocaleString("it-IT")}
                 </span>
               )}

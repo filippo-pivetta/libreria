@@ -369,10 +369,17 @@
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
 
-  /* Altezza della barra di navigazione in fondo su mobile, al netto della
-     safe area. Serve anche al contenuto, che deve poter finire sopra di
-     lei, e al toast, che non deve coprirla. */
-  --tab-h: 56px;
+  /* La capsula di navigazione in fondo su mobile (`layout/barra-schede.tsx`):
+     la sua altezza e la distanza dal bordo fisico dello schermo. Servono
+     anche al contenuto, che deve poter finire sopra di lei, e al toast, che
+     non deve coprirla.
+
+     `--tab-fondo` scende di 12px DENTRO la safe area quando c'è un
+     indicatore home (34px su un iPhone senza tasto: la capsula sta a 22px
+     dal bordo, dove la mette iOS), e non va mai sotto i 12px dove la safe
+     area è zero. */
+  --tab-h: 62px;
+  --tab-fondo: max(calc(var(--safe-b) - 12px), var(--sp3));
 }
 
 /* -----------------------------------------------------------------------------
@@ -459,7 +466,7 @@
    -------------------------------------------------------------------------- */
 @media (max-width: 639.98px) {
   .sotto-la-barra {
-    padding-bottom: calc(var(--tab-h) + var(--safe-b) + var(--sp5));
+    padding-bottom: calc(var(--tab-h) + var(--tab-fondo) + var(--sp5));
   }
 }
 
@@ -472,7 +479,7 @@
 }
 @media (max-width: 639.98px) {
   .sopra-la-barra {
-    bottom: calc(var(--tab-h) + var(--safe-b) + var(--sp3));
+    bottom: calc(var(--tab-h) + var(--tab-fondo) + var(--sp3));
   }
 }
 
@@ -538,6 +545,52 @@
    -------------------------------------------------------------------------- */
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* LO ZOOM CHE NESSUNO HA CHIESTO (novembre 2026).
+
+   Due cause, due rimedi, e nessuno dei due blocca l'ingrandimento a due dita.
+
+   1. Il doppio tocco. Su iOS due tocchi ravvicinati su un punto che non è
+      un campo — una pastiglia premuta due volte, una voce di menù, la riga
+      di un selettore — ingrandiscono la pagina. `manipulation` toglie solo
+      quel gesto: il pizzico resta.
+   2. `text-size-adjust`: senza, Safari ingrandisce da sé il testo quando
+      il telefono passa in orizzontale, e le misure di questo file non
+      valgono più. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+/* Su ogni elemento e non solo su <html>: `touch-action` non si eredita oltre
+   un contenitore che scorre, e i nastri di pastiglie e la fascia delle
+   letture in corso lo sono. Dentro `@layer base` perché un `touch-none`
+   scritto su un componente (la maniglia del segnalibro) deve vincere. */
+@layer base {
+  * {
+    touch-action: manipulation;
+  }
+}
+
+/* 3. Il campo sotto i 16px. iOS ingrandisce la pagina quando prende il
+      fuoco un campo con un corpo più piccolo, e non la rimpicciolisce più:
+      il guaio era annotato in `ui/input.tsx`, ma lo rispettavano solo due
+      campi su undici — le textarea della recensione, della nota e degli
+      insight (15px), il campo data (14), il desiderio dei suggerimenti
+      (15), l'anno di chiusura, le pagine, il nome di conferma su iPad.
+      Una regola sola, come per `--tap`, invece di undici correzioni che il
+      dodicesimo campo dimenticherebbe.
+
+      Fuori da ogni `@layer` di proposito: deve battere `text-sm` e i
+      `text-[15px]` scritti sui componenti. `.campo-grande` la esclude
+      dove il corpo è già ben sopra (il numero della pagina, la ricerca
+      di /aggiungi), che altrimenti scenderebbe a 16. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], .campo-grande),
+  textarea:not(.campo-grande),
+  select {
+    font-size: max(16px, 1rem);
+  }
 }
 
 /* Il bersaglio allargato, SENZA riquadro allargato.
@@ -1312,7 +1365,7 @@ body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); colo
   /* UI */
   .t-label {
     font-family: var(--font-ui);
-    font-size: 0.65625rem;  /* 10.5px */
+    font-size: 0.6875rem;   /* 11px: 10,5 stava sotto il minimo di Apple per il desktop */
     font-weight: 500;
     letter-spacing: 0.13em;
     text-transform: uppercase;
@@ -1352,6 +1405,37 @@ body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); colo
   /* Numeri delle metriche: tabulari SEMPRE, altrimenti le colonne ballano al
      cambio d'anno. */
   .t-num { font-family: var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+  /* LA SCALA SOTTO IL DITO (novembre 2026).
+
+     La scala qui sopra è quella di un desktop, letto a sessanta centimetri:
+     13px di metadati e 10,5 di etichetta. Su un telefono, che si tiene più
+     vicino ma ha pixel più piccoli e si legge di passaggio, gli stessi
+     numeri erano il difetto più segnalato — Apple mette il corpo di
+     lettura di iOS a 17 e quello di macOS a 13 proprio per questo. Un
+     passo in su per ogni ruolo dove c'è un dito, nessuno sul desktop, la
+     cui densità resta una scelta di progetto. Le sentenze (19px) e le
+     testate non cambiano: erano già a misura. */
+  @media (pointer: coarse) {
+    .t-label   { font-size: 0.75rem; }     /* 12px */
+    .t-section { font-size: 0.9375rem; }   /* 15px */
+    .t-body    { font-size: 1rem; }        /* 16px */
+    .t-appunto { font-size: 1rem; }        /* 16px: è anche il corpo delle textarea */
+    .t-meta    { font-size: 0.875rem; }    /* 14px */
+  }
+}
+
+/* Le stesse due taglie di Tailwind che i componenti scrivono come utility
+   (`text-xs` sulle pastiglie e sui riferimenti, `text-sm` sui pulsanti e
+   sulle voci di menù): un passo in su sotto il dito, con lo stesso
+   ragionamento della scala qui sopra. Sono variabili di `@theme`, quindi
+   ridefinirle qui sposta ogni utility che le usa senza toccare un
+   componente. */
+@media (pointer: coarse) {
+  :root {
+    --text-xs: 0.8125rem;   /* 13px, era 12 */
+    --text-sm: 0.9375rem;   /* 15px, era 14 */
+  }
 }
 
 /* -----------------------------------------------------------------------------
@@ -1461,6 +1545,224 @@ body { font-family: var(--font-ui); background-color: var(--mtg-surface-0); colo
 p, li { text-wrap: pretty; }
 
 /* -----------------------------------------------------------------------------
+   LA CAPSULA IN VETRO (solo sotto i 640px, `layout/barra-schede.tsx`)
+
+   Il solo vetro dell'app insieme a `.barra-titolo` e alla testata del
+   desktop, ed è giusto così: il vetro sta sul piano delle COMANDI che
+   galleggiano sopra il contenuto, mai sul contenuto. Le carte restano
+   carta.
+
+   Tre strati, dal basso:
+     `.barra-schede`         l'intera fascia in fondo, trasparente ai tocchi:
+                             porta la sfumatura che fa svanire il contenuto
+                             dove incontra la capsula, invece di farcelo
+                             sbattere contro;
+     `__vetro`               la capsula: velo del piano 1, sfocatura,
+                             saturazione, bordo di luce in alto;
+     `__pillola`/`__goccia`  la voce accesa. La pillola corre (`translate`),
+                             la goccia dentro si deforma (`scale`): due
+                             proprietà su due elementi, così la corsa e la
+                             deformazione non si pestano.
+   -------------------------------------------------------------------------- */
+.barra-schede {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  padding:
+    var(--sp5)
+    max(var(--sp4), var(--safe-r))
+    var(--tab-fondo)
+    max(var(--sp4), var(--safe-l));
+  /* Scroll edge: il contenuto svanisce nella stanza prima di passare sotto
+     la capsula. */
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--mtg-surface-0) 78%, transparent) 0%,
+    color-mix(in oklab, var(--mtg-surface-0) 40%, transparent) 55%,
+    transparent
+  );
+  pointer-events: none;
+  /* Il trascinamento è nostro: senza, il browser si prende il gesto
+     orizzontale e manda `pointercancel` a metà corsa. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    translate var(--dur-panel) var(--ease-settle),
+    opacity var(--dur-panel) var(--ease-settle);
+}
+
+/* Con la tastiera aperta la capsula si fa da parte, come fa la barra di
+   un'app di sistema: sopra la tastiera ruberebbe metà dello spazio che
+   resta, e i suoi bersagli starebbero dove il pollice cerca i tasti. */
+@media (pointer: coarse) {
+  body:has(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"]):focus,
+    textarea:focus,
+    [contenteditable="true"]:focus
+  ) .barra-schede {
+    translate: 0 100%;
+    opacity: 0;
+  }
+  body:has(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"]):focus,
+    textarea:focus,
+    [contenteditable="true"]:focus
+  ) .barra-schede__vetro {
+    pointer-events: none;
+  }
+}
+
+.barra-schede__vetro {
+  pointer-events: auto;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--voci, 4), minmax(0, 1fr));
+  height: var(--tab-h);
+  padding: var(--sp1);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--mtg-surface-1) 70%, transparent);
+  backdrop-filter: blur(22px) saturate(1.6);
+  border: var(--border-width) solid var(--mtg-line);
+  box-shadow: var(--shadow-2), inset 0 1px 0 var(--mtg-rim);
+}
+
+.barra-schede__pillola {
+  position: absolute;
+  top: var(--sp1);
+  bottom: var(--sp1);
+  left: var(--sp1);
+  width: calc((100% - 2 * var(--sp1)) / var(--voci, 4));
+  translate: calc(var(--indice, 0) * 100%) 0;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    translate var(--dur-goccia) var(--ease-goccia),
+    opacity var(--dur-micro) var(--ease-settle);
+}
+.barra-schede__pillola[data-visibile] {
+  opacity: 1;
+}
+/* Sotto il dito la pillola segue il pollice senza ritardo: la corsa elastica
+   è per il salto, non per il trascinamento. */
+.barra-schede[data-trascina] .barra-schede__pillola {
+  translate: var(--trascina, 0px) 0;
+  transition-duration: 60ms, var(--dur-micro);
+  transition-timing-function: linear, var(--ease-settle);
+}
+
+.barra-schede__goccia {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--mtg-ink) 9%, transparent);
+  transition:
+    scale var(--dur-panel) var(--ease-goccia),
+    background-color var(--dur-micro) var(--ease-settle);
+}
+.barra-schede__goccia[data-salto] {
+  animation: goccia var(--dur-goccia) var(--ease-settle);
+}
+/* Trascinata, la goccia si gonfia come una lente e si fa più chiara: è
+   l'oggetto che si sta tenendo in mano. */
+.barra-schede[data-trascina] .barra-schede__goccia {
+  scale: 1.12 1.16;
+  background: color-mix(in oklab, var(--mtg-surface-2) 72%, transparent);
+  box-shadow: var(--shadow-1), inset 0 1px 0 var(--mtg-rim);
+}
+
+/* Corsa di una goccia: si allunga nel verso del moto e si assottiglia, poi
+   rimbalza un poco nell'altro senso e si ricompone. Solo `scale`. */
+@keyframes goccia {
+  0%   { scale: 1 1; }
+  28%  { scale: 1.32 0.8; }
+  58%  { scale: 0.94 1.07; }
+  80%  { scale: 1.03 0.98; }
+  100% { scale: 1 1; }
+}
+
+.barra-schede__voce {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  border-radius: 999px;
+  color: var(--mtg-ink-soft);
+  -webkit-touch-callout: none;
+  transition:
+    color var(--dur-micro) var(--ease-settle),
+    scale var(--dur-micro) var(--ease-rise);
+}
+.barra-schede__voce[aria-current="page"] {
+  color: var(--mtg-accent-strong);
+}
+.barra-schede__voce:active {
+  scale: 0.92;
+}
+.barra-schede__voce:focus-visible {
+  border-radius: 999px;
+  outline-offset: -2px;
+}
+.barra-schede__etichetta {
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;     /* 11px: il minimo di iOS, ed è ciò che usa */
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.barra-schede__contatore {
+  position: absolute;
+  top: -6px;
+  left: calc(100% - 5px);
+  line-height: 1;
+}
+
+/* La testata del desktop: lo stesso principio, senza capsula. Velata sulla
+   stanza invece che opaca, così il contenuto che le scorre sotto si intuisce
+   e la barra smette di sembrare un muro. */
+.testata-vetro {
+  background: color-mix(in oklab, var(--mtg-surface-0) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+
+/* Chi alza il contrasto o riduce la trasparenza vuole superfici piene: il
+   vetro torna carta, la sfumatura torna stanza. */
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  .barra-schede__vetro {
+    background: var(--mtg-surface-1);
+    backdrop-filter: none;
+    border-color: var(--mtg-line-strong);
+  }
+  .barra-schede__goccia {
+    background: color-mix(in oklab, var(--mtg-ink) 16%, transparent);
+  }
+  .testata-vetro,
+  .barra-titolo {
+    background: var(--mtg-surface-0);
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .barra-schede__vetro {
+    border: 1px solid;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .barra-schede__goccia {
+    border: 2px solid;
+  }
+}
+
+/* -----------------------------------------------------------------------------
    PANNELLI IN PAGINA
 
    L'app non ha modali (§19): ogni cosa che si apre è un pannello dentro il
@@ -1504,6 +1806,11 @@ p, li { text-wrap: pretty; }
   --dur-panel: 240ms;   /* apertura di un pannello in pagina */
   --dur-lift:  280ms;   /* sollevamento del dorso */
   --dur-rito:  380ms;   /* rito di apertura del libro. Tetto duro: 400ms */
+
+  /* La corsa della pillola nella barra in fondo: un poco di oltrepasso,
+     perché una goccia che arriva non si ferma di colpo. */
+  --dur-goccia: 440ms;
+  --ease-goccia: cubic-bezier(0.34, 1.36, 0.64, 1);
 }
 
 /* Regola dura: solo transform e opacity. Qualsiasi altra proprietà animata

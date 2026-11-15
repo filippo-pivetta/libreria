@@ -210,7 +210,7 @@ export function Temi({
                 <span className="max-w-[16ch] truncate sm:max-w-none" title={tema.nome}>
                   {tema.nome}
                 </span>
-                <span className={`font-ui text-[11px] ${attivo ? "opacity-70" : "text-ink-soft"}`}>
+                <span className={`font-ui text-xs ${attivo ? "opacity-70" : "text-ink-soft"}`}>
                   {libri}
                 </span>
               </button>

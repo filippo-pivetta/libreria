@@ -64,7 +64,7 @@ const TAGLIE: Record<
   { campo: string; icona: string; croce: string; imbottitura: string }
 > = {
   insegna: {
-    campo: "py-3 font-display text-2xl",
+    campo: "campo-grande py-3 font-display text-2xl",
     icona: "size-5",
     croce: "size-5",
     imbottitura: "pl-8",

@@ -227,3 +227,69 @@ export function IconaStella({
     </svg>
   );
 }
+
+/* -----------------------------------------------------------------------------
+ * LE ICONE DELLA BARRA IN FONDO (novembre 2026).
+ *
+ * La barra di un telefono era fatta di sole parole in maiuscoletto da
+ * 10,5px: si leggeva solo guardandola, e il pollice non ha un'etichetta da
+ * leggere, ha una forma da riconoscere. Quattro disegni sulla stessa
+ * griglia delle altre, ciascuno con due stati: a contorno quando la voce è
+ * spenta, con il corpo velato di inchiostro (`piena`) quando è accesa — il
+ * modo in cui iOS distingue da sempre la linguetta attiva, qui con la
+ * velatura al posto del pieno perché a pieno gli interni (le righe del
+ * quaderno, le barre) sparirebbero.
+ * -------------------------------------------------------------------------- */
+
+type PropsVoce = Props & { piena?: boolean };
+
+function velatura(piena?: boolean) {
+  return piena ? { fill: "currentColor", fillOpacity: 0.2 } : {};
+}
+
+/** Libreria: tre volumi, l'ultimo appoggiato. */
+export function IconaLibreria({ piena, ...props }: PropsVoce) {
+  const corpo = velatura(piena);
+  return (
+    <Icona strokeWidth={piena ? 1.75 : 1.5} {...props}>
+      <rect x="3.75" y="4.5" width="3.5" height="15" rx="0.9" {...corpo} />
+      <rect x="8.75" y="6.5" width="3.5" height="13" rx="0.9" {...corpo} />
+      <rect x="13.4" y="5" width="3.5" height="14.5" rx="0.9" transform="rotate(14 13.4 19.5)" {...corpo} />
+      <path d="M3 21h18" />
+    </Icona>
+  );
+}
+
+/** Quaderni: il quaderno con la sua costa e due righe scritte. */
+export function IconaQuaderni({ piena, ...props }: PropsVoce) {
+  return (
+    <Icona strokeWidth={piena ? 1.75 : 1.5} {...props}>
+      <rect x="5" y="3.5" width="14" height="17" rx="2.25" {...velatura(piena)} />
+      <path d="M8.5 3.5v17M11.5 8.5h4.5M11.5 12h4.5" />
+    </Icona>
+  );
+}
+
+/** Annali: tre colonne di un anno che cresce. */
+export function IconaAnnali({ piena, ...props }: PropsVoce) {
+  const corpo = velatura(piena);
+  return (
+    <Icona strokeWidth={piena ? 1.75 : 1.5} {...props}>
+      <rect x="4" y="12.5" width="4" height="7" rx="1" {...corpo} />
+      <rect x="10" y="8.5" width="4" height="11" rx="1" {...corpo} />
+      <rect x="16" y="4.5" width="4" height="15" rx="1" {...corpo} />
+    </Icona>
+  );
+}
+
+/** Lettori: due persone, la seconda un passo indietro. */
+export function IconaLettori({ piena, ...props }: PropsVoce) {
+  const corpo = velatura(piena);
+  return (
+    <Icona strokeWidth={piena ? 1.75 : 1.5} {...props}>
+      <circle cx="9" cy="8.25" r="3.5" {...corpo} />
+      <path d="M2.75 19.5a6.25 6.25 0 0 1 12.5 0z" {...corpo} />
+      <path d="M16.25 4.9a3.5 3.5 0 0 1 0 6.7M18 14.2a6.25 6.25 0 0 1 3.25 5.3" />
+    </Icona>
+  );
+}

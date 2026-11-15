@@ -3,6 +3,8 @@ import { Link } from "@/components/ui/link";
 import { useLocation } from "react-router";
 
 import { ContatoreConDati, PortaConDati, PortaInAttesa } from "@/components/layout/barra-dati";
+import { BarraSchede } from "@/components/layout/barra-schede";
+import { IconaAnnali, IconaLettori, IconaLibreria, IconaQuaderni } from "@/components/ui/icone";
 import type { DatiBarra } from "@/lib/dati/barra";
 
 /**
@@ -62,17 +64,17 @@ import type { DatiBarra } from "@/lib/dati/barra";
  * larghezza, e l'etichetta può tornare al maiuscoletto pieno di §4 senza
  * doverne stringere la spaziatura per farcela stare.
  *
- * **Senza icone, di proposito.** In tutta l'app non esiste un vocabolario
- * di icone: due chevron in un selettore d'anno e qualche glifo
- * tipografico. Tre parole corte bastano, e la voce attiva si legge dal
- * filetto e dall'inchiostro pieno.
+ * **Con le icone, sotto i 640px (novembre 2026).** Prima la barra era di
+ * sole parole: «tre parole corte bastano». Bastavano a chi la legge, non al
+ * pollice, che riconosce una forma prima di leggere un'etichetta da 10,5px.
+ * In alto, col mouse e lo spazio di un desktop, restano le parole.
  * ---------------------------------------------------------------------------
  */
 const NAV_ITEMS = [
-  { href: "/", label: "Libreria" },
-  { href: "/quaderni", label: "Quaderni" },
-  { href: "/annals", label: "Annali" },
-  { href: "/readers", label: "Lettori" },
+  { href: "/", label: "Libreria", Icona: IconaLibreria },
+  { href: "/quaderni", label: "Quaderni", Icona: IconaQuaderni },
+  { href: "/annals", label: "Annali", Icona: IconaAnnali },
+  { href: "/readers", label: "Lettori", Icona: IconaLettori },
 ] as const;
 
 /**
@@ -119,8 +121,8 @@ export function ProtectedNav({ dati }: { dati: Promise<DatiBarra> }) {
       {/* ---------------------------------------------------------------
           DA 640px IN SU — la barra in alto, fissa allo scorrimento.
           --------------------------------------------------------------- */}
-      <header className="plane-0 sticky top-0 z-40 hidden border-b border-line sm:block">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4">
+      <header className="testata-vetro sticky top-0 z-40 hidden border-b border-line sm:block">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-2">
           <nav className="flex items-center gap-6" aria-label="Navigazione principale">
             {NAV_ITEMS.map((item) => {
               const active = attiva(pathname, item.href);
@@ -130,9 +132,9 @@ export function ProtectedNav({ dati }: { dati: Promise<DatiBarra> }) {
                   href={item.href}
                   prefetch
                   aria-current={active ? "page" : undefined}
-                  className={`t-label relative pb-1 tracking-[0.1em] transition-colors duration-(--dur-micro) ${
+                  className={`t-label relative py-3 tracking-[0.1em] transition-colors duration-(--dur-micro) ${
                     active
-                      ? "text-ink after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-ink"
+                      ? "text-ink after:absolute after:inset-x-0 after:bottom-2 after:h-px after:bg-ink"
                       : "text-ink-soft hover:text-ink"
                   }`}
                 >
@@ -157,47 +159,8 @@ export function ProtectedNav({ dati }: { dati: Promise<DatiBarra> }) {
         </div>
       </header>
 
-      {/* ---------------------------------------------------------------
-          SOTTO I 640px — la barra in fondo.
-
-          `--safe-b` sotto il contenuto e non attorno: la barra arriva fino al
-          bordo fisico dello schermo (altrimenti sopra l’indicatore home
-          resterebbe una striscia del piano 0 sotto di lei), ma le etichette
-          restano sopra l’indicatore.
-
-          `paddingBottom` in linea e non in Tailwind perché è una `env()`
-          dentro una `calc()`: passa dai token, non da un valore a occhio.
-          --------------------------------------------------------------- */}
-      <nav
-        aria-label="Navigazione principale"
-        className="plane-0 fixed inset-x-0 bottom-0 z-40 flex border-t border-line sm:hidden"
-        style={{ paddingBottom: "var(--safe-b)" }}
-      >
-        {NAV_ITEMS.map((item) => {
-          const active = attiva(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch
-              aria-current={active ? "page" : undefined}
-              className={`relative flex flex-1 items-center justify-center gap-1.5 px-1 ${
-                active
-                  ? "text-ink before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-ink"
-                  : "text-ink-soft"
-              }`}
-              style={{ minHeight: "var(--tab-h)" }}
-            >
-              <span className="t-label tracking-[0.1em] text-current">{item.label}</span>
-              {item.href === "/readers" && (
-                <Suspense fallback={null}>
-                  <ContatoreConDati promessa={dati} />
-                </Suspense>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* SOTTO I 640px — la capsula in vetro in fondo (`barra-schede.tsx`). */}
+      <BarraSchede voci={NAV_ITEMS} attiva={attiva} dati={dati} />
     </>
   );
 }

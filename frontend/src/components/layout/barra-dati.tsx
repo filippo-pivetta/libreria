@@ -70,7 +70,7 @@ export function ContatoreConDati({ promessa }: { promessa: Promise<DatiBarra> })
 
   return (
     <span
-      className="rounded-object bg-alert px-1 py-0.5 font-ui text-[10px] font-semibold text-on-accent normal-case"
+      className="inline-block min-w-[1.125rem] rounded-full bg-alert px-1 py-0.5 text-center font-ui text-[11px] leading-none font-semibold tabular-nums text-on-accent normal-case"
       aria-label={`${receivedRequestCount} ${
         receivedRequestCount === 1 ? "richiesta ricevuta" : "richieste ricevute"
       }`}

@@ -116,15 +116,15 @@ const buttonVariants = cva(
       size: {
         // `lg` e' l'AZIONE PRIMARIA: una sola per zona, e 44px anche col
         // mouse. Era `h-9` (36px) e non si distingueva dalle altre.
-        lg: "h-11 px-5 text-[0.9375rem] has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4 [&_svg:not([class*='size-'])]:size-[1.0625rem]",
+        lg: "h-11 px-5 text-[0.9375rem] pointer-coarse:text-base has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4 [&_svg:not([class*='size-'])]:size-[1.0625rem]",
         // Azione secondaria. 38px: piu' bassa della primaria, ma sopra la
         // soglia in cui un bordo di 1px smette di leggersi come bersaglio.
         default: "h-[2.375rem] px-[0.9375rem] text-sm has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        sm: "h-8 gap-1.5 px-3 text-[0.8125rem] has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
+        sm: "h-8 gap-1.5 px-3 text-[0.8125rem] pointer-coarse:text-sm has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
         xs: "h-7 gap-1 rounded-object px-2.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
         // Nessun riquadro: la taglia di `quiet`. Corpo e colore di `t-meta`,
         // che e' il registro in cui questi comandi vivevano gia'.
-        testo: "h-auto gap-1.5 p-0 text-[0.8125rem] leading-[1.45] [&_svg:not([class*='size-'])]:size-3.5",
+        testo: "h-auto gap-1.5 p-0 text-[0.8125rem] pointer-coarse:text-sm leading-[1.45] [&_svg:not([class*='size-'])]:size-3.5",
         icon: "size-[2.375rem]",
         "icon-xs": "size-7 rounded-object [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8 [&_svg:not([class*='size-'])]:size-4",

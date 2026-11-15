@@ -77,7 +77,7 @@ export function CampoData({
       max={max}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        "field-date w-[9.5rem] appearance-none bg-transparent px-0 font-ui text-sm text-ink outline-none placeholder:text-ink-soft",
+        "field-date w-[9.5rem] pointer-coarse:w-[10.5rem] appearance-none bg-transparent px-0 font-ui text-sm text-ink outline-none placeholder:text-ink-soft",
         riquadro
           ? // Dentro il riquadro il campo non ha contorno proprio: il
             // contorno è il riquadro. `h-full` perché il bersaglio sotto

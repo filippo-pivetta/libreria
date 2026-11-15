@@ -218,7 +218,7 @@ export function SegnalibroAvanzamento({
             }
           }}
           onBlur={() => setTestoPagina(String(clamp(paginaDigitata)))}
-          className="field-line min-w-[2.5ch] border-0 border-b border-line-strong bg-transparent px-0 font-display text-5xl leading-none font-light tracking-tight tabular-nums text-ink outline-none"
+          className="campo-grande field-line min-w-[2.5ch] border-0 border-b border-line-strong bg-transparent px-0 font-display text-5xl leading-none font-light tracking-tight tabular-nums text-ink outline-none"
           style={{ width: `${Math.max(2.5, testoPagina.length + 0.6)}ch` }}
         />
         {massimo !== null && <span className="t-body text-base text-ink-soft">di {massimo}</span>}

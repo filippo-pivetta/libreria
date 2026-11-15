@@ -293,9 +293,16 @@ di pagina, perché lassù non c'è più una barra che le ospiti. "Esci" non sta 
 è nel Profilo, prima sezione. Lo scambio è in CSS, non in JavaScript, quindi non c'è un istante
 in cui compare la barra sbagliata.
 
-**Senza icone, di proposito.** In tutta l'app non esiste un vocabolario di icone — due chevron
-in un selettore d'anno e qualche glifo tipografico. Quattro parole corte bastano, e la voce attiva
-si legge dal filetto come in alto. Le iniziali non fanno eccezione: sono già il modo in cui l'app
+**Sotto i 640px, una capsula in vetro con le icone (emendamento 15 novembre 2026).** La barra in
+fondo non è più una striscia opaca di quattro parole in maiuscoletto da 10,5px: è una capsula che
+galleggia sopra il contenuto (`layout/barra-schede.tsx`), velata e sfocata come la barra di
+un'app di sistema iOS, con icona ed etichetta da 11px per voce. La voce attiva la dice una pillola
+che scorre da una voce all'altra deformandosi come una goccia, e che si può trascinare col pollice;
+l'icona accesa ha il corpo velato d'inchiostro. Il pollice riconosce una forma prima di leggere
+una parola, ed è lui il lettore di quella barra. Il vetro è l'eccezione dichiarata al piano 0: sta
+solo sulle barre che galleggiano (questa, `.barra-titolo`, la testata del desktop), mai sul
+contenuto, e torna opaco con `prefers-contrast: more`. Con la tastiera aperta la capsula si
+ritira. In alto, sul desktop, restano le parole e il filetto. Le iniziali non fanno eccezione: sono già il modo in cui l'app
 rappresenta una persona (§16, §15), non un'icona nuova, e non portano il filetto della voce
 attiva nemmeno sul Profilo — non sono una destinazione fra le altre, sono chi sei.
 
